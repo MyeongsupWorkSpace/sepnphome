@@ -300,9 +300,15 @@ function renderAuth() {
   let user = null;
   try { user = raw ? JSON.parse(raw) : null; } catch {}
   if (user && user.nickname) {
-    const rank = (user.rank || '').toLowerCase();
-    const rankClass = ['bronze','silver','gold','platinum','vip','master','normal'].includes(rank) ? `rank-${rank}` : 'rank-normal';
-    const rankLabel = rank === 'normal' ? '노말등급' : (user.rank || 'SILVER').toUpperCase();
+    let rank = (user.rank || '').toLowerCase();
+    let rankClass = ['bronze','silver','gold','platinum','vip','master','normal'].includes(rank) ? `rank-${rank}` : 'rank-normal';
+    let rankLabel = rank === 'normal' ? '노말등급' : (user.rank || 'SILVER').toUpperCase();
+    // 관리자 표시 강제: 언제나 MASTER 등급 배지로 표기
+    if ((user.role || '').toLowerCase() === 'admin') {
+      rank = 'master';
+      rankClass = 'rank-master';
+      rankLabel = 'MASTER';
+    }
     actions.innerHTML = `
       <span class="user-info">
         <span class="rank-badge ${rankClass}">${rankLabel}</span>
