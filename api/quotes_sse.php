@@ -1,8 +1,10 @@
 <?php
 // Simple Server-Sent Events providing the quotes list when the file changes.
+// Cloudflare/Nginx 친화적 헤더 (프록시 버퍼링/변환 방지)
 header('Content-Type: text/event-stream');
-header('Cache-Control: no-cache');
+header('Cache-Control: no-cache, no-transform');
 header('Connection: keep-alive');
+header('X-Accel-Buffering: no');
 
 $file = __DIR__ . '/../data/quotes.json';
 if (!file_exists($file)) {

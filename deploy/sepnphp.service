@@ -1,0 +1,17 @@
+[Unit]
+Description=SEPNPHP Container Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/docker run --rm \
+  --name sepnphp \
+  -p 127.0.0.1:8080:80 \
+  -e APP_USE_JSON=0 \
+  -v /srv/sepnphp/data:/var/www/html/data \
+  ghcr.io/myeongsupworkspace/sepnphp:latest
+ExecStop=/usr/bin/docker stop sepnphp
+
+[Install]
+WantedBy=multi-user.target

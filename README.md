@@ -50,6 +50,8 @@ docker compose up -d --build
 - `APP_USE_JSON=0` (컨테이너에서는 SQLite 사용)
 - 볼륨: `./data:/var/www/html/data` (데이터 영속화)
 
+자세한 서버 호스팅 가이드는 [DEPLOY.md](DEPLOY.md)를 참고하세요.
+
 ## 파일 구조
 - index.html: 홈페이지
 - assets/css/styles.css: 기본 스타일
