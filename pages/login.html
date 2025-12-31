@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>로그인 — SEPNP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+    <style>
+      .login { max-width: 420px; margin: 40px auto; display: grid; gap: 12px; }
+      .field { display: grid; gap: 6px; }
+      .field input, .field select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 16px; }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="../index.html" class="logo" aria-label="홈으로 이동">
+          <img src="../assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요">
+          <ul>
+            <li><a href="about.html">회사소개</a></li>
+            <li><a href="products.html">제품소개</a></li>
+            <li><a href="quote.html">견적문의</a></li>
+            <li><a href="contact.html">문의 게시판</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+    <main class="container" style="padding: 24px 0;">
+      <h1>로그인</h1>
+      <p>상단 로그인 버튼을 통해 모달에서 로그인/회원가입을 진행합니다.</p>
+    </main>
+    <footer class="site-footer">
+      <div class="container footer-bottom">© <span id="year"></span> SEPNP.</div>
+    </footer>
+    <script src="../assets/js/main.js"></script>
+    <script>
+      // 페이지 진입 시 로그인 모달 열기
+      window.addEventListener('DOMContentLoaded', () => {
+        const actions = document.querySelector('.nav-actions');
+        if (actions) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn login-compact';
+          btn.textContent = '로그인';
+          btn.addEventListener('click', () => { if (typeof createLoginModal === 'function') createLoginModal(); });
+          actions.appendChild(btn);
+          if (typeof createLoginModal === 'function') createLoginModal();
+        }
+      });
+    </script>
+  </body>
+</html>

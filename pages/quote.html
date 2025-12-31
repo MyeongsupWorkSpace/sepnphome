@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>견적문의 — SEPNP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+    <style>
+      .form { display: grid; gap: 12px; max-width: 720px; }
+      .field { display: grid; gap: 6px; }
+      .field input, .field textarea { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 16px; }
+      .field textarea { min-height: 120px; resize: vertical; }
+      .actions { display: flex; gap: 12px; align-items: center; }
+      .note { color: var(--muted); }
+      .success { color: #16a34a; }
+      .error { color: #ef4444; }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="../index.html" class="logo" aria-label="홈으로 이동">
+          <img src="../assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요">
+          <ul>
+            <li><a href="about.html">회사소개</a></li>
+            <li><a href="products.html">제품소개</a></li>
+            <li><a href="quote.html" aria-current="page">견적문의</a></li>
+            <li><a href="contact.html">문의 게시판</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+    <main class="container" style="padding: 24px 0;">
+      <h1>견적문의 등록</h1>
+      <form class="form" id="quoteForm">
+        <div class="field">
+          <label for="name">성함</label>
+          <input id="name" name="name" required />
+        </div>
+        <div class="field">
+          <label for="email">이메일</label>
+          <input id="email" name="email" type="email" required />
+        </div>
+        <div class="field">
+          <label for="phone">연락처</label>
+          <input id="phone" name="phone" />
+        </div>
+        <div class="field">
+          <label for="product">제품명</label>
+          <input id="product" name="product" required />
+        </div>
+        <div class="field">
+          <label for="message">요청사항</label>
+          <textarea id="message" name="message" placeholder="상세 요청사항을 입력해 주세요"></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn" type="submit">등록하기</button>
+          <span id="status" class="note" aria-live="polite"></span>
+        </div>
+      </form>
+    </main>
+    <footer class="site-footer">
+      <div class="container footer-bottom">© <span id="year"></span> SEPNP.</div>
+    </footer>
+    <script src="../assets/js/main.js"></script>
+    <script>
+      const form = document.getElementById('quoteForm');
+      const statusEl = document.getElementById('status');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        statusEl.textContent = '등록 중…';
+        const data = Object.fromEntries(new FormData(form).entries());
+        try {
+          const res = await fetch('../api/submit_quote.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          if (!res.ok) throw new Error('서버 오류');
+          const j = await res.json();
+          if (j && j.ok) {
+            statusEl.textContent = '등록되었습니다. 홈페이지에서 실시간으로 확인 가능합니다.';
+            statusEl.className = 'note success';
+            form.reset();
+          } else {
+            throw new Error(j?.error || '등록 실패');
+          }
+        } catch (err) {
+          statusEl.textContent = '오류: ' + (err?.message || '등록에 실패했습니다');
+          statusEl.className = 'note error';
+        }
+      });
+    </script>
+  </body>
+</html>

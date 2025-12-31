@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  web:
+    build: .
+    ports:
+      - "8000:80"
+    environment:
+      APP_USE_JSON: "0" # use SQLite in container
+    volumes:
+      - ./data:/var/www/html/data # persist DB/JSON files
+    restart: unless-stopped

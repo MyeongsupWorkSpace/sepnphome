@@ -1,0 +1,20 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies (future-proof)
+node_modules/
+vendor/
+
+# Env & logs
+.env
+*.log
+
+# Runtime data (not versioned)
+data/app.db
+data/users.json
+data/quotes.json
+data/board.json
+
+# Docker (optional)
+*.pid

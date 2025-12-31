@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>문의 게시판 — SEPNP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="../index.html" class="logo" aria-label="홈으로 이동">
+          <img src="../assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요">
+          <ul>
+            <li><a href="about.html">회사소개</a></li>
+            <li><a href="products.html">제품소개</a></li>
+            <li><a href="quote.html">견적문의</a></li>
+            <li><a href="contact.html" aria-current="page">문의 게시판</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+    <main class="container" style="padding: 24px 0;">
+      <h1>문의 게시판</h1>
+      <section class="board">
+        <div id="boardList" class="board-list" aria-live="polite" aria-busy="true">
+          <div class="loading">게시글을 불러오는 중…</div>
+        </div>
+        <button type="button" class="btn btn-accent fab-write" id="boardWriteBtn">글쓰기</button>
+      </section>
+
+      <!-- 글쓰기 모달 -->
+      <div id="boardWriteModal" hidden>
+        <div class="modal-backdrop" data-modal-close></div>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="writeTitle">
+          <div class="modal-card" style="max-width:640px;">
+            <div class="modal-header">
+              <div class="modal-title" id="writeTitle">글쓰기</div>
+              <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+            </div>
+            <div class="modal-body">
+              <label for=\"wCategory\">분류</label>
+              <select id=\"wCategory\">
+                <option>배송전 취소변경</option>
+                <option>배송 후 교환반품</option>
+                <option>배송문의</option>
+                <option>기타문의</option>
+              </select>
+
+              <label for=\"wName\">이름</label>
+              <input id=\"wName\" />
+
+              <label>연락처</label>
+              <div style=\"display:flex;gap:8px;\">
+                <input id=\"wPhone1\" style=\"flex:1;\" />
+                <span style=\"align-self:center;opacity:.5;\">-</span>
+                <input id=\"wPhone2\" style=\"flex:1;\" />
+                <span style=\"align-self:center;opacity:.5;\">-</span>
+                <input id=\"wPhone3\" style=\"flex:1;\" />
+              </div>
+
+              <label for=\"wOrder\">주문번호</label>
+              <input id=\"wOrder\" />
+
+              <label for=\"wPassword\">비밀번호</label>
+              <input id=\"wPassword\" type=\"password\" />
+
+              <label for=\"wTitle\">제목</label>
+              <input id=\"wTitle\" />
+
+              <label>파일첨부</label>
+              <div style=\"display:grid;gap:8px;\">
+                <input id=\"wFile1\" type=\"file\" />
+                <input id=\"wFile2\" type=\"file\" />
+              </div>
+
+              <label for=\"wContent\">내용</label>
+              <textarea id=\"wContent\" style=\"min-height:220px;\">안녕하세요. SEPNP입니다 :)
+          </div>
+        </div>
+      </div>
+
+      <!-- 글 상세 모달 -->
+      <div id="boardViewModal" hidden>
+        <div class="modal-backdrop" data-modal-close></div>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="viewTitle">
+
+              <label style=\"display:flex;gap:8px;align-items:center;\">
+                <input type=\"checkbox\" id=\"wSecret\" /> 비밀글 (작성자·관리자만 열람)
+              </label>
+              <div class=\"modal-actions\">
+                <button type=\"button\" class=\"btn\" data-modal-close>취소</button>
+                <button type=\"button\" class=\"btn btn-accent\" id=\"wSubmit\">등록</button>
+              </div>
+            </div>
+          <div class="modal-card" style="max-width:720px;">
+            <div class="modal-header">
+              <div class="modal-title" id="viewTitle">게시글</div>
+              <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+            </div>
+            <div class="modal-body" id="viewBody"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="container footer-bottom">© <span id="year"></span> SEPNP.</div>
+    </footer>
+    <script src="../assets/js/main.js"></script>
+  </body>
+</html>

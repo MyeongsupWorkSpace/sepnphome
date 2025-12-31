@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>성은지기인쇄(주)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="index.html" class="logo" aria-label="홈으로 이동">
+          <img src="assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요">
+          <ul>
+            <li><a href="pages/about.html">회사소개</a></li>
+            <li><a href="pages/products.html">제품소개</a></li>
+            <li><a href="pages/quote.html">견적문의</a></li>
+            <li><a href="pages/contact.html">문의 게시판</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+
+    <main>
+      <!-- 첫 번째 블록: 히어로 캐러셀 -->
+      <section class="hero">
+        <div class="swiper hero-swiper">
+          <div class="swiper-wrapper">
+            <div class="swiper-slide hero-slide hero-1">
+              <div class="hero-text">
+                <div class="line1">박스에 반하다 매출에 설레다</div>
+                <div class="line2">고객 매출 증대를 위해 노력하는 기업</div>
+              </div>
+            </div>
+            <div class="swiper-slide hero-slide hero-2">
+              <div class="hero-text">
+                <div class="line1">성은지기인쇄만의 노하우</div>
+                <div class="line2">칼라박스, 골판지 박스, 특수인쇄, 상업인쇄, 쇼핑백</div>
+              </div>
+            </div>
+          </div>
+          <div class="swiper-pagination"></div>
+          <div class="swiper-button-prev" aria-label="이전"></div>
+          <div class="swiper-button-next" aria-label="다음"></div>
+        </div>
+      </section>
+
+      <!-- 두 번째 블록: 좌우 분할 -->
+      <section class="split">
+        <div class="container split-grid">
+          <div class="split-left">           
+            <div class="swiper products-swiper">
+              <div class="swiper-wrapper">
+                <div class="swiper-slide">
+                  <figure class="product-card">
+                    <img src="assets/img/PD_1.jpg" alt="제품 1" loading="lazy" />
+                    <figcaption class="caption">제품 1</figcaption>
+                  </figure>
+                </div>
+                <div class="swiper-slide">
+                  <figure class="product-card">
+                    <img src="assets/img/PD_2.jpg" alt="제품 2" loading="lazy" />
+                    <figcaption class="caption">제품 2</figcaption>
+                  </figure>
+                </div>
+                <div class="swiper-slide">
+                  <figure class="product-card">
+                    <img src="assets/img/PD_3.jpg" alt="제품 3" loading="lazy" />
+                    <figcaption class="caption">제품 3</figcaption>
+                  </figure>
+                </div>
+                <div class="swiper-slide">
+                  <figure class="product-card">
+                    <img src="assets/img/PD_4.jpg" alt="제품 4" loading="lazy" />
+                    <figcaption class="caption">제품 4</figcaption>
+                  </figure>
+                </div>
+                <div class="swiper-slide">
+                  <figure class="product-card">
+                    <img src="assets/img/PD_5.jpg" alt="제품 5" loading="lazy" />
+                    <figcaption class="caption">제품 5</figcaption>
+                  </figure>
+                </div>
+                <div class="swiper-slide">
+                  <figure class="product-card">
+                    <img src="assets/img/PD_6.jpg" alt="제품 6" loading="lazy" />
+                    <figcaption class="caption">제품 6</figcaption>
+                  </figure>
+                </div>
+                <div class="swiper-slide">
+                  <figure class="product-card">
+                    <img src="assets/img/PD_7.jpg" alt="제품 7" loading="lazy" />
+                    <figcaption class="caption">제품 7</figcaption>
+                  </figure>
+                </div>
+                <div class="swiper-slide">
+                  <figure class="product-card">
+                    <img src="assets/img/PD_8.jpg" alt="제품 8" loading="lazy" />
+                    <figcaption class="caption">제품 8</figcaption>
+                  </figure>
+                </div>
+                <div class="swiper-slide">
+                  <figure class="product-card">
+                    <img src="assets/img/PD_9.jpg" alt="제품 9" loading="lazy" />
+                    <figcaption class="caption">제품 9</figcaption>
+                  </figure>
+                </div>
+              </div>
+              <div class="swiper-pagination"></div>
+            </div>
+          </div>
+          <div class="split-right">
+            <div class="split-right-header">
+              <h2>견적 문의 내역</h2>
+            </div>
+            <div id="quotes-list" class="quotes-list" aria-live="polite" aria-busy="true">
+              <div class="loading">견적 데이터를 불러오는 중…</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 플로팅 견적내기 버튼 -->
+    <a href="pages/quote.html" class="floating-cta" aria-label="견적문의">견적문의</a>
+
+    <footer class="site-footer">
+      <div class="container footer-sections">
+        <!-- DELIVERY -->
+        <section class="footer-col">
+          <h4 class="footer-title">DELIVERY</h4>
+          <ul class="bullet-list">
+            <li>교환/반품주소지 :</li>
+            <li>경기도 김포시 양촌읍 석모1로 212번길 100</li>
+          </ul>
+        </section>
+
+        <!-- CUSTOMER CENTER -->
+        <section class="footer-col">
+          <h4 class="footer-title">CUSTOMER CENTER</h4>
+          <p class="muted">전화보다 빠른 상담</p>
+          <div class="cc-buttons">
+            <a class="cc-btn kakao" href="#" aria-label="카카오톡 문의하기">
+              <span class="cc-icon" aria-hidden="true"></span>
+              <span>카카오톡 문의하기</span>
+            </a>
+            <a class="cc-btn naver" href="#" aria-label="네이버 문의하기">
+              <span class="cc-icon" aria-hidden="true"></span>
+              <span>네이버 문의하기</span>
+            </a>
+          </div>
+          <div class="cc-hours">
+            <div class="muted">상담 가능 시간</div>
+            <div>월-금 : am 9:30 ~ pm 5 / 점심시간 : pm 12 : 30 ~ 1 : 30</div>
+            <div class="muted">(토/일/공휴일 휴무)</div>
+          </div>
+        </section>
+
+
+        <!-- ABOUT -->
+        <section class="footer-col">
+          <h4 class="footer-title">ABOUT SEPNP</h4>
+          <ul class="info-list">
+            <li>성은지기인쇄 주식회사</li>
+            <li>주소: 경기도 김포시 양촌읍 석모1로 212번길 100</li>
+            <li>대표/문의: 031-986-8439 · thinking@sepnp.com</li>
+            <li>제휴·협찬·유통 문의: thinking@sepnp.com</li>
+          </ul>
+        </section>
+
+        <!-- ONLY & SOCIAL -->
+        <section class="footer-col only">
+          <h4 class="footer-title">ONLY SEPNP</h4>
+          <ul class="bullet-list">
+            <li>맞춤형 배송 시스템</li>
+            <li>스마트한 사이트 운영</li>
+            <li>맞춤 물류 서비스</li>
+          </ul>
+          <figure class="only-photo">
+            <img src="assets/img/hero02.jpg" alt="회사 전경" loading="lazy" />
+          </figure>
+          <div class="social">
+            <h5 class="footer-title small">SOCIAL</h5>
+            <div class="social-list">
+              <a class="social-btn ig" href="#" aria-label="Instagram"></a>
+              <a class="social-btn fb" href="#" aria-label="Facebook"></a>
+              <a class="social-btn yt" href="#" aria-label="YouTube"></a>
+              <a class="social-btn kk" href="#" aria-label="KakaoTalk"></a>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="container footer-bottom">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="assets/js/main.js"></script>
+  </body>
+</html>
