@@ -2,6 +2,11 @@
   publish = "."
   functions = "netlify/functions"
 
+[build.environment]
+  # 외부 PHP 백엔드의 베이스 URL을 설정하세요.
+  # 예: https://api.yourdomain.com (Nginx가 8080으로 라우팅하는 실제 도메인)
+  API_ORIGIN = "https://example.com"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
