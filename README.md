@@ -6,7 +6,7 @@
 
 1. `netlify.toml`과 `netlify/functions/api.js`가 저장소에 포함되어 있어야 합니다.
 2. Netlify 프로젝트의 환경 변수에 `API_ORIGIN`을 추가하세요. 값은 PHP 서버의 베이스 URL입니다. 예: `https://api.yourdomain.com`.
-3. 배포 후 브라우저에서 정상 동작을 확인합니다. `/api/*`는 Netlify Functions(`/.netlify/functions/api`)로 리다이렉트되어 외부 PHP로 전달됩니다.
+3. 배포 후 브라우저에서 정상 동작을 확인합니다. `/api/*`는 Netlify Functions(`/.netlify/functions/api/:splat`)로 리다이렉트되어 외부 PHP로 전달됩니다.
 
 ### 로컬/테스트 팁
 
