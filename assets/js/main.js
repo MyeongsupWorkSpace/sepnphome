@@ -37,8 +37,21 @@ function applySiteSettingsUI() {
 }
 applySiteSettingsUI();
 
-// API base (supports Go Live on a different port)
-const API_BASE = (location.port === '8000') ? '' : 'http://127.0.0.1:8000';
+// API base (supports Go Live / Netlify / custom backends)
+// 우선순위: window.API_BASE → localStorage('sepn_api_base') → 로컬 개발(127.0.0.1:8000) → 동일 출처
+let API_BASE = '';
+try {
+  const preset = (typeof window !== 'undefined' && typeof window.API_BASE === 'string') ? window.API_BASE : '';
+  const fromStorage = (typeof localStorage !== 'undefined') ? (localStorage.getItem('sepn_api_base') || '') : '';
+  if (preset) {
+    API_BASE = preset;
+  } else if (fromStorage) {
+    API_BASE = fromStorage;
+  } else {
+    const isLocalHost = ['127.0.0.1','localhost'].includes(location.hostname);
+    API_BASE = isLocalHost ? 'http://127.0.0.1:8000' : '';
+  }
+} catch { API_BASE = ''; }
 window.API_BASE = API_BASE;
 const API = (p) => `${API_BASE}${p}`;
 
