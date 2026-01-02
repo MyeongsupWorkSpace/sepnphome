@@ -1,3 +1,18 @@
+## Netlify 배포 (PHP 백엔드 프록시)
+
+이 프로젝트는 정적 페이지 + PHP API로 구성됩니다. Netlify에 배포 시 정적 페이지는 Netlify가 제공하고, `/api/*` 요청은 Netlify Functions가 외부 PHP 서버로 프록시합니다.
+
+### 설정 단계
+
+1. `netlify.toml`과 `netlify/functions/api.js`가 저장소에 포함되어 있어야 합니다.
+2. Netlify 프로젝트의 환경 변수에 `API_ORIGIN`을 추가하세요. 값은 PHP 서버의 베이스 URL입니다. 예: `https://api.yourdomain.com`.
+3. 배포 후 브라우저에서 정상 동작을 확인합니다. `/api/*`는 Netlify Functions(`/.netlify/functions/api`)로 리다이렉트되어 외부 PHP로 전달됩니다.
+
+### 로컬/테스트 팁
+
+- 브라우저 주소에 `?api=https://api.yourdomain.com`를 붙이면 프런트에서 직접 API 베이스를 지정할 수도 있습니다. 초기화는 `?api=clear`.
+- 세션/쿠키가 필요한 관리자 API도 프록시가 `Set-Cookie`를 브라우저에 전달하므로 정상 동작합니다.
+
 # SEPNP — 모던 기업 홈페이지
 
 모던하고 깔끔한 반응형 기업 홈페이지 예시입니다. 홈(히어로 캐러셀 + 좌우 분할 레이아웃), 견적문의 실시간 목록(SSE), 견적 등록 폼(PHP API)을 포함합니다.
