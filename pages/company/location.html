@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>오시는길 — SEPNP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="../../index.html" class="logo" aria-label="홈으로 이동">
+          <img src="../../assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요">
+          <ul>
+            <li><a href="../about.html">회사소개</a></li>
+            <li><a href="../products.html">제품소개</a></li>
+            <li><a href="../quote.html">견적문의</a></li>
+            <li><a href="../contact.html">문의 게시판</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+    <!-- COMPANY 상단 히어로 + 탭 -->
+    <section class="company-hero">
+      <div class="company-hero-inner container">
+        <h1 class="company-title">COMPANY</h1>
+        <nav class="company-tabs" aria-label="Company 탭">
+          <ul>
+            <li><a href="ceo.html">CEO인사말</a></li>
+            <li><a href="history.html">연혁</a></li>
+            <li><a href="awards.html">수상내역</a></li>
+            <li><a href="organization.html">조직도</a></li>
+            <li><a class="active" href="location.html" aria-current="page">오시는길</a></li>
+          </ul>
+        </nav>
+      </div>
+    </section>
+
+    <main class="container company-content">
+      <div class="location-tiles">
+        <section class="info-card">
+          <div class="info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1 1 0 011.03-.24c1.12.37 2.33.57 3.56.57a1 1 0 011 1v3.5a1 1 0 01-.9 1c-8.28.73-15.22-6.21-14.49-14.49a1 1 0 011-.9H9a1 1 0 011 1c0 1.23.2 2.44.57 3.56a1 1 0 01-.24 1.03l-2.7 2.58z"/></svg>
+          </div>
+          <h3>CALL US</h3>
+          <p class="muted">031-985-0536</p>
+        </section>
+
+        <section class="info-card">
+          <div class="info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
+          </div>
+          <h3>ADDRESS</h3>
+          <p class="muted">경기도 김포시 양촌읍 석모로<br/>212번길 100</p>
+        </section>
+
+        <section class="info-card">
+          <div class="info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm-1.4 4.25L12 12.5 5.4 8.25 4 9.5l8 5 8-5-1.4-1.25z"/></svg>
+          </div>
+          <h3>SEND MAIL</h3>
+          <p class="muted">admin@sepnp.com</p>
+        </section>
+
+        <section class="info-card">
+          <div class="info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true"><path d="M19 7h-1V3H8v4H7a3 3 0 00-3 3v7a3 3 0 003 3h12a3 3 0 003-3v-7a3 3 0 00-3-3zM10 5h6v2h-6V5zm9 12H7v-7h12v7zM9 12h2v2H9v-2zm3 0h2v2h-2v-2z"/></svg>
+          </div>
+          <h3>FAX</h3>
+          <p class="muted">031-986-8439</p>
+        </section>
+      </div>
+
+      <section class="map-panel">
+        <iframe class="kakao-map" title="성은지기인쇄 위치" src="https://map.kakao.com/?q=%EC%84%B1%EC%9D%80%EC%A7%80%EA%B8%B0%EC%9D%B8%EC%87%84(%EC%A3%BC)" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <div class="map-banner" role="note" aria-live="polite">
+          <button class="map-banner-close" aria-label="배너 닫기">×</button>
+          <div class="map-banner-title">지도 설정</div>
+          <div class="map-banner-text">교통정보, 지형도, 날씨 등<br>원하는 정보를 사용하세요.</div>
+        </div>
+      </section>
+    </main>
+    <script>
+      // 배너 닫기 핸들러
+      (function(){
+        var btn = document.querySelector('.map-banner-close');
+        if(btn){
+          btn.addEventListener('click', function(){
+            var banner = document.querySelector('.map-banner');
+            if(banner){ banner.style.display = 'none'; }
+          });
+        }
+      })();
+    </script>
+    <footer class="site-footer">
+      <div class="container footer-bottom">© <span id="year"></span> SEPNP.</div>
+    </footer>
+    <script src="../../assets/js/main.js"></script>
+  </body>
+</html>

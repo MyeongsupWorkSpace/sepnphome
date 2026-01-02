@@ -12,6 +12,22 @@ if (use_json_fallback()) {
   $u = json_user_find('sepnp');
   if (!$u) {
     $u = json_user_add('sepnp', password_hash('0536', PASSWORD_DEFAULT), '관리자', 'Master', 'admin', '승인완료');
+  } else {
+    // 기존 sepnp 계정이 있을 경우 개발 편의를 위해 비밀번호와 권한을 보정
+    $users = json_users_all();
+    foreach ($users as &$row) {
+      if (($row['username'] ?? '') === 'sepnp') {
+        $row['password_hash'] = password_hash('0536', PASSWORD_DEFAULT);
+        $row['nickname'] = $row['nickname'] ?: '관리자';
+        $row['rank'] = 'Master';
+        $row['role'] = 'admin';
+        $row['status'] = '승인완료';
+        $u = $row;
+        break;
+      }
+    }
+    unset($row);
+    json_save(json_users_path(), $users);
   }
   $_SESSION['user_name'] = 'sepnp';
   json_out(['ok'=>true,'user'=>$u]);

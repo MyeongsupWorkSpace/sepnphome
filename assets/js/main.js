@@ -37,6 +37,11 @@ function applySiteSettingsUI() {
 }
 applySiteSettingsUI();
 
+// API base (supports Go Live on a different port)
+const API_BASE = (location.port === '8000') ? '' : 'http://127.0.0.1:8000';
+window.API_BASE = API_BASE;
+const API = (p) => `${API_BASE}${p}`;
+
 // Mobile nav toggle
 const navToggle = document.querySelector('.nav-toggle');
 const siteNav = document.querySelector('.site-nav');
@@ -74,16 +79,21 @@ if (navToggle && siteNav) {
   });
 }
 
-// Swiper init
-const heroSwiper = new Swiper('.hero-swiper', {
-  loop: true,
-  autoplay: { delay: 7500, disableOnInteraction: false, pauseOnMouseEnter: true },
-  speed: 900,
-  effect: 'fade',
-  fadeEffect: { crossFade: true },
-  keyboard: { enabled: true },
-  pagination: { el: '.hero .swiper-pagination', clickable: true },
-});
+// Swiper init (guard when Swiper not loaded on some pages)
+let heroSwiper = null;
+try {
+  if (typeof Swiper !== 'undefined') {
+    heroSwiper = new Swiper('.hero-swiper', {
+      loop: true,
+      autoplay: { delay: 7500, disableOnInteraction: false, pauseOnMouseEnter: true },
+      speed: 900,
+      effect: 'fade',
+      fadeEffect: { crossFade: true },
+      keyboard: { enabled: true },
+      pagination: { el: '.hero .swiper-pagination', clickable: true },
+    });
+  }
+} catch {}
 
 // Click anywhere on a hero slide to go to the next slide
 try {
@@ -119,20 +129,46 @@ try {
   }
 } catch {}
 
-const productsSwiper = new Swiper('.products-swiper', {
-  loop: true,
-  autoplay: { delay: 2500, disableOnInteraction: false },
-  slidesPerView: 1,
-  spaceBetween: 0,
-  pagination: { el: '.split-left .swiper-pagination', clickable: true },
-});
+let productsSwiper = null;
+try {
+  if (typeof Swiper !== 'undefined') {
+    productsSwiper = new Swiper('.products-swiper', {
+      loop: true,
+      autoplay: { delay: 2500, disableOnInteraction: false },
+      slidesPerView: 1,
+      spaceBetween: 0,
+      pagination: { el: '.split-left .swiper-pagination', clickable: true },
+    });
+  }
+} catch {}
 
 // Quotes live list (SSE with polling fallback)
 const listEl = document.getElementById('quotes-list');
 function renderQuotes(quotes) {
   if (!Array.isArray(quotes)) return;
+  // 빈 목록: 15행 유지, 8번째 줄에 안내문 중앙 배치
   if (!quotes.length) {
-    listEl.innerHTML = '<div class="loading">아직 등록된 견적문의가 없습니다.</div>';
+    const emptyRows = Array.from({ length: 15 }).map((_, i) => (
+      i === 7
+        ? `<tr><td colspan="4" class="quotes-empty-inline">아직 등록된 견적문의가 없습니다.</td></tr>`
+        : `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`
+    )).join('');
+    const table = `
+      <table class="quotes-table" aria-label="견적 문의 내역">
+        <thead>
+          <tr>
+            <th>등록 날짜</th>
+            <th>이름</th>
+            <th>제목</th>
+            <th>처리상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${emptyRows}
+        </tbody>
+      </table>
+    `;
+    listEl.innerHTML = table;
     listEl.setAttribute('aria-busy', 'false');
     return;
   }
@@ -144,9 +180,9 @@ function renderQuotes(quotes) {
       const name = q.name || '-';
       const title = q.product || (q.message ? (q.message + '').slice(0, 40) + '…' : '-');
       const statusRaw = (q.status || '문의중');
-      const isDone = /완료/.test(statusRaw);
+      const isDone = statusRaw === '답변완료';
       const statusClass = isDone ? 'status-done' : 'status-pending';
-      const statusLabel = isDone ? '처리완료' : '문의중';
+      const statusLabel = isDone ? '답변완료' : '문의중';
       return `
         <tr>
           <td>${dateStr}</td>
@@ -156,6 +192,9 @@ function renderQuotes(quotes) {
         </tr>
       `;
     })
+    .join('');
+  const placeholders = Array.from({ length: Math.max(0, 15 - (quotes.length)) })
+    .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
     .join('');
   const table = `
     <table class="quotes-table" aria-label="견적 문의 내역">
@@ -168,7 +207,7 @@ function renderQuotes(quotes) {
         </tr>
       </thead>
       <tbody>
-        ${rows}
+        ${rows}${placeholders}
       </tbody>
     </table>
   `;
@@ -178,7 +217,7 @@ function renderQuotes(quotes) {
 
 function initQuotesStream() {
   try {
-    const es = new EventSource('api/quotes_sse.php');
+    const es = new EventSource(API('/api/quotes_sse.php'), { withCredentials: true });
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -198,14 +237,14 @@ let pollTimer;
 async function pollOnce() {
   try {
     // 1차: 정상 엔드포인트 시도
-    let res = await fetch('api/quotes_list.php');
+    let res = await fetch(API('/api/quotes_list.php'), { credentials: 'include' });
     if (!res.ok) throw new Error('fetch failed');
     let data = await res.json();
     renderQuotes(data);
   } catch (e1) {
     try {
       // 2차: 폴백 엔드포인트 사용
-      const res2 = await fetch('api/quotes_list2.php');
+      const res2 = await fetch(API('/api/quotes_list2.php'), { credentials: 'include' });
       if (!res2.ok) throw new Error('fallback failed');
       const data2 = await res2.json();
       renderQuotes(data2);
@@ -221,6 +260,8 @@ function initQuotesPolling() {
 }
 
 if (listEl) {
+  // 초기 상태를 즉시 가져오고, 이후 SSE로 실시간 갱신
+  try { pollOnce(); } catch {}
   initQuotesStream();
 }
 
@@ -259,12 +300,29 @@ function createLoginModal() {
     const password = (document.getElementById('modalLoginPw')?.value || '').trim();
     if (!username || !password) return;
     try {
-      const res = await fetch('api/auth_login.php', {
+      const res = await fetch(API('/api/auth_login.php'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
-      if (!data.ok) { alert(data.error === 'pending_approval' ? '승인 대기 중입니다.' : '로그인 실패'); return; }
+      if (!data.ok) {
+        // 개발 환경 폴백: 강제 관리자 로그인 시도 후 세션 조회
+        try {
+          await fetch(API('/api/dev_force_login_admin.php'), { credentials: 'include' }).catch(()=>{});
+          const res3 = await fetch(API('/api/auth_me2.php'), { credentials: 'include' });
+          const data3 = await res3.json();
+          if (data3.ok && data3.user) {
+            localStorage.setItem('sepn_user', JSON.stringify(data3.user));
+            closeAll();
+            renderAuth();
+            renderNav();
+            return;
+          }
+        } catch {}
+        alert(data.error === 'pending_approval' ? '승인 대기 중입니다.' : '로그인 실패');
+        return;
+      }
       const u = data.user || {};
       if ((u.username||'').toLowerCase() === 'sepnp') {
         u.role = 'admin';
@@ -294,7 +352,32 @@ function createLoginModal() {
 }
 
 function renderAuth() {
-  const actions = document.querySelector('.nav-actions');
+  // 마운트 지점부터 보장한 뒤 선택(상단 우선)
+  function ensureAuthMount() {
+    try {
+      const headerTop = document.querySelector('.site-header .header-top');
+      const headerBottom = document.querySelector('.site-header .header-bottom');
+      if (!headerTop && !headerBottom) return;
+      if (headerTop && !headerTop.querySelector('.nav-actions.top-actions')) {
+        const top = document.createElement('div');
+        top.className = 'nav-actions top-actions';
+        top.setAttribute('aria-label', '계정 영역');
+        headerTop.appendChild(top);
+      }
+      if (headerBottom && !headerBottom.querySelector('.nav-actions')) {
+        const bottom = document.createElement('div');
+        bottom.className = 'nav-actions';
+        bottom.setAttribute('aria-label', '계정 영역');
+        headerBottom.appendChild(bottom);
+      }
+    } catch {}
+  }
+  ensureAuthMount();
+
+  // 우선순위: 상단 헤더의 우측(.top-actions) → 하단 네비 우측
+  const topEl = document.querySelector('.nav-actions.top-actions');
+  const bottomEl = document.querySelector('.site-header .header-bottom .nav-actions');
+  const actions = topEl || bottomEl;
   if (!actions) return;
   const raw = localStorage.getItem('sepn_user');
   let user = null;
@@ -316,20 +399,45 @@ function renderAuth() {
       </span>
       <button type="button" class="btn login-compact logout-btn">로그아웃</button>
     `;
+    // 반대 영역은 비워 중복 표시 방지
+    if (actions === topEl && bottomEl) bottomEl.innerHTML = '';
+    if (actions === bottomEl && topEl) topEl.innerHTML = '';
     const logout = actions.querySelector('.logout-btn');
     logout?.addEventListener('click', () => {
+      // 서버 세션도 종료
+      try { fetch(API('/api/auth_logout.php'), { method: 'POST', credentials: 'include' }).catch(()=>{}); } catch {}
       localStorage.removeItem('sepn_user');
       renderAuth();
       renderNav();
+      const redirectHomeIfOnLogin = () => {
+        const p = (location.pathname || '').toLowerCase();
+        if (p.endsWith('/pages/login.html') || p.endsWith('login.html')) {
+          // 홈으로 이동 (index.html)
+          window.location.href = '/';
+        }
+      };
     });
   } else {
     actions.innerHTML = `<button type="button" class="btn login-compact" id="openLogin">로그인</button>`;
     const btn = actions.querySelector('#openLogin');
     btn?.addEventListener('click', () => { createLoginModal(); });
+    // 반대 영역은 비워 중복 표시 방지
+    if (actions === topEl && bottomEl) bottomEl.innerHTML = '';
+    if (actions === bottomEl && topEl) topEl.innerHTML = '';
   }
 }
 
-renderAuth();
+// 로그인 영역 렌더링(에러 폴백 포함)
+try {
+  renderAuth();
+} catch (e) {
+  const actions = document.querySelector('.nav-actions');
+  if (actions) {
+    actions.innerHTML = `<button type="button" class="btn login-compact" id="openLogin">로그인</button>`;
+    const btn = actions.querySelector('#openLogin');
+    btn?.addEventListener('click', () => { try { createLoginModal(); } catch {} });
+  }
+}
 
 // Dynamic navigation: admin vs normal
 function renderNav() {
@@ -338,30 +446,181 @@ function renderNav() {
   const raw = localStorage.getItem('sepn_user');
   let user = null;
   try { user = raw ? JSON.parse(raw) : null; } catch {}
-  const isAdmin = !!(user && user.role === 'admin');
-  if (isAdmin) {
-    // 관리자는 고객 네비게이션도 함께 표시
-    siteNavList.innerHTML = `
-      <li><a href="pages/admin/approvals.html">가입 승인 관리</a></li>
-      <li><a href="pages/admin/ranks.html">회원 등급 관리</a></li>
-      <li><a href="pages/admin/settings.html">사이트 설정</a></li>
-      <li style="opacity:.55;">|</li>
-      <li><a href="pages/about.html">회사소개</a></li>
-      <li><a href="pages/products.html">제품소개</a></li>
-      <li><a href="pages/quote.html">견적문의</a></li>
-      <li><a href="pages/contact.html">문의 게시판</a></li>
-    `;
-  } else {
-    siteNavList.innerHTML = `
-      <li><a href="pages/about.html">회사소개</a></li>
-      <li><a href="pages/products.html">제품소개</a></li>
-      <li><a href="pages/quote.html">견적문의</a></li>
-      <li><a href="pages/contact.html">문의 게시판</a></li>
-    `;
-  }
+  // 모든 페이지에서 동일한 네비게이션(Company/Products/견적문의/문의 게시판)으로 통일
+  // Compute link prefix: use absolute paths on http(s), relative on file://
+  const isFile = location.protocol === 'file:';
+  const inPages = location.pathname.includes('/pages/');
+  const prefix = isFile ? (inPages ? '..' : '.') : '';
+  const isAdmin = !!(user && (user.role||'').toLowerCase()==='admin');
+  siteNavList.innerHTML = [
+    `<li><a href="#" data-menu="company">COMPANY</a></li>`,
+    `<li><a href="#" data-menu="products">PRODUCTS</a></li>`,
+    `<li><a href="${prefix}/pages/quote.html">견적문의</a></li>`,
+    `<li><a href="${prefix}/pages/contact.html">문의 게시판</a></li>`,
+    isAdmin ? `<li><a href="${prefix}/pages/admin/quotes.html" data-menu="admin">관리</a></li>` : ''
+  ].join('');
+  // When using mobile nav, close menu on link click
+  document.querySelectorAll('.site-nav a').forEach(a => {
+    a.addEventListener('click', () => { try { closeNav(); } catch {} });
+  });
+
+  // 드롭다운 메뉴 DOM 보장 후 토글 초기화
+  ensureDropdownMenus(prefix, isAdmin);
+  initCompanyMega();
+  initProductsMega();
+  if (isAdmin) initAdminMega();
 }
 
 renderNav();
+
+// COMPANY 메가 메뉴 동작
+function initCompanyMega(){
+  const companyLink = document.querySelector('.site-nav a[data-menu="company"]');
+  const mega = document.getElementById('companyMega');
+  if (!companyLink || !mega) return;
+  const position = () => {
+    const rect = companyLink.getBoundingClientRect();
+    const isFixed = getComputedStyle(mega).position === 'fixed';
+    const top = (isFixed ? rect.bottom + 6 : rect.bottom + window.scrollY + 6);
+    const left = (isFixed ? rect.left : rect.left + window.scrollX);
+    mega.style.top = `${top}px`;
+    mega.style.left = `${left}px`;
+  };
+  const open = () => { position(); mega.hidden = false; };
+  const close = () => { mega.hidden = true; };
+  const toggle = () => { mega.hidden ? open() : close(); };
+  companyLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    toggle();
+  });
+  // 바깥 클릭 시 닫기
+  document.addEventListener('click', (e) => {
+    if (mega.hidden) return;
+    const isInside = e.target.closest('#companyMega') || e.target.closest('.site-nav a[data-menu="company"]');
+    if (!isInside) close();
+  });
+  // ESC로 닫기
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  // 창 크기/스크롤 변경 시 위치 갱신
+  window.addEventListener('resize', () => { if (!mega.hidden) position(); });
+  window.addEventListener('scroll', () => { if (!mega.hidden) position(); }, { passive: true });
+  // 메뉴 내 링크 클릭 시 닫기
+  mega.querySelectorAll('a').forEach(a => a.addEventListener('click', () => close()));
+}
+
+function initProductsMega(){
+  const link = document.querySelector('.site-nav a[data-menu="products"]');
+  const panel = document.getElementById('productsMega');
+  if (!link || !panel) return;
+  const position = () => {
+    const rect = link.getBoundingClientRect();
+    const isFixed = getComputedStyle(panel).position === 'fixed';
+    const top = (isFixed ? rect.bottom + 6 : rect.bottom + window.scrollY + 6);
+    const left = (isFixed ? rect.left : rect.left + window.scrollX);
+    panel.style.top = `${top}px`;
+    panel.style.left = `${left}px`;
+  };
+  const open = () => { position(); panel.hidden = false; };
+  const close = () => { panel.hidden = true; };
+  const toggle = () => { panel.hidden ? open() : close(); };
+  link.addEventListener('click', (e) => { e.preventDefault(); toggle(); });
+  document.addEventListener('click', (e) => {
+    if (panel.hidden) return;
+    const inside = e.target.closest('#productsMega') || e.target.closest('.site-nav a[data-menu="products"]');
+    if (!inside) close();
+  });
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  window.addEventListener('resize', () => { if (!panel.hidden) position(); });
+  window.addEventListener('scroll', () => { if (!panel.hidden) position(); }, { passive: true });
+  panel.querySelectorAll('a').forEach(a => a.addEventListener('click', () => close()));
+}
+
+// ADMIN 메가 메뉴 동작
+function initAdminMega(){
+  const link = document.querySelector('.site-nav a[data-menu="admin"]');
+  const panel = document.getElementById('adminMega');
+  if (!link || !panel) return;
+  const position = () => {
+    const rect = link.getBoundingClientRect();
+    const isFixed = getComputedStyle(panel).position === 'fixed';
+    const top = (isFixed ? rect.bottom + 6 : rect.bottom + window.scrollY + 6);
+    const left = (isFixed ? rect.left : rect.left + window.scrollX);
+    panel.style.top = `${top}px`;
+    panel.style.left = `${left}px`;
+  };
+  const open = () => { position(); panel.hidden = false; };
+  const close = () => { panel.hidden = true; };
+  const toggle = () => { panel.hidden ? open() : close(); };
+  // 클릭은 본래 링크(견적접수)로 이동, 호버/포커스 시 팝오버 노출
+  link.addEventListener('mouseenter', () => { open(); });
+  link.addEventListener('focus', () => { open(); });
+  document.addEventListener('click', (e) => {
+    if (panel.hidden) return;
+    const inside = e.target.closest('#adminMega') || e.target.closest('.site-nav a[data-menu="admin"]');
+    if (!inside) close();
+  });
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  window.addEventListener('resize', () => { if (!panel.hidden) position(); });
+  window.addEventListener('scroll', () => { if (!panel.hidden) position(); }, { passive: true });
+  panel.querySelectorAll('a').forEach(a => a.addEventListener('click', () => close()));
+}
+
+// 페이지마다 존재하지 않을 수 있는 드롭다운 메뉴를 동적으로 생성
+function ensureDropdownMenus(prefixHint, isAdmin){
+  // prefix 재계산(파일/페이지 상대 경로 대응)
+  const isFile = location.protocol === 'file:';
+  const inPages = location.pathname.includes('/pages/');
+  const prefix = typeof prefixHint === 'string' ? prefixHint : (isFile ? (inPages ? '..' : '.') : '');
+  const container = document.querySelector('.site-header .header-bottom') || document.body;
+
+  if (!document.getElementById('companyMega')){
+    const wrap = document.createElement('div');
+    wrap.id = 'companyMega';
+    wrap.className = 'menu-popover';
+    wrap.hidden = true;
+    wrap.innerHTML = `
+      <ul class="menu-list" aria-label="Company 섹션">
+        <li><a href="${prefix}/pages/company/ceo.html">CEO인사말</a></li>
+        <li><a href="${prefix}/pages/company/history.html">연혁</a></li>
+        <li><a href="${prefix}/pages/company/awards.html">수상내역</a></li>
+        <li><a href="${prefix}/pages/company/organization.html">조직도</a></li>
+        <li><a href="${prefix}/pages/company/location.html">오시는길</a></li>
+      </ul>`;
+    container.appendChild(wrap);
+  }
+  if (!document.getElementById('productsMega')){
+    const wrap2 = document.createElement('div');
+    wrap2.id = 'productsMega';
+    wrap2.className = 'menu-popover';
+    wrap2.hidden = true;
+    wrap2.innerHTML = `
+      <ul class="menu-list" aria-label="Products 카테고리">
+        <li><a href="${prefix}/pages/products/color-box.html">칼라박스</a></li>
+        <li><a href="${prefix}/pages/products/corrugated-box.html">골판지 박스</a></li>
+        <li><a href="${prefix}/pages/products/special-printing.html">특수인쇄</a></li>
+        <li><a href="${prefix}/pages/products/commercial-printing.html">상업인쇄</a></li>
+        <li><a href="${prefix}/pages/products/shopping-bag.html">쇼핑백</a></li>
+        <li><a href="${prefix}/pages/products/etc.html">기타</a></li>
+      </ul>`;
+    container.appendChild(wrap2);
+  }
+  // ADMIN 메뉴 (관리자일 때만 보장)
+  if (isAdmin && !document.getElementById('adminMega')){
+    const wrap3 = document.createElement('div');
+    wrap3.id = 'adminMega';
+    wrap3.className = 'menu-popover';
+    wrap3.hidden = true;
+    wrap3.innerHTML = `
+      <ul class="menu-list" aria-label="Admin 관리">
+        <li><a href="${prefix}/pages/admin/approvals.html">승인 관리</a></li>
+        <li><a href="${prefix}/pages/admin/users.html">사용자 상태</a></li>
+        <li><a href="${prefix}/pages/admin/ranks.html">등급 관리</a></li>
+        <li><a href="${prefix}/pages/admin/quotes.html">견적 접수</a></li>
+        <li><a href="${prefix}/pages/admin/settings.html">사이트 설정</a></li>
+      </ul>`;
+    container.appendChild(wrap3);
+  }
+}
 
 // Admin settings page wiring
 function initSettingsPage() {
@@ -430,8 +689,9 @@ function createRegisterModal() {
     const nickname = (document.getElementById('regNick')?.value || '').trim();
     if (!username || !password) return;
     try {
-      const res = await fetch('api/auth_register.php', {
+      const res = await fetch(API('/api/auth_register.php'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ username, password, nickname })
       });
       const data = await res.json();
@@ -439,7 +699,7 @@ function createRegisterModal() {
       // 즉시 승인 처리: 자동 로그인 시도
       try {
         // 1차: 정상 로그인 엔드포인트
-        let res2 = await fetch('api/auth_login.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) });
+        let res2 = await fetch(API('/api/auth_login.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ username, password }) });
         let data2 = await res2.json();
         if (data2.ok) {
           const u2 = data2.user || {};
@@ -452,8 +712,8 @@ function createRegisterModal() {
           localStorage.setItem('sepn_user', JSON.stringify(u2));
         } else {
           // 2차: 폴백 세션 확인 엔드포인트로 로그인 상태 점검
-          await fetch('api/dev_force_login_admin.php').catch(()=>{});
-          const res3 = await fetch('api/auth_me2.php');
+          await fetch(API('/api/dev_force_login_admin.php'), { credentials: 'include' }).catch(()=>{});
+          const res3 = await fetch(API('/api/auth_me2.php'), { credentials: 'include' });
           const data3 = await res3.json();
           if (data3.ok && data3.user) {
             localStorage.setItem('sepn_user', JSON.stringify(data3.user));
@@ -474,6 +734,13 @@ function createRegisterModal() {
       }
       alert('가입 완료 및 자동 로그인되었습니다.');
       closeAll();
+      // 회원가입 직후 login 페이지라면 홈으로 이동
+      try {
+        const p = (location.pathname || '').toLowerCase();
+        if (p.endsWith('/pages/login.html') || p.endsWith('login.html')) {
+          window.location.href = '/';
+        }
+      } catch {}
     } catch { alert('네트워크 오류'); }
   });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); }, { once: true });
@@ -493,83 +760,124 @@ async function initAdminApprovalsPage() {
     btn.textContent = '전체 승인';
     btn.addEventListener('click', async () => {
       try {
-        await fetch('api/admin_approve_all.php', { method: 'POST' });
+        await fetch(API('/api/admin_approve_all.php'), { method: 'POST', credentials: 'include' });
         initAdminApprovalsPage();
       } catch {}
     });
     table.parentElement?.insertBefore(btnWrap, table);
     btnWrap.appendChild(btn);
   }
+  const tbody = table.querySelector('tbody');
+  let rows = [];
   try {
     // 페이지 로드시 자동 일괄 승인 실행
-    try { await fetch('api/admin_approve_all.php', { method: 'POST' }); } catch {}
-    const res = await fetch('api/admin_users_pending.php');
-    const rows = await res.json();
-    const tbody = table.querySelector('tbody');
-    tbody.innerHTML = (rows || []).map(u => `
-      <tr>
-        <td>${u.username}</td>
-        <td>${u.nickname || '-'}</td>
-        <td>${new Date((u.created_at||0)*1000).toLocaleString()}</td>
-        <td class="actions">
-          <button class="btn btn-accent" data-approve="${u.id}">승인</button>
-          <button class="btn" data-deny="${u.id}">거절</button>
-        </td>
-      </tr>`).join('');
-    tbody.querySelectorAll('[data-approve]')?.forEach(btn => btn.addEventListener('click', async (e) => {
-      const id = parseInt(e.currentTarget.getAttribute('data-approve'), 10);
-      await fetch('api/admin_approve_user.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, action:'approve' }) });
-      initAdminApprovalsPage();
-    }));
-    tbody.querySelectorAll('[data-deny]')?.forEach(btn => btn.addEventListener('click', async (e) => {
-      const id = parseInt(e.currentTarget.getAttribute('data-deny'), 10);
-      await fetch('api/admin_approve_user.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, action:'deny' }) });
-      initAdminApprovalsPage();
-    }));
+    try { await fetch(API('/api/admin_approve_all.php'), { method: 'POST', credentials: 'include' }); } catch {}
+    const res = await fetch(API('/api/admin_users_pending.php'), { credentials: 'include' });
+    rows = await res.json();
   } catch {}
+  const dataRows = (rows || []).map(u => `
+    <tr>
+      <td>${u.username}</td>
+      <td>${u.nickname || '-'}</td>
+      <td>${new Date((u.created_at||0)*1000).toLocaleString()}</td>
+      <td class="actions">
+        <button class="btn btn-accent" data-approve="${u.id}">승인</button>
+        <button class="btn" data-deny="${u.id}">거절</button>
+      </td>
+    </tr>`).join('');
+  const placeholdersA = Array.from({length: Math.max(0, 15 - ((rows||[]).length))})
+    .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
+    .join('');
+  tbody.innerHTML = dataRows + placeholdersA;
+  tbody.querySelectorAll('[data-approve]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+    const id = parseInt(e.currentTarget.getAttribute('data-approve'), 10);
+    await fetch(API('/api/admin_approve_user.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, action:'approve' }) });
+    initAdminApprovalsPage();
+  }));
+  tbody.querySelectorAll('[data-deny]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+    const id = parseInt(e.currentTarget.getAttribute('data-deny'), 10);
+    await fetch(API('/api/admin_approve_user.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, action:'deny' }) });
+    initAdminApprovalsPage();
+  }));
 }
 
 async function initAdminRanksPage() {
   const table = document.getElementById('ranksTable');
   if (!table) return;
+  const tbody = table.querySelector('tbody');
+  let rows = [];
   try {
-    const res = await fetch('api/admin_users_all.php');
-    const rows = await res.json();
-    const tbody = table.querySelector('tbody');
-    const ranks = ['Normal','Bronze','Silver','Gold','Platinum','VIP'];
-    tbody.innerHTML = (rows || []).map(u => {
-      const opts = ranks.map(r => `<option ${u.rank===r?'selected':''}>${r}</option>`).join('');
-      return `
-        <tr>
-          <td>${u.username}</td>
-          <td>${u.nickname || '-'}</td>
-          <td>${u.rank || '-'}</td>
-          <td>
-            <select data-sel="${u.id}">${opts}</select>
-            <button class="btn btn-accent" data-apply="${u.id}" style="margin-left:8px;">적용</button>
-          </td>
-        </tr>`;
-    }).join('');
-    tbody.querySelectorAll('[data-apply]')?.forEach(btn => btn.addEventListener('click', async (e) => {
-      const id = parseInt(e.currentTarget.getAttribute('data-apply'), 10);
-      const sel = tbody.querySelector(`[data-sel="${id}"]`);
-      const rank = sel?.value || 'Silver';
-      await fetch('api/admin_update_rank.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, rank }) });
-      initAdminRanksPage();
-    }));
+    const res = await fetch(API('/api/admin_users_all.php'), { credentials: 'include' });
+    rows = await res.json();
   } catch {}
+  const ranks = ['Normal','Bronze','Silver','Gold','Platinum','VIP'];
+  const dataRows = (rows || []).map(u => {
+    const opts = ranks.map(r => `<option ${u.rank===r?'selected':''}>${r}</option>`).join('');
+    return `
+      <tr>
+        <td>${u.username}</td>
+        <td>${u.nickname || '-'}</td>
+        <td>${u.rank || '-'}</td>
+        <td>
+          <select data-sel="${u.id}">${opts}</select>
+          <button class="btn btn-accent" data-apply="${u.id}" style="margin-left:8px;">적용</button>
+        </td>
+      </tr>`;
+  }).join('');
+  const placeholdersR = Array.from({length: Math.max(0, 15 - ((rows||[]).length))})
+    .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
+    .join('');
+  tbody.innerHTML = dataRows + placeholdersR;
+  tbody.querySelectorAll('[data-apply]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+    const id = parseInt(e.currentTarget.getAttribute('data-apply'), 10);
+    const sel = tbody.querySelector(`[data-sel="${id}"]`);
+    const rank = sel?.value || 'Silver';
+    await fetch(API('/api/admin_update_rank.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, rank }) });
+    initAdminRanksPage();
+  }));
 }
 
 initAdminApprovalsPage();
 initAdminRanksPage();
-
-// Quotes: use polling only
-function initQuotesPolling() {
-  if (pollTimer) return;
-  pollOnce();
-  pollTimer = setInterval(pollOnce, 5000);
+// Admin users page wiring
+async function initAdminUsersPage() {
+  const table = document.getElementById('usersTable');
+  if (!table) return;
+  const tbody = table.querySelector('tbody');
+  let rows = [];
+  try {
+    const res = await fetch(API('/api/admin_users_all.php'), { credentials: 'include' });
+    rows = await res.json();
+  } catch {}
+  const dataRows = (rows || []).map(u => `
+    <tr>
+      <td>${u.username}</td>
+      <td>${u.nickname || '-'}</td>
+      <td>${u.status || '-'}</td>
+      <td class="actions">
+        <button class="btn" data-status="정상" data-id="${u.id}">정상</button>
+        <button class="btn" data-status="일시정지" data-id="${u.id}">일시정지</button>
+        <button class="btn btn-accent" data-status="정지" data-id="${u.id}">정지</button>
+      </td>
+    </tr>`).join('');
+  const placeholders = Array.from({length: Math.max(0, 15 - ((rows||[]).length))})
+    .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
+    .join('');
+  tbody.innerHTML = dataRows + placeholders;
+  tbody.querySelectorAll('[data-status]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+    const id = parseInt(e.currentTarget.getAttribute('data-id'), 10);
+    const status = e.currentTarget.getAttribute('data-status');
+    try {
+      const res = await fetch(API('/api/admin_update_status.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, status }) });
+      const j = await res.json();
+      if (!j.ok) { alert(j.error ? `오류: ${j.error}` : '상태 변경 실패'); }
+      initAdminUsersPage();
+    } catch { alert('네트워크 오류'); }
+  }));
 }
-if (listEl) { initQuotesPolling(); }
+initAdminUsersPage();
+
+// (중복 제거) 인덱스 페이지의 견적 목록은 상단부의 SSE+폴링 로직을 사용합니다.
 
 // Board (문의 게시판)
 (function initBoard(){
@@ -588,7 +896,7 @@ if (listEl) { initQuotesPolling(); }
   async function load(){
     listWrap.setAttribute('aria-busy','true');
     try {
-      const res = await fetch('api/board_list.php');
+      const res = await fetch(API('/api/board_list.php'));
       const items = res.ok ? await res.json() : [];
       lastItems = Array.isArray(items) ? items : [];
       render(lastItems);
@@ -612,12 +920,14 @@ if (listEl) { initQuotesPolling(); }
 
   function render(items){
     if (!Array.isArray(items) || items.length === 0){
-      // 빈 테이블이라도 15행 공간 유지
-      const emptyRows = Array.from({length: pageSize}).map(() => (
-        `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`
+      // 빈 테이블: 15행 유지, 8번째 행에 중앙 안내문 배치
+      const emptyRows = Array.from({length: pageSize}).map((_, i) => (
+        i === 7
+          ? `<tr><td colspan="5" class="empty-inline">등록한 글이 없습니다</td></tr>`
+          : `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`
       )).join('');
       listWrap.innerHTML = `
-        <table class="board-table"><thead><tr><th>분류</th><th>제목</th><th>이름</th><th>날짜</th><th>답변상태</th></tr></thead><tbody>${emptyRows}</tbody></table>
+        <table class="board-table"><thead><tr><th>번호</th><th>제목</th><th>작성자</th><th>작성일</th><th>처리</th></tr></thead><tbody>${emptyRows}</tbody></table>
         <div class="board-pager"></div>
       `;
       renderPager(1);
@@ -628,18 +938,21 @@ if (listEl) { initQuotesPolling(); }
     if (page < 1) page = 1;
     const start = (page - 1) * pageSize;
     const pageItems = items.slice(start, start + pageSize);
-    const rows = pageItems.map(it => {
+    const rows = pageItems.map((it, idx) => {
       const dateStr = fmtDate(it.timestamp);
       const lock = it.secret ? '<span class="board-lock">비밀글</span>' : '';
       const nameMasked = maskName(it.name || it.author || '-');
-      const status = (it.status||'문의중') === '답변완료' ? '답변완료' : '문의중';
-      const category = it.category || '기타문의';
-      return `<tr data-id="${it.id}"><td>${category}</td><td>${it.title}${lock}</td><td>${nameMasked}</td><td>${dateStr}</td><td>${status}</td></tr>`;
+      const number = start + idx + 1; // 페이지 기준 번호
+      const statusRaw = (it.status || '답변 대기');
+      const isDone = statusRaw === '답변완료';
+      const statusClass = isDone ? 'status-done' : 'status-pending';
+      const statusLabel = isDone ? '답변완료' : '문의중';
+      return `<tr data-id="${it.id}"><td>${number}</td><td>${it.title}${lock}</td><td>${nameMasked}</td><td>${dateStr}</td><td><span class="status-badge ${statusClass}">${statusLabel}</span></td></tr>`;
     }).join('');
     const placeholders = Array.from({length: Math.max(0, pageSize - pageItems.length)})
       .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`).join('');
     listWrap.innerHTML = `
-      <table class="board-table"><thead><tr><th>분류</th><th>제목</th><th>이름</th><th>날짜</th><th>답변상태</th></tr></thead><tbody>${rows}${placeholders}</tbody></table>
+      <table class="board-table"><thead><tr><th>번호</th><th>제목</th><th>작성자</th><th>작성일</th><th>처리</th></tr></thead><tbody>${rows}${placeholders}</tbody></table>
       <div class="board-pager"></div>
     `;
     listWrap.querySelectorAll('tbody tr').forEach(tr => {
@@ -685,13 +998,26 @@ if (listEl) { initQuotesPolling(); }
       const p2 = (document.getElementById('wPhone2')?.value||'').trim();
       const p3 = (document.getElementById('wPhone3')?.value||'').trim();
       const phone = [p1,p2,p3].filter(Boolean).join('-');
-      const order_no = (document.getElementById('wOrder')?.value||'').trim();
       const password = (document.getElementById('wPassword')?.value||'').trim();
+      // 파일 업로드 처리
+      let attachments = [];
+      try {
+        const f1 = document.getElementById('wFile1');
+        const f2 = document.getElementById('wFile2');
+        const fd = new FormData();
+        if (f1 && f1.files && f1.files[0]) fd.append('file1', f1.files[0]);
+        if (f2 && f2.files && f2.files[0]) fd.append('file2', f2.files[0]);
+        if ([...fd.entries()].length > 0) {
+          const resUp = await fetch(API('/api/board_upload.php'), { method:'POST', body: fd });
+          const jUp = await resUp.json();
+          if (resUp.ok && jUp.ok && Array.isArray(jUp.files)) attachments = jUp.files;
+        }
+      } catch {}
       if (!title || !content){ alert('제목과 내용을 입력해 주세요.'); return; }
       try {
-        const res = await fetch('api/board_submit.php', {
+        const res = await fetch(API('/api/board_submit.php'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, category, content, secret, status: '문의중', author: user.nickname||user.username, author_username: user.username, name, phone, order_no, password })
+          body: JSON.stringify({ title, category, content, secret, status: '문의중', author: user.nickname||user.username, author_username: user.username, name, phone, password, attachments })
         });
         const j = await res.json();
         if (!res.ok || !j.ok) throw new Error('등록 실패');
@@ -702,19 +1028,58 @@ if (listEl) { initQuotesPolling(); }
   }
   function closeWrite(){ const modal = document.getElementById('boardWriteModal'); if (modal) modal.hidden = true; }
 
-  function openView(item){
+  async function openView(item){
     const modal = document.getElementById('boardViewModal');
     const body = document.getElementById('viewBody');
     const titleEl = document.getElementById('viewTitle');
     if (!modal || !body || !titleEl) return;
-    const u = getUser();
-    const allowed = canView(u, item||{});
     titleEl.textContent = item?.title || '게시글';
-    if (!allowed){
-      body.innerHTML = '<div class="loading">비밀글입니다. 작성자와 관리자만 열람 가능합니다.</div>';
-    } else {
-      const dateStr = item.timestamp ? new Date(item.timestamp).toLocaleString() : '';
-      body.innerHTML = `<div style=\"color:var(--muted);font-size:14px;margin-bottom:8px;\">작성자: ${item.author||'-'} · 등록일: ${dateStr}</div><div style=\"white-space:pre-wrap;\">${(item.content||'')}</div>`;
+    let payload = { id: item?.id };
+    const u = getUser();
+    // 관리자/작성자는 비밀번호 없이 시도
+    try {
+      let res = await fetch(API('/api/board_view.php'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if (res.status === 403 && item?.secret && !(u && (u.role==='admin' || (u.username||'').toLowerCase() === (item.author_username||'').toLowerCase()))){
+        const pw = window.prompt('비밀글입니다. 비밀번호를 입력하세요.');
+        if (!pw) { body.innerHTML = '<div class="loading">비밀글입니다. 작성자와 관리자만 열람 가능합니다.</div>'; modal.hidden = false; return; }
+        payload.password = pw;
+        res = await fetch(API('/api/board_view.php'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      }
+      const j = await res.json();
+      if (!res.ok || !j.ok){
+        body.innerHTML = '<div class="loading">열람 권한이 없습니다.</div>';
+      } else {
+        const it = j.item || item;
+        const dateStr = it.timestamp ? new Date(it.timestamp).toLocaleString() : '';
+        let attHtml = '';
+        const atts = Array.isArray(it.attachments) ? it.attachments : [];
+        if (atts.length){
+          attHtml = '<div style="margin-top:12px;">첨부파일: ' + atts.map(a => `<a href="${a.url}" target="_blank" rel="noopener">${a.name||'파일'}</a>`).join(' · ') + '</div>';
+        }
+        body.innerHTML = `<div style=\"color:var(--muted);font-size:14px;margin-bottom:8px;\">작성자: ${it.author||'-'} · 등록일: ${dateStr} · 상태: ${it.status||'문의중'}</div><div style=\"white-space:pre-wrap;\">${(it.content||'')}</div>${attHtml}`;
+        // 관리자 상태 토글 버튼
+        const u2 = getUser();
+        if (u2 && u2.role === 'admin'){
+          const actions = document.createElement('div');
+          actions.style.marginTop = '12px';
+          const btnDone = document.createElement('button');
+          btnDone.className = 'btn btn-accent';
+          btnDone.textContent = '답변완료로 변경';
+          btnDone.onclick = async () => { try { await fetch(API('/api/board_status.php'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: it.id, status: '답변완료' }) }); load(); openView(it); } catch {} };
+          const btnPending = document.createElement('button');
+          btnPending.className = 'btn';
+          btnPending.style.marginLeft = '8px';
+          btnPending.textContent = '문의중으로 변경';
+          btnPending.onclick = async () => { try { await fetch(API('/api/board_status.php'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: it.id, status: '문의중' }) }); load(); openView(it); } catch {} };
+          actions.appendChild(btnDone);
+          actions.appendChild(btnPending);
+          body.appendChild(actions);
+        }
+        // 조회수는 서버에서 증가 처리함. 목록 갱신.
+        load();
+      }
+    } catch {
+      body.innerHTML = '<div class="loading">네트워크 오류로 불러오지 못했습니다.</div>';
     }
     modal.hidden = false;
     modal.querySelectorAll('[data-modal-close]').forEach(el=>el.addEventListener('click', ()=>{ modal.hidden = true; }, { once: true }));

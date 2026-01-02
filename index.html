@@ -22,8 +22,8 @@
         <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
         <nav class="site-nav" aria-label="주요">
           <ul>
-            <li><a href="pages/about.html">회사소개</a></li>
-            <li><a href="pages/products.html">제품소개</a></li>
+            <li><a href="#" data-menu="company">COMPANY</a></li>
+            <li><a href="#" data-menu="products">PRODUCTS</a></li>
             <li><a href="pages/quote.html">견적문의</a></li>
             <li><a href="pages/contact.html">문의 게시판</a></li>
           </ul>
@@ -31,6 +31,29 @@
         <div class="nav-actions" aria-label="계정 영역"></div>
       </div>
     </header>
+
+    <!-- COMPANY 드롭다운 메뉴 (네비게이션 아래에 뜨는 팝오버) -->
+    <div id="companyMega" class="menu-popover" hidden>
+      <ul class="menu-list" aria-label="Company 섹션">
+        <li><a href="pages/company/ceo.html">CEO인사말</a></li>
+        <li><a href="pages/company/history.html">연혁</a></li>
+        <li><a href="pages/company/awards.html">수상내역</a></li>
+        <li><a href="pages/company/organization.html">조직도</a></li>
+        <li><a href="pages/company/location.html">오시는길</a></li>
+      </ul>
+    </div>
+
+    <!-- PRODUCTS 드롭다운 메뉴 -->
+    <div id="productsMega" class="menu-popover" hidden>
+      <ul class="menu-list" aria-label="Products 카테고리">
+        <li><a href="pages/products/color-box.html">칼라박스</a></li>
+        <li><a href="pages/products/corrugated-box.html">골판지 박스</a></li>
+        <li><a href="pages/products/special-printing.html">특수인쇄</a></li>
+        <li><a href="pages/products/commercial-printing.html">상업인쇄</a></li>
+        <li><a href="pages/products/shopping-bag.html">쇼핑백</a></li>
+        <li><a href="pages/products/etc.html">기타</a></li>
+      </ul>
+    </div>
 
     <main>
       <!-- 첫 번째 블록: 히어로 캐러셀 -->

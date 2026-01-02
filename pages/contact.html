@@ -49,43 +49,51 @@
               <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
             </div>
             <div class="modal-body">
-              <label for=\"wCategory\">분류</label>
-              <select id=\"wCategory\">
-                <option>배송전 취소변경</option>
-                <option>배송 후 교환반품</option>
-                <option>배송문의</option>
+              <label for="wCategory">분류</label>
+              <select id="wCategory">
+                <option>견적문의</option>
+                <option>제품문의</option>
+                <option>도면문의</option>
                 <option>기타문의</option>
               </select>
 
-              <label for=\"wName\">이름</label>
-              <input id=\"wName\" />
+              <label for="wName">이름</label>
+              <input id="wName" />
 
               <label>연락처</label>
-              <div style=\"display:flex;gap:8px;\">
-                <input id=\"wPhone1\" style=\"flex:1;\" />
-                <span style=\"align-self:center;opacity:.5;\">-</span>
-                <input id=\"wPhone2\" style=\"flex:1;\" />
-                <span style=\"align-self:center;opacity:.5;\">-</span>
-                <input id=\"wPhone3\" style=\"flex:1;\" />
+              <div style="display:flex;gap:8px;">
+                <input id="wPhone1" style="flex:1;" />
+                <span style="align-self:center;opacity:.5;">-</span>
+                <input id="wPhone2" style="flex:1;" />
+                <span style="align-self:center;opacity:.5;">-</span>
+                <input id="wPhone3" style="flex:1;" />
               </div>
 
-              <label for=\"wOrder\">주문번호</label>
-              <input id=\"wOrder\" />
 
-              <label for=\"wPassword\">비밀번호</label>
-              <input id=\"wPassword\" type=\"password\" />
+              <label for="wPassword">비밀번호</label>
+              <input id="wPassword" type="password" />
 
-              <label for=\"wTitle\">제목</label>
-              <input id=\"wTitle\" />
+              <label for="wTitle">제목</label>
+              <input id="wTitle" />
 
               <label>파일첨부</label>
-              <div style=\"display:grid;gap:8px;\">
-                <input id=\"wFile1\" type=\"file\" />
-                <input id=\"wFile2\" type=\"file\" />
+              <div style="display:grid;gap:8px;">
+                <input id="wFile1" type="file" />
+                <input id="wFile2" type="file" />
               </div>
 
-              <label for=\"wContent\">내용</label>
-              <textarea id=\"wContent\" style=\"min-height:220px;\">안녕하세요. SEPNP입니다 :)
+              <label for="wContent">내용</label>
+              <textarea id="wContent" style="min-height:220px;"></textarea>
+
+              <label class="secret-row">
+                <input type="checkbox" id="wSecret" />
+                <span class="secret-text">비밀글 (작성자·관리자만 열람)</span>
+              </label>
+              <div class="modal-actions">
+                <button type="button" class="btn" data-modal-close>취소</button>
+                <button type="button" class="btn btn-accent" id="wSubmit">등록</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -94,15 +102,6 @@
       <div id="boardViewModal" hidden>
         <div class="modal-backdrop" data-modal-close></div>
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="viewTitle">
-
-              <label style=\"display:flex;gap:8px;align-items:center;\">
-                <input type=\"checkbox\" id=\"wSecret\" /> 비밀글 (작성자·관리자만 열람)
-              </label>
-              <div class=\"modal-actions\">
-                <button type=\"button\" class=\"btn\" data-modal-close>취소</button>
-                <button type=\"button\" class=\"btn btn-accent\" id=\"wSubmit\">등록</button>
-              </div>
-            </div>
           <div class="modal-card" style="max-width:720px;">
             <div class="modal-header">
               <div class="modal-title" id="viewTitle">게시글</div>
@@ -118,4 +117,20 @@
     </footer>
     <script src="../assets/js/main.js"></script>
   </body>
+  <script>
+    // 로그인 필요: 미로그인 시 로그인 페이지로 이동
+    (function(){
+      try {
+        const raw = localStorage.getItem('sepn_user');
+        const u = raw ? JSON.parse(raw) : null;
+        if (!u || !u.username) {
+          const ret = encodeURIComponent(location.pathname);
+          location.href = 'login.html?return=' + ret;
+        }
+      } catch {
+        const ret = encodeURIComponent(location.pathname);
+        location.href = 'login.html?return=' + ret;
+      }
+    })();
+  </script>
 </html>

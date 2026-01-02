@@ -3,17 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>회원 등급 관리 — SEPNP Admin</title>
+    <title>칼라박스 — SEPNP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
     <link rel="stylesheet" href="../../assets/css/styles.css" />
-    <style>
-      .table { width: 100%; border-collapse: collapse; }
-      .table th, .table td { border: 1px solid var(--border); padding: 10px; }
-      select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; }
-    </style>
   </head>
   <body>
     <header class="site-header">
@@ -24,23 +19,24 @@
       </div>
       <div class="container header-bottom">
         <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
-        <nav class="site-nav" aria-label="주요"><ul></ul></nav>
+        <nav class="site-nav" aria-label="주요">
+          <ul>
+            <li><a href="../about.html">회사소개</a></li>
+            <li><a href="../products.html" aria-current="page">제품소개</a></li>
+            <li><a href="../quote.html">견적문의</a></li>
+            <li><a href="../contact.html">문의 게시판</a></li>
+          </ul>
+        </nav>
         <div class="nav-actions" aria-label="계정 영역"></div>
       </div>
     </header>
-    <main class="container" style="padding:24px 0;">
-      <h1>회원 등급 관리</h1>
-      <p>회원별 등급을 지정/변경합니다.</p>
-      <div class="board-list admin-fixed">
-      <table class="table" id="ranksTable">
-        <thead>
-          <tr><th>아이디</th><th>닉네임</th><th>현재 등급</th><th>변경</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      </div>
+    <main class="container" style="padding: 24px 0;">
+      <h1>칼라박스</h1>
+      <p>제품 상세/사양/갤러리 영역입니다. 추후 실제 콘텐츠로 대체합니다.</p>
     </main>
-    <footer class="site-footer"><div class="container footer-bottom">© <span id="year"></span> SEPNP.</div></footer>
+    <footer class="site-footer">
+      <div class="container footer-bottom">© <span id="year"></span> SEPNP.</div>
+    </footer>
     <script src="../../assets/js/main.js"></script>
   </body>
-  </html>
+</html>

@@ -57,9 +57,30 @@ function migrate(PDO $pdo): void {
     message TEXT,
     email TEXT,
     phone TEXT,
+    qty INTEGER,
+    length TEXT,
+    width TEXT,
+    height TEXT,
+    finishing TEXT,
+    finishing_detail TEXT,
     status TEXT DEFAULT "문의중",
     timestamp INTEGER
   )');
+  // 기존 테이블에 새 컬럼 추가
+  try {
+    $cols = [];
+    $stmt = $pdo->query('PRAGMA table_info(quotes)');
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) { $cols[] = $r['name']; }
+    $need = [
+      'qty INTEGER', 'length TEXT', 'width TEXT', 'height TEXT', 'finishing TEXT', 'finishing_detail TEXT'
+    ];
+    foreach ($need as $def) {
+      $name = explode(' ', $def)[0];
+      if (!in_array($name, $cols, true)) {
+        $pdo->exec('ALTER TABLE quotes ADD COLUMN ' . $def);
+      }
+    }
+  } catch (Throwable $e) { /* ignore */ }
 }
 
 function seed_admin(PDO $pdo): void {

@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>견적 접수 확인 — Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/styles.css" />
+    <style>
+      .admin-wrap { padding: 24px 0; }
+      .quotes-admin-table { width: 100%; border-collapse: collapse; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+      .quotes-admin-table th, .quotes-admin-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+      .quotes-admin-table thead th { background: var(--bg-muted); text-align: left; color: var(--muted); }
+      .quotes-admin-table tbody tr:hover { background: var(--bg-muted); }
+      .quotes-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; }
+      .quotes-toolbar .field { display: inline-flex; align-items: center; gap: 6px; }
+      .quotes-toolbar input, .quotes-toolbar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; }
+      .pager { display: flex; gap: 8px; justify-content: center; padding: 10px; border-top: 1px solid var(--border); background: var(--bg-elev); }
+      .page-btn { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; }
+      .page-btn.active { background: var(--accent); color: var(--accent-contrast); border-color: transparent; font-weight: 700; box-shadow: 0 6px 16px rgba(140,47,57,0.18); }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="../../index.html" class="logo" aria-label="홈으로 이동">
+          <img src="../../assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요">
+          <ul>
+            <li><a href="approvals.html">가입 승인 관리</a></li>
+            <li><a href="ranks.html">회원 등급 관리</a></li>
+            <li><a href="users.html">회원 관리</a></li>
+            <li style="opacity:.55;">|</li>
+            <li><a href="#" data-menu="company">COMPANY</a></li>
+            <li><a href="#" data-menu="products">PRODUCTS</a></li>
+            <li><a href="../quote.html">견적문의</a></li>
+            <li><a href="../contact.html">문의 게시판</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+    <main class="container admin-wrap">
+      <h1>견적 접수 확인</h1>
+      <div class="quotes-toolbar" aria-label="견적 관리 도구">
+        <div class="field"><label for="qSearch">검색</label><input id="qSearch" placeholder="이름/이메일/제품/요청사항" /></div>
+        <div class="field"><label for="qStatus">상태</label>
+          <select id="qStatus">
+            <option value="">전체</option>
+            <option value="문의중">문의중</option>
+            <option value="답변완료">답변완료</option>
+          </select>
+        </div>
+        <button class="btn" id="qRefresh">새로고침</button>
+        <button class="btn" id="qExport">CSV 내보내기</button>
+        <span id="qCount" class="muted" style="margin-left:auto;">0건</span>
+      </div>
+      <div id="quotesAdminTableWrap">
+        <div class="loading">견적 데이터를 불러오는 중…</div>
+      </div>
+      <div id="quotesPager" class="pager" aria-label="페이지 이동"></div>
+    </main>
+    <footer class="site-footer">
+      <div class="container footer-bottom">© <span id="year"></span> SEPNP.</div>
+    </footer>
+    <script src="../../assets/js/main.js"></script>
+    <script>
+      const state = { all: [], filtered: [], page: 1, pageSize: 15, q: '', status: '' };
+      const wrap = document.getElementById('quotesAdminTableWrap');
+      const pager = document.getElementById('quotesPager');
+      const qSearch = document.getElementById('qSearch');
+      const qStatus = document.getElementById('qStatus');
+      const qCount = document.getElementById('qCount');
+      async function loadQuotes(){
+        wrap.setAttribute('aria-busy','true');
+        try {
+          const res = await fetch(API('/api/quotes_list.php'), { credentials: 'include' });
+          state.all = res.ok ? await res.json() : [];
+          state.page = 1;
+          applyFilters();
+        } catch { wrap.innerHTML = '<div class="error">불러오기에 실패했습니다.</div>'; }
+        wrap.setAttribute('aria-busy','false');
+      }
+      function applyFilters(){
+        const q = (qSearch?.value||'').trim().toLowerCase();
+        const status = qStatus?.value || '';
+        state.q = q; state.status = status;
+        state.filtered = (state.all||[]).filter(r => {
+          const matchQ = !q || [r.name, r.email, r.product, r.message, r.finishing_detail].some(v => (v||'').toLowerCase().includes(q));
+          const matchS = !status || (r.status||'') === status;
+          return matchQ && matchS;
+        }).sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+        qCount.textContent = `${state.filtered.length}건`;
+        renderTable();
+        renderPager();
+      }
+      function renderTable(){
+        const start = (state.page - 1) * state.pageSize;
+        const rows = state.filtered.slice(start, start + state.pageSize);
+        const htmlRows = (rows||[]).map(q => `
+          <tr data-id="${q.id}">
+            <td>${q.name||''}</td>
+            <td>${q.email||''}</td>
+            <td>${q.phone||''}</td>
+            <td>${q.product||''}</td>
+            <td>${q.qty||''}</td>
+            <td>${q.length||''}</td>
+            <td>${q.width||''}</td>
+            <td>${q.height||''}</td>
+            <td>${Array.isArray(q.finishing)? q.finishing.join(', ') : (q.finishing||'')}</td>
+            <td>${q.finishing_detail||''}</td>
+            <td>${q.message||''}</td>
+            <td>
+              <select class="status-select" data-id="${q.id}">
+                <option value="문의중" ${((q.status||'')==='문의중')?'selected':''}>문의중</option>
+                <option value="답변완료" ${((q.status||'')==='답변완료')?'selected':''}>답변완료</option>
+              </select>
+            </td>
+            <td>${q.timestamp ? new Date(q.timestamp*1000).toLocaleString() : ''}</td>
+          </tr>
+        `).join('');
+        const table = `
+          <table class="quotes-admin-table" aria-label="견적 접수 목록">
+            <thead>
+              <tr>
+                <th>성함</th>
+                <th>이메일</th>
+                <th>연락처</th>
+                <th>제품명</th>
+                <th>수량</th>
+                <th>장(mm)</th>
+                <th>폭(mm)</th>
+                <th>고(mm)</th>
+                <th>후가공</th>
+                <th>후가공 상세</th>
+                <th>요청사항</th>
+                <th>상태</th>
+                <th>등록일</th>
+              </tr>
+            </thead>
+            <tbody>${htmlRows}</tbody>
+          </table>
+        `;
+        wrap.innerHTML = table;
+        // 상태 변경 셀렉트 이벤트 연결
+        wrap.querySelectorAll('.status-select')?.forEach(sel => sel.addEventListener('change', async (e) => {
+          const id = parseInt(e.currentTarget.getAttribute('data-id'), 10);
+          const status = e.currentTarget.value;
+          e.currentTarget.disabled = true;
+          try {
+            const res = await fetch(API('/api/quotes_status.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, status }) });
+            const j = await res.json(); if (!j.ok) throw new Error('failed');
+            const idx = state.all.findIndex(x=>x.id===id);
+            if (idx>=0) state.all[idx].status = status;
+            applyFilters();
+          } catch {
+            // 실패 시 변경 되돌리기
+            const current = state.all.find(x=>x.id===id)?.status || '문의중';
+            e.currentTarget.value = current;
+          } finally {
+            e.currentTarget.disabled = false;
+          }
+        }));
+        // 상세 모달 열기 (상태 셀렉트/인터랙티브 요소 클릭 시에는 열지 않음)
+        wrap.querySelectorAll('tbody tr')?.forEach(tr => tr.addEventListener('click', (e) => {
+          const interactive = e.target.closest('select, button, a, input, textarea, label');
+          if (interactive) return; // 상태 변경 등 인터랙션 시 상세 모달 열기 방지
+          const idAttr = tr.getAttribute('data-id');
+          const id = idAttr ? parseInt(idAttr,10) : 0;
+          const item = state.all.find(x=>x.id===id);
+          if (item) openDetail(item);
+        }));
+      }
+      function renderPager(){
+        const total = state.filtered.length;
+        const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+        if (state.page > totalPages) state.page = totalPages;
+        if (state.page < 1) state.page = 1;
+        const makeBtn = (label, p, active=false) => `<button class="page-btn${active?' active':''}" data-page="${p}">${label}</button>`;
+        let html = '';
+        html += makeBtn('이전', Math.max(1, state.page-1));
+        for (let i=1;i<=totalPages;i++) { html += makeBtn(String(i), i, i===state.page); }
+        html += makeBtn('다음', Math.min(totalPages, state.page+1));
+        pager.innerHTML = html;
+        pager.querySelectorAll('.page-btn').forEach(btn => btn.addEventListener('click', (e) => {
+          const p = parseInt(e.currentTarget.getAttribute('data-page'), 10);
+          if (!isNaN(p)) { state.page = p; renderTable(); renderPager(); }
+        }));
+      }
+      function exportCSV(){
+        const cols = ['성함','이메일','연락처','제품명','수량','장(mm)','폭(mm)','고(mm)','후가공','후가공 상세','요청사항','상태','등록일'];
+        const lines = [cols.join(',')];
+        state.filtered.forEach(q => {
+          const vals = [q.name,q.email,q.phone,q.product,q.qty,q.length,q.width,q.height,(Array.isArray(q.finishing)?q.finishing.join(' / '):q.finishing||''),q.finishing_detail,q.message,q.status,(q.timestamp?new Date(q.timestamp*1000).toLocaleString():'')];
+          const esc = (s) => {
+            const t = (s==null? '': String(s));
+            return '"' + t.replace(/"/g,'""') + '"';
+          };
+          lines.push(vals.map(esc).join(','));
+        });
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `quotes_${Date.now()}.csv`; a.click();
+        setTimeout(()=>URL.revokeObjectURL(url), 5000);
+      }
+      function openDetail(item){
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+        <div class="modal-backdrop" data-modal-close></div>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="quoteDetailTitle">
+          <div class="modal-card">
+            <div class="modal-header">
+              <div class="modal-title" id="quoteDetailTitle">견적 상세</div>
+              <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+            </div>
+            <div class="modal-body">
+              <div style="color:var(--muted);font-size:14px;">등록일: ${item.timestamp?new Date(item.timestamp*1000).toLocaleString():''} · 상태: ${item.status||''}</div>
+              <label>성함</label><input value="${item.name||''}" disabled>
+              <label>이메일</label><input value="${item.email||''}" disabled>
+              <label>연락처</label><input value="${item.phone||''}" disabled>
+              <label>제품명</label><input value="${item.product||''}" disabled>
+              <label>수량</label><input value="${item.qty||''}" disabled>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div><label>장(mm)</label><input value="${item.length||''}" disabled></div>
+                <div><label>폭(mm)</label><input value="${item.width||''}" disabled></div>
+                <div><label>고(mm)</label><input value="${item.height||''}" disabled></div>
+              </div>
+              <label>후가공</label><input value="${Array.isArray(item.finishing)? item.finishing.join(', ') : (item.finishing||'')}" disabled>
+              <label>후가공 상세</label><input value="${item.finishing_detail||''}" disabled>
+              <label>요청사항</label><textarea disabled>${item.message||''}</textarea>
+              <div class="modal-actions">
+                <label for="detailStatus" style="margin-right:8px;">상태</label>
+                <select id="detailStatus">
+                  <option value="문의중" ${(item.status==='문의중')?'selected':''}>문의중</option>
+                  <option value="답변완료" ${(item.status==='답변완료')?'selected':''}>답변완료</option>
+                </select>
+                <button class="btn btn-accent" id="detailApply" style="margin-left:8px;">적용</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+        document.body.appendChild(wrap);
+        const closeAll = () => { wrap.remove(); };
+        wrap.querySelectorAll('[data-modal-close]')?.forEach(el => el.addEventListener('click', closeAll));
+        wrap.querySelector('#detailApply')?.addEventListener('click', async ()=>{
+          const sel = wrap.querySelector('#detailStatus');
+          const status = sel?.value || item.status || '문의중';
+          try {
+            const res = await fetch(API('/api/quotes_status.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id:item.id, status }) });
+            const j = await res.json(); if (!j.ok) throw new Error('failed');
+            const idx = state.all.findIndex(x=>x.id===item.id);
+            if (idx>=0) state.all[idx].status = status;
+            applyFilters(); closeAll();
+          } catch {}
+        });
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); }, { once: true });
+      }
+      // Toolbar wiring
+      qSearch?.addEventListener('input', () => { state.page = 1; applyFilters(); });
+      qStatus?.addEventListener('change', () => { state.page = 1; applyFilters(); });
+      document.getElementById('qRefresh')?.addEventListener('click', () => loadQuotes());
+      document.getElementById('qExport')?.addEventListener('click', () => exportCSV());
+      // init
+      loadQuotes();
+    </script>
+  </body>
+</html>

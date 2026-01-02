@@ -2,7 +2,9 @@
 declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 $path = __DIR__ . '/../data/board.json';
-if (!file_exists($path)) { file_put_contents($path, '[]'); }
+$dir = dirname($path);
+if (!is_dir($dir)) { @mkdir($dir, 0777, true); }
+if (!file_exists($path)) { @file_put_contents($path, '[]'); }
 $input = file_get_contents('php://input');
 $data = json_decode($input ?: '[]', true);
 $title = trim((string)($data['title'] ?? ''));
@@ -18,6 +20,20 @@ $phone = trim((string)($data['phone'] ?? ''));
 $order = trim((string)($data['order_no'] ?? ''));
 $password = (string)($data['password'] ?? '');
 $password_hash = $password !== '' ? password_hash($password, PASSWORD_DEFAULT) : '';
+// attachments (optional)
+$attachments = [];
+if (isset($data['attachments']) && is_array($data['attachments'])) {
+  foreach ($data['attachments'] as $att) {
+    if (!is_array($att)) continue;
+    $attachments[] = [
+      'name' => (string)($att['name'] ?? ''),
+      'path' => (string)($att['path'] ?? ''),
+      'url'  => (string)($att['url'] ?? ''),
+      'size' => (int)($att['size'] ?? 0),
+      'type' => (string)($att['type'] ?? ''),
+    ];
+  }
+}
 if ($title === '' || $content === '' || $author_username === '') {
   http_response_code(400);
   echo json_encode(['ok' => false, 'error' => 'invalid_input'], JSON_UNESCAPED_UNICODE);
@@ -41,6 +57,8 @@ $items[] = [
   'author_username' => $author_username,
   'status' => $status,
   'password' => $password_hash,
+  'attachments' => $attachments,
+  'views' => 0,
   'timestamp' => $now,
 ];
 file_put_contents($path, json_encode($items, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));

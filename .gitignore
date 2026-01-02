@@ -15,6 +15,7 @@ data/app.db
 data/users.json
 data/quotes.json
 data/board.json
+uploads/
 
 # Docker (optional)
 *.pid

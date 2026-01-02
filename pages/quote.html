@@ -10,14 +10,21 @@
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/styles.css" />
     <style>
-      .form { display: grid; gap: 12px; max-width: 720px; }
+      .form { display: grid; gap: 14px; max-width: 860px; }
+      .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
       .field { display: grid; gap: 6px; }
-      .field input, .field textarea { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 16px; }
-      .field textarea { min-height: 120px; resize: vertical; }
+      .field input, .field textarea, .field select { padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px; }
+      .field textarea { min-height: 96px; resize: vertical; }
+      .subgrid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; align-items: end; }
+      .compact-legend { font-weight: 700; margin-bottom: 6px; }
+      .chk { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; }
+      .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      .row .field { min-width: 160px; }
       .actions { display: flex; gap: 12px; align-items: center; }
       .note { color: var(--muted); }
       .success { color: #16a34a; }
       .error { color: #ef4444; }
+      @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .subgrid-3 { grid-template-columns: 1fr 1fr 1fr; } }
     </style>
   </head>
   <body>
@@ -43,6 +50,7 @@
     <main class="container" style="padding: 24px 0;">
       <h1>견적문의 등록</h1>
       <form class="form" id="quoteForm">
+        <div class="grid-2">
         <div class="field">
           <label for="name">성함</label>
           <input id="name" name="name" required />
@@ -59,6 +67,51 @@
           <label for="product">제품명</label>
           <input id="product" name="product" required />
         </div>
+        </div>
+        <div class="field">
+          <label for="qty">수량</label>
+          <input id="qty" name="qty" type="number" min="1" placeholder="예: 1000" />
+        </div>
+        <div class="field subgrid-3">
+          <div class="subfield">
+            <label for="length">장 (mm)</label>
+            <input id="length" name="length" type="number" min="1" step="0.1" />
+          </div>
+          <div class="subfield">
+            <label for="width">폭 (mm)</label>
+            <input id="width" name="width" type="number" min="1" step="0.1" />
+          </div>
+          <div class="subfield">
+            <label for="height">고 (mm)</label>
+            <input id="height" name="height" type="number" min="1" step="0.1" />
+          </div>
+        </div>
+        <section class="field" style="margin-top:4px;">
+          <div class="compact-legend">후가공(중복 선택 가능)</div>
+          <div class="row">
+            <label class="chk"><input id="finCoating" type="checkbox" name="finishing[]" value="코팅" aria-controls="coatingOptions" /> 코팅</label>
+          </div>
+          <div id="coatingOptions" class="row" style="display:none;">
+            <label class="chk"><input type="checkbox" name="coating[]" value="무광CR" /> 무광CR</label>
+            <label class="chk"><input type="checkbox" name="coating[]" value="유광CR" /> 유광CR</label>
+            <label class="chk"><input type="checkbox" name="coating[]" value="무광라미" /> 무광라미</label>
+            <label class="chk"><input type="checkbox" name="coating[]" value="유광라미" /> 유광라미</label>
+          </div>
+          <div class="row">
+            <label class="chk"><input id="finFoil" type="checkbox" name="finishing[]" value="금박" aria-controls="foilOptions" /> 금박</label>
+          </div>
+          <div id="foilOptions" class="row" style="display:none;">
+            <div class="field"><label for="foil_w">가로(mm)</label><input id="foil_w" name="foil_w" type="number" min="0" step="0.1" /></div>
+            <div class="field"><label for="foil_h">세로(mm)</label><input id="foil_h" name="foil_h" type="number" min="0" step="0.1" /></div>
+          </div>
+          <div class="row">
+            <label class="chk"><input id="finEmboss" type="checkbox" name="finishing[]" value="형압" aria-controls="embossOptions" /> 형압</label>
+          </div>
+          <div id="embossOptions" class="row" style="display:none;">
+            <div class="field"><label for="emboss_w">가로(mm)</label><input id="emboss_w" name="emboss_w" type="number" min="0" step="0.1" /></div>
+            <div class="field"><label for="emboss_h">세로(mm)</label><input id="emboss_h" name="emboss_h" type="number" min="0" step="0.1" /></div>
+          </div>
+        </section>
         <div class="field">
           <label for="message">요청사항</label>
           <textarea id="message" name="message" placeholder="상세 요청사항을 입력해 주세요"></textarea>
@@ -74,14 +127,91 @@
     </footer>
     <script src="../assets/js/main.js"></script>
     <script>
+      // 로그인 필요: 미로그인 시 로그인 페이지로 이동
+      (function(){
+        try {
+          const raw = localStorage.getItem('sepn_user');
+          const u = raw ? JSON.parse(raw) : null;
+          if (!u || !u.username) {
+            const ret = encodeURIComponent(location.pathname);
+            location.href = 'login.html?return=' + ret;
+            return;
+          }
+        } catch {
+          const ret = encodeURIComponent(location.pathname);
+          location.href = 'login.html?return=' + ret;
+          return;
+        }
+      })();
       const form = document.getElementById('quoteForm');
       const statusEl = document.getElementById('status');
+      // 코팅 선택 시 하위 옵션 토글
+      const finCoating = document.getElementById('finCoating');
+      const coatingRow = document.getElementById('coatingOptions');
+      function updateCoatingVisibility(){
+        const show = !!(finCoating && finCoating.checked);
+        if (coatingRow){
+          coatingRow.style.display = show ? '' : 'none';
+          if (!show){
+            coatingRow.querySelectorAll('input[name="coating[]"]').forEach(cb => { cb.checked = false; });
+          }
+        }
+      }
+      finCoating && finCoating.addEventListener('change', updateCoatingVisibility);
+      updateCoatingVisibility();
+      // 금박/형압 선택 시 사이즈 입력 토글
+      const finFoil = document.getElementById('finFoil');
+      const foilRow = document.getElementById('foilOptions');
+      function updateFoilVisibility(){
+        const show = !!(finFoil && finFoil.checked);
+        if (foilRow){
+          foilRow.style.display = show ? '' : 'none';
+          if (!show){
+            const fw = document.getElementById('foil_w');
+            const fh = document.getElementById('foil_h');
+            if (fw) fw.value = '';
+            if (fh) fh.value = '';
+          }
+        }
+      }
+      finFoil && finFoil.addEventListener('change', updateFoilVisibility);
+      updateFoilVisibility();
+
+      const finEmboss = document.getElementById('finEmboss');
+      const embossRow = document.getElementById('embossOptions');
+      function updateEmbossVisibility(){
+        const show = !!(finEmboss && finEmboss.checked);
+        if (embossRow){
+          embossRow.style.display = show ? '' : 'none';
+          if (!show){
+            const ew = document.getElementById('emboss_w');
+            const eh = document.getElementById('emboss_h');
+            if (ew) ew.value = '';
+            if (eh) eh.value = '';
+          }
+        }
+      }
+      finEmboss && finEmboss.addEventListener('change', updateEmbossVisibility);
+      updateEmbossVisibility();
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         statusEl.textContent = '등록 중…';
-        const data = Object.fromEntries(new FormData(form).entries());
+        const fd = new FormData(form);
+        const finishings = fd.getAll('finishing[]'); fd.delete('finishing[]');
+        const coatings = fd.getAll('coating[]'); fd.delete('coating[]');
+        const data = Object.fromEntries(fd.entries());
+        if (finishings.length) data.finishing = finishings;
+        if (coatings.length) data.coating = coatings;
+        // 요약 문자열 생성(관리/목록 표시 용이)
+        const parts = [];
+        if (coatings.length) parts.push('코팅:' + coatings.join(', '));
+        const fw = data.foil_w||''; const fh = data.foil_h||'';
+        if (finishings.includes('금박') && (fw || fh)) parts.push(`금박:${fw||0}x${fh||0}mm`);
+        const ew = data.emboss_w||''; const eh = data.emboss_h||'';
+        if (finishings.includes('형압') && (ew || eh)) parts.push(`형압:${ew||0}x${eh||0}mm`);
+        if (parts.length) data.finishing_detail = parts.join(' | ');
         try {
-          const res = await fetch('../api/submit_quote.php', {
+          const res = await fetch(API('/api/submit_quote.php'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
