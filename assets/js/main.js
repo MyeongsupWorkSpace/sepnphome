@@ -52,6 +52,22 @@ try {
     API_BASE = isLocalHost ? 'http://127.0.0.1:8000' : '';
   }
 } catch { API_BASE = ''; }
+// URL 쿼리로 API 베이스를 즉시 지정하거나 초기화 (?api=https://host 또는 ?api=clear)
+try {
+  const u = new URL(location.href);
+  const q = u.searchParams.get('api');
+  if (q) {
+    if (q === 'clear') {
+      try { localStorage.removeItem('sepn_api_base'); } catch {}
+      API_BASE = '';
+    } else {
+      try { localStorage.setItem('sepn_api_base', q); } catch {}
+      API_BASE = q;
+    }
+    u.searchParams.delete('api');
+    history.replaceState(null, '', u.toString());
+  }
+} catch {}
 window.API_BASE = API_BASE;
 const API = (p) => `${API_BASE}${p}`;
 
@@ -229,6 +245,9 @@ function renderQuotes(quotes) {
 }
 
 function initQuotesStream() {
+  // Netlify Functions는 장기 SSE 스트림을 지원하지 않으므로 Netlify 도메인에서는 폴링 사용
+  const isNetlify = /netlify\.app$|netlify\.com$/.test(location.hostname);
+  if (isNetlify) { initQuotesPolling(); return; }
   try {
     const es = new EventSource(API('/api/quotes_sse.php'), { withCredentials: true });
     es.onmessage = (e) => {
