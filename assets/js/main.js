@@ -205,7 +205,9 @@ function renderQuotes(quotes) {
     .slice()
     .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
     .map(q => {
-      const dateStr = q.timestamp ? new Date(q.timestamp).toLocaleString() : '';
+      const rawTs = Number(q.timestamp || 0);
+      const ts = rawTs ? (rawTs < 1000000000000 ? rawTs * 1000 : rawTs) : 0;
+      const dateStr = ts ? new Date(ts).toLocaleString() : '';
       const name = q.name || '-';
       const title = q.product || (q.message ? (q.message + '').slice(0, 40) + '…' : '-');
       const statusRaw = (q.status || '문의중');
@@ -305,20 +307,46 @@ function createLoginModal() {
   wrap.innerHTML = `
     <div class="modal-backdrop" data-modal-close></div>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
-      <div class="modal-card">
-        <div class="modal-header">
-          <div class="modal-title" id="loginTitle">로그인</div>
-          <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+      <div class="modal-card login-card">
+        <div class="login-hero" aria-hidden="true">
+          <div class="login-badge">SEPNP 멤버</div>
+          <h2 class="login-hero-title">환영합니다</h2>
+          <p class="login-hero-sub">승인된 회원 전용 포털입니다.</p>
+          <ul class="login-points">
+            <li>견적 진행 상태 실시간 확인</li>
+            <li>관리자 승인·등급 관리</li>
+            <li>보안 강화 세션 로그인</li>
+          </ul>
         </div>
-        <div class="modal-body">
-          <label for="modalLoginId">아이디</label>
-          <input id="modalLoginId" placeholder="아이디" />
-          <label for="modalLoginPw">비밀번호</label>
-          <input id="modalLoginPw" type="password" placeholder="비밀번호" />
-          <div class="modal-actions">
-            <button type="button" class="btn" id="openRegister">회원가입</button>
-            <button type="button" class="btn" data-modal-close>취소</button>
-            <button type="button" class="btn btn-accent" id="modalLoginSubmit">로그인</button>
+        <div class="login-panel">
+          <div class="login-panel-header">
+            <div>
+              <div class="login-title" id="loginTitle">로그인</div>
+              <div class="login-subtitle">아이디와 비밀번호를 입력해 주세요.</div>
+            </div>
+            <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+          </div>
+          <div class="login-form">
+            <label class="login-label" for="modalLoginId">아이디</label>
+            <div class="login-input">
+              <input id="modalLoginId" placeholder="아이디" autocomplete="username" />
+            </div>
+            <label class="login-label" for="modalLoginPw">비밀번호</label>
+            <div class="login-input">
+              <input id="modalLoginPw" type="password" placeholder="비밀번호" autocomplete="current-password" />
+            </div>
+            <div class="login-options">
+              <label class="login-check">
+                <input type="checkbox" id="rememberLogin" />
+                <span>아이디 저장</span>
+              </label>
+              <button type="button" class="link-btn" id="openRegister">회원가입</button>
+            </div>
+            <div class="login-actions">
+              <button type="button" class="btn" data-modal-close>취소</button>
+              <button type="button" class="btn btn-accent" id="modalLoginSubmit">로그인</button>
+            </div>
+            <div class="login-help">승인 대기 중이면 관리자 승인 후 로그인 가능합니다.</div>
           </div>
         </div>
       </div>
@@ -326,11 +354,28 @@ function createLoginModal() {
   document.body.appendChild(wrap);
   const closeAll = () => { wrap.remove(); };
   wrap.querySelectorAll('[data-modal-close]')?.forEach(el => el.addEventListener('click', closeAll));
+  const idInput = document.getElementById('modalLoginId');
+  const pwInput = document.getElementById('modalLoginPw');
+  const rememberEl = document.getElementById('rememberLogin');
+  try {
+    const saved = localStorage.getItem('sepn_login_id');
+    if (saved && idInput && rememberEl) {
+      idInput.value = saved;
+      rememberEl.checked = true;
+      pwInput?.focus();
+    } else {
+      idInput?.focus();
+    }
+  } catch {}
   const submit = wrap.querySelector('#modalLoginSubmit');
-  submit?.addEventListener('click', async () => {
-    const username = (document.getElementById('modalLoginId')?.value || '').trim();
-    const password = (document.getElementById('modalLoginPw')?.value || '').trim();
+  const handleSubmit = async () => {
+    const username = (idInput?.value || '').trim();
+    const password = (pwInput?.value || '').trim();
     if (!username || !password) return;
+    try {
+      if (rememberEl?.checked) localStorage.setItem('sepn_login_id', username);
+      else localStorage.removeItem('sepn_login_id');
+    } catch {}
     try {
       const res = await fetch(API('/api/auth_login.php'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -377,6 +422,12 @@ function createLoginModal() {
       renderAuth();
       renderNav();
     }
+  };
+  submit?.addEventListener('click', handleSubmit);
+  [idInput, pwInput]?.forEach(el => {
+    el?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSubmit();
+    });
   });
   const regBtn = wrap.querySelector('#openRegister');
   regBtn?.addEventListener('click', () => { createRegisterModal(); });
