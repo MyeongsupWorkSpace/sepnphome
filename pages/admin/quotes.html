@@ -37,7 +37,7 @@
             <li><a href="approvals.html">가입 승인 관리</a></li>
             <li><a href="ranks.html">회원 등급 관리</a></li>
             <li><a href="users.html">회원 관리</a></li>
-            <li style="opacity:.55;">|</li>
+            <li class="nav-sep">|</li>
             <li><a href="#" data-menu="company">COMPANY</a></li>
             <li><a href="#" data-menu="products">PRODUCTS</a></li>
             <li><a href="../quote.html">견적문의</a></li>
@@ -48,7 +48,7 @@
       </div>
     </header>
     <main class="container admin-wrap">
-      <h1>견적 접수 확인</h1>
+      <h1 class="page-title">견적 접수 확인</h1>
       <div class="quotes-toolbar" aria-label="견적 관리 도구">
         <div class="field"><label for="qSearch">검색</label><input id="qSearch" placeholder="이름/이메일/제품/요청사항" /></div>
         <div class="field"><label for="qStatus">상태</label>
@@ -60,7 +60,7 @@
         </div>
         <button class="btn" id="qRefresh">새로고침</button>
         <button class="btn" id="qExport">CSV 내보내기</button>
-        <span id="qCount" class="muted" style="margin-left:auto;">0건</span>
+        <span id="qCount" class="muted ml-auto">0건</span>
       </div>
       <div id="quotesAdminTableWrap">
         <div class="loading">견적 데이터를 불러오는 중…</div>
@@ -68,7 +68,21 @@
       <div id="quotesPager" class="pager" aria-label="페이지 이동"></div>
     </main>
     <footer class="site-footer">
-      <div class="container footer-bottom">© <span id="year"></span> SEPNP.</div>
+      <div class="footer-divider"></div>
+      <div class="container footer-bottom">
+        <div class="footer-bottom-inner">
+          <div class="footer-meta">
+            <div class="footer-links" aria-label="정책 링크">
+              <a href="#" class="footer-link">개인정보처리방침</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">이용약관</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">문의하기</a>
+            </div>
+          </div>
+          <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+        </div>
+      </div>
     </footer>
     <script src="../../assets/js/main.js"></script>
     <script>
@@ -222,13 +236,13 @@
               <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
             </div>
             <div class="modal-body">
-              <div style="color:var(--muted);font-size:14px;">등록일: ${item.timestamp?new Date(item.timestamp*1000).toLocaleString():''} · 상태: ${item.status||''}</div>
+              <div class="detail-meta">등록일: ${item.timestamp?new Date(item.timestamp*1000).toLocaleString():''} · 상태: ${item.status||''}</div>
               <label>성함</label><input value="${item.name||''}" disabled>
               <label>이메일</label><input value="${item.email||''}" disabled>
               <label>연락처</label><input value="${item.phone||''}" disabled>
               <label>제품명</label><input value="${item.product||''}" disabled>
               <label>수량</label><input value="${item.qty||''}" disabled>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+              <div class="detail-grid">
                 <div><label>장(mm)</label><input value="${item.length||''}" disabled></div>
                 <div><label>폭(mm)</label><input value="${item.width||''}" disabled></div>
                 <div><label>고(mm)</label><input value="${item.height||''}" disabled></div>
@@ -237,12 +251,12 @@
               <label>후가공 상세</label><input value="${item.finishing_detail||''}" disabled>
               <label>요청사항</label><textarea disabled>${item.message||''}</textarea>
               <div class="modal-actions">
-                <label for="detailStatus" style="margin-right:8px;">상태</label>
+                <label for="detailStatus" class="mr-8">상태</label>
                 <select id="detailStatus">
                   <option value="문의중" ${(item.status==='문의중')?'selected':''}>문의중</option>
                   <option value="답변완료" ${(item.status==='답변완료')?'selected':''}>답변완료</option>
                 </select>
-                <button class="btn btn-accent" id="detailApply" style="margin-left:8px;">적용</button>
+                <button class="btn btn-accent ml-8" id="detailApply">적용</button>
               </div>
             </div>
           </div>

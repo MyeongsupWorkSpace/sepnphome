@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="assets/css/styles.css" />
   </head>
   <body>
+    <!-- 메인 광고/팝업은 JS(main.js)에서 동적으로 생성됩니다. -->
+
     <header class="site-header">
       <div class="container header-top">
         <a href="index.html" class="logo" aria-label="홈으로 이동">
@@ -46,12 +48,8 @@
     <!-- PRODUCTS 드롭다운 메뉴 -->
     <div id="productsMega" class="menu-popover" hidden>
       <ul class="menu-list" aria-label="Products 카테고리">
-        <li><a href="pages/products/color-box.html">칼라박스</a></li>
-        <li><a href="pages/products/corrugated-box.html">골판지 박스</a></li>
-        <li><a href="pages/products/special-printing.html">특수인쇄</a></li>
-        <li><a href="pages/products/commercial-printing.html">상업인쇄</a></li>
-        <li><a href="pages/products/shopping-bag.html">쇼핑백</a></li>
-        <li><a href="pages/products/etc.html">기타</a></li>
+        <li><a href="pages/vendor-products.html">업체별 제품</a></li>
+        <li><a href="pages/products.html#type-view">타입별 제품</a></li>
       </ul>
     </div>
 
@@ -76,6 +74,28 @@
           <div class="swiper-pagination"></div>
           <div class="swiper-button-prev" aria-label="이전"></div>
           <div class="swiper-button-next" aria-label="다음"></div>
+        </div>
+      </section>
+
+      <section class="logo-ticker-section">
+        <div class="container">
+          <div class="logo-ticker-title">주요 거래처</div>
+          <div class="logo-ticker" aria-label="고객사 로고 전광판">
+            <div class="logo-track">
+              <img src="assets/img/Logo/농심logo.png" alt="농심" loading="lazy" />
+              <img src="assets/img/Logo/롯데logo.png" alt="롯데" loading="lazy" />
+              <img src="assets/img/Logo/사조logo.png" alt="사조" loading="lazy" />
+              <img src="assets/img/Logo/서주logo.png" alt="서주" loading="lazy" />
+              <img src="assets/img/Logo/크라운logo.png" alt="크라운" loading="lazy" />
+              <img src="assets/img/Logo/폰트리logo.png" alt="폰트리" loading="lazy" />
+              <img src="assets/img/Logo/농심logo.png" alt="농심" loading="lazy" />
+              <img src="assets/img/Logo/롯데logo.png" alt="롯데" loading="lazy" />
+              <img src="assets/img/Logo/사조logo.png" alt="사조" loading="lazy" />
+              <img src="assets/img/Logo/서주logo.png" alt="서주" loading="lazy" />
+              <img src="assets/img/Logo/크라운logo.png" alt="크라운" loading="lazy" />
+              <img src="assets/img/Logo/폰트리logo.png" alt="폰트리" loading="lazy" />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -144,8 +164,8 @@
             </div>
           </div>
           <div class="split-right">
-            <div class="split-right-header">
-              <h2>견적 문의 내역</h2>
+            <div class="split-right-header section-header">
+              <h2 class="section-title">견적 문의 내역</h2>
             </div>
             <div id="quotes-list" class="quotes-list" aria-live="polite" aria-busy="true">
               <div class="loading">견적 데이터를 불러오는 중…</div>
@@ -153,25 +173,40 @@
           </div>
         </div>
       </section>
+
     </main>
 
     <!-- 플로팅 견적내기 버튼 -->
+    <a href="pages/contact.html" class="floating-cta secondary" aria-label="1:1 문의">1:1 문의</a>
     <a href="pages/quote.html" class="floating-cta" aria-label="견적문의">견적문의</a>
 
     <footer class="site-footer">
-      <div class="container footer-sections">
-        <!-- DELIVERY -->
-        <section class="footer-col">
-          <h4 class="footer-title">DELIVERY</h4>
-          <ul class="bullet-list">
-            <li>교환/반품주소지 :</li>
-            <li>경기도 김포시 양촌읍 석모1로 212번길 100</li>
-          </ul>
+      <div class="container footer-neo">
+        <section class="footer-neo__brand">
+          <div class="footer-brand-card">
+            <img class="footer-logo" src="assets/img/SE_logo.png" alt="SEPNP 로고" />
+            <p class="footer-desc">고객의 브랜드 가치를 높이는 맞춤 패키징 · 인쇄 솔루션을 제공합니다.</p>
+          </div>
+          <div class="footer-info-block">
+            <h4 class="footer-label">ABOUT SEPNP</h4>
+            <ul class="info-list">
+              <li>성은지기인쇄 주식회사</li>
+              <li>주소: 경기도 김포시 양촌읍 석모1로 212번길 100</li>
+              <li>대표/문의: 031-986-8439 · thinking@sepnp.com</li>
+              <li>제휴·협찬·유통 문의: thinking@sepnp.com</li>
+            </ul>
+          </div>
+          <div class="footer-info-block">
+            <h4 class="footer-label">DELIVERY</h4>
+            <ul class="info-list">
+              <li>교환/반품주소지</li>
+              <li>경기도 김포시 양촌읍 석모1로 212번길 100</li>
+            </ul>
+          </div>
         </section>
 
-        <!-- CUSTOMER CENTER -->
-        <section class="footer-col">
-          <h4 class="footer-title">CUSTOMER CENTER</h4>
+        <section class="footer-neo__support">
+          <h4 class="footer-label">CUSTOMER CENTER</h4>
           <p class="muted">전화보다 빠른 상담</p>
           <div class="cc-buttons">
             <a class="cc-btn kakao" href="#" aria-label="카카오톡 문의하기">
@@ -190,41 +225,43 @@
           </div>
         </section>
 
-
-        <!-- ABOUT -->
-        <section class="footer-col">
-          <h4 class="footer-title">ABOUT SEPNP</h4>
-          <ul class="info-list">
-            <li>성은지기인쇄 주식회사</li>
-            <li>주소: 경기도 김포시 양촌읍 석모1로 212번길 100</li>
-            <li>대표/문의: 031-986-8439 · thinking@sepnp.com</li>
-            <li>제휴·협찬·유통 문의: thinking@sepnp.com</li>
-          </ul>
-        </section>
-
-        <!-- ONLY & SOCIAL -->
-        <section class="footer-col only">
-          <h4 class="footer-title">ONLY SEPNP</h4>
-          <ul class="bullet-list">
-            <li>맞춤형 배송 시스템</li>
-            <li>스마트한 사이트 운영</li>
-            <li>맞춤 물류 서비스</li>
-          </ul>
+        <section class="footer-neo__showcase">
+          <div class="footer-info-block">
+            <h4 class="footer-label">ONLY SEPNP</h4>
+            <ul class="bullet-list">
+              <li>맞춤형 배송 시스템</li>
+              <li>스마트한 사이트 운영</li>
+              <li>맞춤 물류 서비스</li>
+            </ul>
+          </div>
           <figure class="only-photo">
-            <img src="assets/img/hero02.jpg" alt="회사 전경" loading="lazy" />
+            <img src="assets/img/hero02.jpg" alt="회사 전경" loading="lazy" decoding="async" fetchpriority="low" />
           </figure>
           <div class="social">
-            <h5 class="footer-title small">SOCIAL</h5>
+            <h5 class="footer-label small">SOCIAL</h5>
             <div class="social-list">
               <a class="social-btn ig" href="#" aria-label="Instagram"></a>
               <a class="social-btn fb" href="#" aria-label="Facebook"></a>
-              <a class="social-btn yt" href="#" aria-label="YouTube"></a>
-              <a class="social-btn kk" href="#" aria-label="KakaoTalk"></a>
+              <a class="social-btn blog" href="#" aria-label="Blog"></a>
             </div>
           </div>
         </section>
       </div>
-      <div class="container footer-bottom">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+      <div class="footer-divider"></div>
+      <div class="container footer-bottom">
+        <div class="footer-bottom-inner">
+          <div class="footer-meta">
+            <div class="footer-links" aria-label="정책 링크">
+              <a href="#" class="footer-link">개인정보처리방침</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">이용약관</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">문의하기</a>
+            </div>
+          </div>
+          <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+        </div>
+      </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>

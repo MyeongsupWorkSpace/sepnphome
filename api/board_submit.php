@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require __DIR__ . '/db.php';
 header('Content-Type: application/json; charset=utf-8');
 $path = __DIR__ . '/../data/board.json';
 $dir = dirname($path);
@@ -39,27 +40,50 @@ if ($title === '' || $content === '' || $author_username === '') {
   echo json_encode(['ok' => false, 'error' => 'invalid_input'], JSON_UNESCAPED_UNICODE);
   exit;
 }
-$items = json_decode(file_get_contents($path) ?: '[]', true);
-if (!is_array($items)) { $items = []; }
-$id = 1;
-foreach ($items as $it) { $id = max($id, (int)($it['id'] ?? 0) + 1); }
 $now = (int)(microtime(true) * 1000);
-$items[] = [
-  'id' => $id,
-  'category' => $category,
-  'title' => $title,
-  'content' => $content,
-  'secret' => $secret,
-  'author' => $author !== '' ? $author : $author_username,
-  'name' => $name,
-  'phone' => $phone,
-  'order_no' => $order,
-  'author_username' => $author_username,
-  'status' => $status,
-  'password' => $password_hash,
-  'attachments' => $attachments,
-  'views' => 0,
-  'timestamp' => $now,
-];
-file_put_contents($path, json_encode($items, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-echo json_encode(['ok' => true, 'id' => $id], JSON_UNESCAPED_UNICODE);
+if (use_json_fallback()) {
+  $items = json_decode(file_get_contents($path) ?: '[]', true);
+  if (!is_array($items)) { $items = []; }
+  $id = 1;
+  foreach ($items as $it) { $id = max($id, (int)($it['id'] ?? 0) + 1); }
+  $items[] = [
+    'id' => $id,
+    'category' => $category,
+    'title' => $title,
+    'content' => $content,
+    'secret' => $secret,
+    'author' => $author !== '' ? $author : $author_username,
+    'name' => $name,
+    'phone' => $phone,
+    'order_no' => $order,
+    'author_username' => $author_username,
+    'status' => $status,
+    'password' => $password_hash,
+    'attachments' => $attachments,
+    'views' => 0,
+    'timestamp' => $now,
+  ];
+  file_put_contents($path, json_encode($items, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+  echo json_encode(['ok' => true, 'id' => $id], JSON_UNESCAPED_UNICODE);
+} else {
+  $pdo = get_db();
+  $stmt = $pdo->prepare('INSERT INTO `board_posts`(`category`,`title`,`content`,`secret`,`author`,`name`,`phone`,`order_no`,`author_username`,`status`,`password_hash`,`attachments_json`,`views`,`timestamp`) VALUES(:category,:title,:content,:secret,:author,:name,:phone,:order_no,:author_username,:status,:password_hash,:attachments_json,:views,:timestamp)');
+  $stmt->execute([
+    ':category' => $category,
+    ':title' => $title,
+    ':content' => $content,
+    ':secret' => $secret ? 1 : 0,
+    ':author' => $author !== '' ? $author : $author_username,
+    ':name' => $name,
+    ':phone' => $phone,
+    ':order_no' => $order,
+    ':author_username' => $author_username,
+    ':status' => $status,
+    ':password_hash' => $password_hash,
+    ':attachments_json' => json_encode($attachments, JSON_UNESCAPED_UNICODE),
+    ':views' => 0,
+    ':timestamp' => $now,
+  ]);
+  $id = (int)$pdo->lastInsertId();
+  echo json_encode(['ok' => true, 'id' => $id], JSON_UNESCAPED_UNICODE);
+}

@@ -30,12 +30,66 @@
         <div class="nav-actions" aria-label="계정 영역"></div>
       </div>
     </header>
-    <main class="container" style="padding: 24px 0;">
-      <h1>쇼핑백</h1>
-      <p>제품 상세/사양/갤러리 영역입니다. 추후 실제 콘텐츠로 대체합니다.</p>
+    <main class="container page-main">
+      <section class="product-detail">
+        <div class="section-header stack">
+          <h1 class="page-title section-title">쇼핑백</h1>
+          <p class="section-desc">제품 소개 문구와 핵심 포인트를 입력해 주세요.</p>
+        </div>
+
+        <section class="product-hero">
+          <div class="product-hero-card">
+            <div class="product-hero-media">
+              <img src="../../assets/img/PD_5.jpg" alt="쇼핑백 대표 이미지" loading="lazy" />
+            </div>
+          </div>
+          <div class="product-hero-card">
+            <div class="product-hero-body">
+              <h2 class="product-hero-title">브랜드 경험을 높이는 패키지</h2>
+              <p class="product-hero-desc">상세 설명을 입력해 주세요. 이미지 교체만으로도 완성되는 구성입니다.</p>
+              <div class="product-cta">
+                <a class="btn btn-accent" href="../quote.html">견적 문의</a>
+                <a class="btn btn-outline" href="../products.html">제품 목록</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="product-section">
+          <h3 class="product-section-title">사양</h3>
+          <div class="product-specs">
+            <div class="spec-card"><div class="spec-label">재질</div><div class="spec-value">입력 예정</div></div>
+            <div class="spec-card"><div class="spec-label">규격</div><div class="spec-value">입력 예정</div></div>
+            <div class="spec-card"><div class="spec-label">후가공</div><div class="spec-value">입력 예정</div></div>
+          </div>
+        </section>
+
+        <section class="product-section">
+          <h3 class="product-section-title">갤러리</h3>
+          <div class="product-gallery">
+            <img src="../../assets/img/PD_5.jpg" alt="쇼핑백 이미지 1" loading="lazy" />
+            <img src="../../assets/img/PD_5.jpg" alt="쇼핑백 이미지 2" loading="lazy" />
+            <img src="../../assets/img/PD_5.jpg" alt="쇼핑백 이미지 3" loading="lazy" />
+          </div>
+        </section>
+      </section>
     </main>
     <footer class="site-footer">
-      <div class="container footer-bottom">© <span id="year"></span> SEPNP.</div>
+      <div class="footer-divider"></div>
+      <div class="container footer-bottom">
+        <div class="footer-bottom-inner">
+          <div class="footer-meta">
+            <div class="footer-links" aria-label="정책 링크">
+              <a href="#" class="footer-link">개인정보처리방침</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">이용약관</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">문의하기</a>
+            </div>
+          </div>
+          <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+        </div>
+      </div>
     </footer>
     <script src="../../assets/js/main.js"></script>
   </body>

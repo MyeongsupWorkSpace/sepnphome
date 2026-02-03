@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>쿠폰 관리 — SEPNP Admin</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../../assets/css/styles.css">
+  <style>
+    .admin-coupons-table { width: 100%; border-collapse: collapse; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-top: 24px; }
+    .admin-coupons-table th, .admin-coupons-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .admin-coupons-table thead th { background: var(--bg-muted); text-align: left; color: var(--muted); }
+    .admin-coupons-table tbody tr:hover { background: var(--bg-muted); }
+    .admin-coupons-toolbar { display: flex; gap: 12px; margin: 18px 0; }
+    .admin-coupons-toolbar input, .admin-coupons-toolbar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; min-width: 120px; }
+    .admin-coupons-toolbar button { padding: 8px 16px; border-radius: 10px; background: var(--primary); color: #fff; border: none; cursor: pointer; }
+    .admin-coupons-toolbar button:disabled { background: var(--muted); cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>쿠폰 관리</h1>
+    <div class="admin-coupons-toolbar">
+      <input type="text" id="adminCouponUserSearch" placeholder="사용자 ID 또는 이름 검색">
+      <select id="adminCouponSelect"></select>
+      <button id="adminCouponGrantBtn">쿠폰 발급</button>
+      <button id="adminCouponRevokeBtn">쿠폰 회수</button>
+    </div>
+    <div id="adminCouponsTableWrap"></div>
+  </main>
+  <script src="../../assets/js/main.js"></script>
+  <script>
+    if (window.initAdminCouponsPage) window.initAdminCouponsPage();
+  </script>
+</body>
+</html>

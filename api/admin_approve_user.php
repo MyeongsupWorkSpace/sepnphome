@@ -18,10 +18,10 @@ if (use_json_fallback()) {
 } else {
 	$pdo = get_db();
 	require_admin($pdo);
-	$u = $pdo->prepare('SELECT username FROM users WHERE id = :id');
+	$u = $pdo->prepare('SELECT `username` FROM `users` WHERE `id` = :id');
 	$u->execute([':id'=>$id]);
 	$uname = (string)($u->fetchColumn() ?: '');
 	if (strtolower($uname) === 'sepnp') { json_out(['ok'=>false,'error'=>'protected_user'], 403); exit; }
-	$pdo->prepare('UPDATE users SET status = :s WHERE id = :id')->execute([':s'=>$status, ':id'=>$id]);
+	$pdo->prepare('UPDATE `users` SET `status` = :s WHERE `id` = :id')->execute([':s'=>$status, ':id'=>$id]);
 	json_out(['ok'=>true]);
 }

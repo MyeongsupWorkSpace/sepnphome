@@ -65,10 +65,10 @@ if (use_json_fallback()) {
   $pdo = get_db();
   // DB에는 새 컬럼이 존재할 수도 있고 없을 수도 있으므로 동적으로 처리
   try {
-    $stmt = $pdo->prepare('INSERT INTO quotes(name,email,phone,product,message,qty,length,width,height,finishing,finishing_detail,status,timestamp) VALUES(:name,:email,:phone,:product,:message,:qty,:length,:width,:height,:finishing,:finishing_detail,:status,:ts)');
+    $stmt = $pdo->prepare('INSERT INTO `quotes`(`name`,`email`,`phone`,`product`,`message`,`qty`,`length`,`width`,`height`,`finishing`,`finishing_detail`,`status`,`timestamp`) VALUES(:name,:email,:phone,:product,:message,:qty,:length,:width,:height,:finishing,:finishing_detail,:status,:ts)');
   } catch (Throwable $e) {
     // 구버전 스키마: message에 요약을 덧붙여 저장
-    $stmt = $pdo->prepare('INSERT INTO quotes(name,email,phone,product,message,status,timestamp) VALUES(:name,:email,:phone,:product,:message,:status,:ts)');
+    $stmt = $pdo->prepare('INSERT INTO `quotes`(`name`,`email`,`phone`,`product`,`message`,`status`,`timestamp`) VALUES(:name,:email,:phone,:product,:message,:status,:ts)');
     $summary = "수량:$qty, 장:$length, 폭:$width, 고:$height, 후가공:$finishing_csv";
     if ($finishing_detail) { $summary .= " | " . $finishing_detail; }
     $message = trim($message) !== '' ? ($message . "\n" . $summary) : $summary;

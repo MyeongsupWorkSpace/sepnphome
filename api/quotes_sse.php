@@ -44,7 +44,7 @@ if ($useJson) {
   };
   $fetchRows = function(PDO $pdo): array {
     try {
-      $stmt = $pdo->query('SELECT id, name, product, message, email, phone, qty, length, width, height, finishing, finishing_detail, status, timestamp FROM quotes ORDER BY timestamp DESC');
+      $stmt = $pdo->query('SELECT `id`, `name`, `product`, `message`, `email`, `phone`, `qty`, `length`, `width`, `height`, `finishing`, `finishing_detail`, `status`, `timestamp` FROM `quotes` ORDER BY `timestamp` DESC');
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
       return is_array($rows) ? $rows : [];
     } catch (Throwable $e) { return []; }

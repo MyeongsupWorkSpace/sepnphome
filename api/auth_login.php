@@ -26,7 +26,7 @@ if (use_json_fallback()) {
   $_SESSION['user_name'] = (string)$user['username'];
   json_out(['ok'=>true,'user'=>$user]);
 } else {
-  $stmt = $pdo->prepare('SELECT id, username, password_hash, nickname, rank, role, status FROM users WHERE username = :u LIMIT 1');
+  $stmt = $pdo->prepare('SELECT `id`, `username`, `password_hash`, `nickname`, `rank`, `role`, `status` FROM `users` WHERE `username` = :u LIMIT 1');
   $stmt->execute([':u' => $u]);
   $user = $stmt->fetch(PDO::FETCH_ASSOC);
   if (!$user) { json_out(['ok'=>false,'error'=>'invalid_login'], 401); exit; }

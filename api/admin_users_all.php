@@ -9,7 +9,7 @@ if (use_json_fallback()) {
 } else {
 	$pdo = get_db();
 	require_admin($pdo);
-	$stmt = $pdo->query('SELECT id, username, nickname, rank, role, status, created_at FROM users ORDER BY created_at DESC');
+	$stmt = $pdo->query('SELECT `id`, `username`, `nickname`, `rank`, `role`, `status`, `created_at` FROM `users` ORDER BY `created_at` DESC');
 	$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 	json_out($rows);
 }

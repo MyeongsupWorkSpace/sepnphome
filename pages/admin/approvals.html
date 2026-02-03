@@ -28,9 +28,11 @@
         <div class="nav-actions" aria-label="계정 영역"></div>
       </div>
     </header>
-    <main class="container" style="padding:24px 0;">
-      <h1>가입 승인 관리</h1>
-      <p>신규 회원 가입 요청 목록입니다.</p>
+    <main class="container page-main">
+      <div class="section-header stack">
+        <h1 class="page-title section-title">가입 승인 관리</h1>
+        <p class="section-desc">신규 회원 가입 요청 목록입니다.</p>
+      </div>
       <div class="board-list admin-fixed">
       <table class="table" id="pendingTable">
         <thead>
@@ -40,7 +42,23 @@
       </table>
       </div>
     </main>
-    <footer class="site-footer"><div class="container footer-bottom">© <span id="year"></span> SEPNP.</div></footer>
+    <footer class="site-footer">
+      <div class="footer-divider"></div>
+      <div class="container footer-bottom">
+        <div class="footer-bottom-inner">
+          <div class="footer-meta">
+            <div class="footer-links" aria-label="정책 링크">
+              <a href="#" class="footer-link">개인정보처리방침</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">이용약관</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">문의하기</a>
+            </div>
+          </div>
+          <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+        </div>
+      </div>
+    </footer>
     <script src="../../assets/js/main.js"></script>
   </body>
   </html>

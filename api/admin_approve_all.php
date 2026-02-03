@@ -9,7 +9,7 @@ if (use_json_fallback()) {
 } else {
 	$pdo = get_db();
 	require_admin($pdo);
-	$stmt = $pdo->prepare('UPDATE users SET status = :s WHERE status <> :s');
+	$stmt = $pdo->prepare('UPDATE `users` SET `status` = :s WHERE `status` <> :s');
 	$stmt->execute([':s' => '승인완료']);
 	$affected = $stmt->rowCount();
 	json_out(['ok' => true, 'updated' => $affected]);

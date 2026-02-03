@@ -9,12 +9,15 @@ vendor/
 # Env & logs
 .env
 *.log
+api/db_config.php
 
 # Runtime data (not versioned)
 data/app.db
 data/users.json
 data/quotes.json
 data/board.json
+data/coupons.json
+data/user_coupons.json
 uploads/
 
 # Docker (optional)

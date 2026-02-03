@@ -37,6 +37,29 @@ function applySiteSettingsUI() {
 }
 applySiteSettingsUI();
 
+// Footer policy links
+function applyFooterPolicyLinks() {
+  try {
+    const isFile = location.protocol === 'file:';
+    const inPages = location.pathname.includes('/pages/');
+    const prefix = isFile ? (inPages ? '.' : 'pages') : '/pages';
+    const links = document.querySelectorAll('.footer-links .footer-link');
+    if (!links.length) return;
+    links.forEach((a) => {
+      const label = (a.textContent || '').trim();
+      const href = (a.getAttribute('href') || '').trim();
+      if (label.includes('개인정보처리방침')) {
+        if (!href || href === '#') a.setAttribute('href', `${prefix}/privacy.html`);
+      } else if (label.includes('이용약관')) {
+        if (!href || href === '#') a.setAttribute('href', `${prefix}/terms.html`);
+      } else if (label.includes('문의하기')) {
+        if (!href || href === '#') a.setAttribute('href', `${prefix}/contact.html`);
+      }
+    });
+  } catch {}
+}
+applyFooterPolicyLinks();
+
 // API base (supports Go Live / Netlify / custom backends)
 // 우선순위: window.API_BASE → localStorage('sepn_api_base') → 로컬 개발(127.0.0.1:8000) → 동일 출처
 let API_BASE = '';
@@ -51,6 +74,14 @@ try {
     const isLocalHost = ['127.0.0.1','localhost'].includes(location.hostname);
     API_BASE = isLocalHost ? 'http://127.0.0.1:8000' : '';
   }
+  // 배포 환경에서 로컬 API_BASE가 남아 있으면 무효화
+  try {
+    const isLocalHost = ['127.0.0.1','localhost'].includes(location.hostname);
+    if (!isLocalHost && /127\.0\.0\.1|localhost/.test(API_BASE)) {
+      API_BASE = '';
+      localStorage.removeItem('sepn_api_base');
+    }
+  } catch {}
 } catch { API_BASE = ''; }
 // URL 쿼리로 API 베이스를 즉시 지정하거나 초기화 (?api=https://host 또는 ?api=clear)
 try {
@@ -70,6 +101,17 @@ try {
 } catch {}
 window.API_BASE = API_BASE;
 const API = (p) => `${API_BASE}${p}`;
+
+function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(id));
+}
+
+function getLocalUser() {
+  try { return JSON.parse(localStorage.getItem('sepn_user') || 'null'); } catch { return null; }
+}
 
 // Mobile nav toggle
 const navToggle = document.querySelector('.nav-toggle');
@@ -107,6 +149,48 @@ if (navToggle && siteNav) {
     if (e.key === 'Escape') closeNav();
   });
 }
+
+// Close mobile nav on link click
+try {
+  siteNav?.querySelectorAll('a')?.forEach(link => {
+    link.addEventListener('click', () => { closeNav(); });
+  });
+} catch {}
+
+// Skip link + main id
+try {
+  const mainEl = document.querySelector('main');
+  if (mainEl && !mainEl.id) mainEl.id = 'mainContent';
+  if (!document.querySelector('.skip-link')) {
+    const skip = document.createElement('a');
+    skip.className = 'skip-link';
+    skip.href = '#mainContent';
+    skip.textContent = '본문 바로가기';
+    document.body.prepend(skip);
+  }
+} catch {}
+
+// Back to top button
+try {
+  if (!document.getElementById('toTopBtn')) {
+    const btn = document.createElement('button');
+    btn.id = 'toTopBtn';
+    btn.className = 'to-top';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', '맨 위로 이동');
+    btn.textContent = '↑';
+    btn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    document.body.appendChild(btn);
+    const toggle = () => {
+      const show = window.scrollY > 400;
+      btn.classList.toggle('show', show);
+    };
+    window.addEventListener('scroll', toggle, { passive: true });
+    toggle();
+  }
+} catch {}
 
 // Swiper init (guard when Swiper not loaded on some pages)
 let heroSwiper = null;
@@ -159,7 +243,54 @@ try {
 } catch {}
 
 let productsSwiper = null;
+function initProductShowcaseSlides() {
+  const wrapper = document.querySelector('.products-swiper .swiper-wrapper');
+  if (!wrapper) return;
+  const isFile = location.protocol === 'file:';
+  const inPages = location.pathname.includes('/pages/');
+  const prefix = isFile ? (inPages ? '..' : '.') : '';
+  const slides = [
+    { title: '빼빼로 (롯데)', img: `${prefix}/assets/img/%EB%A1%AF%EB%8D%B0/%EB%B9%BC%EB%B9%BC%EB%A1%9C.png`, link: `${prefix}/pages/vendor-products.html?brand=lotte` },
+    { title: '가나 마일드 (롯데)', img: `${prefix}/assets/img/%EB%A1%AF%EB%8D%B0/%EA%B0%80%EB%82%98%20%EB%A7%88%EC%9D%BC%EB%93%9C.png`, link: `${prefix}/pages/vendor-products.html?brand=lotte` },
+    { title: '카프리썬 오렌지 (농심)', img: `${prefix}/assets/img/%EB%86%8D%EC%8B%AC/%EC%B9%B4%ED%94%84%EB%A6%AC%EC%8D%AC%20%EC%98%A4%EB%A0%8C%EC%A7%80.jpg`, link: `${prefix}/pages/vendor-products.html?brand=nongshim` },
+    { title: '카프리썬 오렌지망고 (농심)', img: `${prefix}/assets/img/%EB%86%8D%EC%8B%AC/%EC%B9%B4%ED%94%84%EB%A6%AC%EC%8D%AC%20%EC%98%A4%EB%A0%8C%EC%A7%80%EB%A7%9D%EA%B3%A0.jfif`, link: `${prefix}/pages/vendor-products.html?brand=nongshim` },
+    { title: '빅파이 딸기 (크라운)', img: `${prefix}/assets/img/%ED%81%AC%EB%9D%BC%EC%9A%B4/%EB%B9%85%ED%8C%8C%EC%9D%B4%20%EB%94%B8%EA%B8%B0.jpg`, link: `${prefix}/pages/vendor-products.html?brand=crown` },
+    { title: '참크래커 (크라운)', img: `${prefix}/assets/img/%ED%81%AC%EB%9D%BC%EC%9A%B4/%EC%B0%B8%ED%81%AC%EB%9E%98%EC%BB%A4.jpg`, link: `${prefix}/pages/vendor-products.html?brand=crown` },
+    { title: '네스카페 수프리모 블랙 (네슬레)', img: `${prefix}/assets/img/%EB%84%A4%EC%8A%AC%EB%A0%88/%EB%84%A4%EC%8A%A4%EC%B9%B4%ED%8E%98%20%EC%88%98%ED%94%84%EB%A6%AC%EB%AA%A8%20%EC%95%84%EB%A9%94%EB%A6%AC%EC%B9%B4%EB%85%B8%20%EB%B8%94%EB%9E%99.webp`, link: `${prefix}/pages/vendor-products.html?brand=nestle` },
+    { title: '스타벅스 미디엄로스트 (네슬레)', img: `${prefix}/assets/img/%EB%84%A4%EC%8A%AC%EB%A0%88/%EC%8A%A4%ED%83%80%EB%B2%85%EC%8A%A4%20%EB%AF%B8%EB%94%94%EC%97%84%EB%A1%9C%EC%8A%A4%ED%8A%B8.webp`, link: `${prefix}/pages/vendor-products.html?brand=nestle` },
+  ];
+  for (let i = slides.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [slides[i], slides[j]] = [slides[j], slides[i]];
+  }
+  wrapper.innerHTML = slides.map(s => `
+    <div class="swiper-slide">
+      <a class="product-slide" href="${s.link}" aria-label="${s.title} 보러가기">
+        <img src="${s.img}" alt="${s.title}" loading="lazy" />
+        <div class="product-slide-overlay" aria-hidden="true">
+          <div class="product-slide-title">${s.title}</div>
+          <span class="btn btn-accent product-slide-btn">보러가기</span>
+        </div>
+      </a>
+    </div>
+  `).join('');
+}
+
+function bindProductShowcaseHover(swiperInstance) {
+  const slides = document.querySelectorAll('.product-slide');
+  if (!slides.length) return;
+  const pause = () => { try { swiperInstance?.autoplay?.stop(); } catch {} };
+  const resume = () => { try { swiperInstance?.autoplay?.start(); } catch {} };
+  slides.forEach(el => {
+    el.addEventListener('mouseenter', pause);
+    el.addEventListener('mouseleave', resume);
+    el.addEventListener('focusin', pause);
+    el.addEventListener('focusout', resume);
+  });
+}
+
 try {
+  initProductShowcaseSlides();
   if (typeof Swiper !== 'undefined') {
     productsSwiper = new Swiper('.products-swiper', {
       loop: true,
@@ -168,6 +299,7 @@ try {
       spaceBetween: 0,
       pagination: { el: '.split-left .swiper-pagination', clickable: true },
     });
+    bindProductShowcaseHover(productsSwiper);
   }
 } catch {}
 
@@ -175,6 +307,13 @@ try {
 const listEl = document.getElementById('quotes-list');
 function renderQuotes(quotes) {
   if (!Array.isArray(quotes)) return;
+  const maskName = (name) => {
+    const s = (name || '').toString().trim();
+    if (!s) return '-';
+    if (s.length === 1) return '*';
+    if (s.length === 2) return s[0] + '*';
+    return s[0] + '*'.repeat(s.length - 2) + s[s.length - 1];
+  };
   // 빈 목록: 15행 유지, 8번째 줄에 안내문 중앙 배치
   if (!quotes.length) {
     const emptyRows = Array.from({ length: 15 }).map((_, i) => (
@@ -201,14 +340,17 @@ function renderQuotes(quotes) {
     listEl.setAttribute('aria-busy', 'false');
     return;
   }
-  const rows = quotes
+  const maxRows = 15;
+  const view = quotes
     .slice()
     .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+    .slice(0, maxRows);
+  const rows = view
     .map(q => {
       const rawTs = Number(q.timestamp || 0);
       const ts = rawTs ? (rawTs < 1000000000000 ? rawTs * 1000 : rawTs) : 0;
       const dateStr = ts ? new Date(ts).toLocaleString() : '';
-      const name = q.name || '-';
+      const name = maskName(q.name || '-');
       const title = q.product || (q.message ? (q.message + '').slice(0, 40) + '…' : '-');
       const statusRaw = (q.status || '문의중');
       const isDone = statusRaw === '답변완료';
@@ -224,7 +366,7 @@ function renderQuotes(quotes) {
       `;
     })
     .join('');
-  const placeholders = Array.from({ length: Math.max(0, 15 - (quotes.length)) })
+  const placeholders = Array.from({ length: Math.max(0, maxRows - (view.length)) })
     .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
     .join('');
   const table = `
@@ -267,18 +409,139 @@ function initQuotesStream() {
   }
 }
 
+// My quotes page
+(function initMyQuotes(){
+  const listWrap = document.getElementById('my-quotes-list');
+  if (!listWrap) return;
+  const getUser = () => { try { return JSON.parse(localStorage.getItem('sepn_user')||'null')||null; } catch { return null; } };
+  const u = getUser();
+  const nameKey = (u?.nickname || u?.username || '').toString().trim().toLowerCase();
+  const emailKey = (u?.email || '').toString().trim().toLowerCase();
+
+  function fmtDate(ts){
+    if (!ts) return '';
+    const raw = Number(ts);
+    const ms = raw < 1000000000000 ? raw * 1000 : raw;
+    return new Date(ms).toLocaleString();
+  }
+
+  function render(items){
+    if (!Array.isArray(items) || items.length === 0){
+      const emptyRows = Array.from({ length: 12 }).map((_, i) => (
+        i === 5
+          ? `<tr><td colspan="4" class="quotes-empty-inline">등록된 견적이 없습니다.</td></tr>`
+          : `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`
+      )).join('');
+      listWrap.innerHTML = `
+        <table class="quotes-table" aria-label="내 견적 내역">
+          <thead>
+            <tr>
+              <th>등록 날짜</th>
+              <th>제품명</th>
+              <th>처리상태</th>
+              <th>요약</th>
+            </tr>
+          </thead>
+          <tbody>${emptyRows}</tbody>
+        </table>
+      `;
+      listWrap.setAttribute('aria-busy', 'false');
+      return;
+    }
+    const rows = items.map(q => {
+      const dateStr = fmtDate(q.timestamp || 0);
+      const statusRaw = (q.status || '문의중');
+      const isDone = statusRaw === '답변완료';
+      const statusClass = isDone ? 'status-done' : 'status-pending';
+      const statusLabel = isDone ? '답변완료' : '문의중';
+      const summary = (q.message || q.product || '').toString().slice(0, 50);
+      return `
+        <tr>
+          <td>${dateStr}</td>
+          <td>${q.product || '-'}</td>
+          <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+          <td>${summary || '-'}</td>
+        </tr>
+      `;
+    }).join('');
+    listWrap.innerHTML = `
+      <table class="quotes-table" aria-label="내 견적 내역">
+        <thead>
+          <tr>
+            <th>등록 날짜</th>
+            <th>제품명</th>
+            <th>처리상태</th>
+            <th>요약</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+    listWrap.setAttribute('aria-busy', 'false');
+  }
+
+  async function load(){
+    listWrap.setAttribute('aria-busy', 'true');
+    try {
+      const res = await fetchWithTimeout(API('/api/quotes_list.php'));
+      const items = res.ok ? await res.json() : [];
+      const filtered = (items || []).filter(q => {
+        const name = (q.name || '').toString().trim().toLowerCase();
+        const email = (q.email || '').toString().trim().toLowerCase();
+        if (emailKey && email === emailKey) return true;
+        if (nameKey && name === nameKey) return true;
+        return false;
+      });
+      render(filtered);
+    } catch {
+      render([]);
+    }
+  }
+  load();
+})();
+
+// My coupons panel
+(function initMyCoupons(){
+  const wrap = document.getElementById('couponList');
+  if (!wrap) return;
+  async function load(){
+    wrap.setAttribute('aria-busy', 'true');
+    try {
+      const res = await fetchWithTimeout(API('/api/coupons_my.php'), { credentials: 'include' });
+      const data = await res.json();
+      if (!data.ok) throw new Error('failed');
+      const items = Array.isArray(data.coupons) ? data.coupons : [];
+      if (items.length === 0) {
+        wrap.innerHTML = `<div class="quotes-empty-inline">보유 쿠폰이 없습니다.</div>`;
+      } else {
+        wrap.innerHTML = items.map(c => `
+          <div class="coupon-card">
+            <div class="coupon-title">${c.title || c.code || '쿠폰'}</div>
+            <div class="coupon-desc">${c.description || ''}</div>
+            <div class="coupon-qty">보유 수량: ${c.qty ?? 0}장</div>
+          </div>
+        `).join('');
+      }
+    } catch {
+      wrap.innerHTML = `<div class="quotes-empty-inline">쿠폰 정보를 불러올 수 없습니다.</div>`;
+    }
+    wrap.setAttribute('aria-busy', 'false');
+  }
+  load();
+})();
+
 let pollTimer;
 async function pollOnce() {
   try {
     // 1차: 정상 엔드포인트 시도
-    let res = await fetch(API('/api/quotes_list.php'), { credentials: 'include' });
+    let res = await fetchWithTimeout(API('/api/quotes_list.php'), { credentials: 'include' });
     if (!res.ok) throw new Error('fetch failed');
     let data = await res.json();
     renderQuotes(data);
   } catch (e1) {
     try {
       // 2차: 폴백 엔드포인트 사용
-      const res2 = await fetch(API('/api/quotes_list2.php'), { credentials: 'include' });
+      const res2 = await fetchWithTimeout(API('/api/quotes_list2.php'), { credentials: 'include' });
       if (!res2.ok) throw new Error('fallback failed');
       const data2 = await res2.json();
       renderQuotes(data2);
@@ -300,6 +563,11 @@ if (listEl) {
 }
 
 // Auth area (login/logout and rank badge)
+function closeAuthModals() {
+  try { document.getElementById('loginModal')?.remove(); } catch {}
+  try { document.getElementById('registerModal')?.remove(); } catch {}
+}
+
 function createLoginModal() {
   if (document.getElementById('loginModal')) return;
   const wrap = document.createElement('div');
@@ -310,12 +578,12 @@ function createLoginModal() {
       <div class="modal-card login-card">
         <div class="login-hero" aria-hidden="true">
           <div class="login-badge">SEPNP 멤버</div>
-          <h2 class="login-hero-title">환영합니다</h2>
-          <p class="login-hero-sub">승인된 회원 전용 포털입니다.</p>
+          <h2 class="login-hero-title">성은지기인쇄에 오신걸 환영합니다.</h2>
+          <p class="login-hero-sub">브랜드를 살리는 패키지, 고객을 끌어당기는 박스를 만듭니다.</p>
           <ul class="login-points">
-            <li>견적 진행 상태 실시간 확인</li>
-            <li>관리자 승인·등급 관리</li>
-            <li>보안 강화 세션 로그인</li>
+            <li>맞춤형 패키지 컨설팅 제공</li>
+            <li>퀄리티·납기·단가를 함께 설계</li>
+            <li>브랜드 경험을 높이는 박스 디자인</li>
           </ul>
         </div>
         <div class="login-panel">
@@ -377,26 +645,13 @@ function createLoginModal() {
       else localStorage.removeItem('sepn_login_id');
     } catch {}
     try {
-      const res = await fetch(API('/api/auth_login.php'), {
+      const res = await fetchWithTimeout(API('/api/auth_login.php'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
       if (!data.ok) {
-        // 개발 환경 폴백: 강제 관리자 로그인 시도 후 세션 조회
-        try {
-          await fetch(API('/api/dev_force_login_admin.php'), { credentials: 'include' }).catch(()=>{});
-          const res3 = await fetch(API('/api/auth_me2.php'), { credentials: 'include' });
-          const data3 = await res3.json();
-          if (data3.ok && data3.user) {
-            localStorage.setItem('sepn_user', JSON.stringify(data3.user));
-            closeAll();
-            renderAuth();
-            renderNav();
-            return;
-          }
-        } catch {}
         alert(data.error === 'pending_approval' ? '승인 대기 중입니다.' : '로그인 실패');
         return;
       }
@@ -408,19 +663,12 @@ function createLoginModal() {
         u.status = '승인완료';
       }
       localStorage.setItem('sepn_user', JSON.stringify(u));
-      closeAll();
+      closeAuthModals();
       renderAuth();
       renderNav();
     } catch {
-      // Fallback: 오프라인/로컬 모드
-      const isMaster = username.toLowerCase() === 'sepnp';
-      const user = isMaster
-        ? { username, nickname: '관리자', rank: 'Master', role: 'admin', status: '승인완료' }
-        : { username, nickname: username, rank: 'Normal', role: 'user', status: '승인완료' };
-      localStorage.setItem('sepn_user', JSON.stringify(user));
-      closeAll();
-      renderAuth();
-      renderNav();
+      alert('서버 응답이 없습니다. 잠시 후 다시 시도하세요.');
+      return;
     }
   };
   submit?.addEventListener('click', handleSubmit);
@@ -430,37 +678,55 @@ function createLoginModal() {
     });
   });
   const regBtn = wrap.querySelector('#openRegister');
-  regBtn?.addEventListener('click', () => { createRegisterModal(); });
+  regBtn?.addEventListener('click', () => { closeAll(); createRegisterModal(); });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); }, { once: true });
 }
 
 function renderAuth() {
+  function dedupeAuthUI() {
+    try {
+      const header = document.querySelector('.site-header');
+      if (!header) return;
+      // 헤더 내부 nav-actions 중복 제거
+      const bottom = header.querySelector('.header-bottom');
+      if (bottom) {
+        const list = bottom.querySelectorAll('.nav-actions');
+        list.forEach((el, idx) => { if (idx > 0) el.remove(); });
+      }
+      header.querySelectorAll('.header-top .nav-actions').forEach(el => el.remove());
+      // 로그인 버튼 중복 제거
+      const actions = header.querySelector('.header-bottom .nav-actions');
+      if (actions) {
+        const loginBtns = actions.querySelectorAll('#openLogin');
+        loginBtns.forEach((btn, idx) => { if (idx > 0) btn.remove(); });
+      }
+    } catch {}
+  }
   // 마운트 지점부터 보장한 뒤 선택(상단 우선)
   function ensureAuthMount() {
     try {
       const headerTop = document.querySelector('.site-header .header-top');
       const headerBottom = document.querySelector('.site-header .header-bottom');
       if (!headerTop && !headerBottom) return;
-      if (headerTop && !headerTop.querySelector('.nav-actions.top-actions')) {
-        const top = document.createElement('div');
-        top.className = 'nav-actions top-actions';
-        top.setAttribute('aria-label', '계정 영역');
-        headerTop.appendChild(top);
-      }
-      if (headerBottom && !headerBottom.querySelector('.nav-actions')) {
-        const bottom = document.createElement('div');
-        bottom.className = 'nav-actions';
-        bottom.setAttribute('aria-label', '계정 영역');
-        headerBottom.appendChild(bottom);
+      // 상단 액션 영역은 사용하지 않음(중복 버튼 방지)
+      headerTop?.querySelectorAll('.nav-actions')?.forEach(el => el.remove());
+      if (headerBottom) {
+        const bottomList = headerBottom.querySelectorAll('.nav-actions');
+        if (bottomList.length === 0) {
+          const bottom = document.createElement('div');
+          bottom.className = 'nav-actions';
+          bottom.setAttribute('aria-label', '계정 영역');
+          headerBottom.appendChild(bottom);
+        } else if (bottomList.length > 1) {
+          bottomList.forEach((el, idx) => { if (idx > 0) el.remove(); });
+        }
       }
     } catch {}
   }
   ensureAuthMount();
 
-  // 우선순위: 상단 헤더의 우측(.top-actions) → 하단 네비 우측
-  const topEl = document.querySelector('.nav-actions.top-actions');
-  const bottomEl = document.querySelector('.site-header .header-bottom .nav-actions');
-  const actions = topEl || bottomEl;
+  // 하단 네비 우측만 사용
+  const actions = document.querySelector('.site-header .header-bottom .nav-actions');
   if (!actions) return;
   const raw = localStorage.getItem('sepn_user');
   let user = null;
@@ -482,9 +748,6 @@ function renderAuth() {
       </span>
       <button type="button" class="btn login-compact logout-btn">로그아웃</button>
     `;
-    // 반대 영역은 비워 중복 표시 방지
-    if (actions === topEl && bottomEl) bottomEl.innerHTML = '';
-    if (actions === bottomEl && topEl) topEl.innerHTML = '';
     const logout = actions.querySelector('.logout-btn');
     logout?.addEventListener('click', () => {
       // 서버 세션도 종료
@@ -504,17 +767,22 @@ function renderAuth() {
     actions.innerHTML = `<button type="button" class="btn login-compact" id="openLogin">로그인</button>`;
     const btn = actions.querySelector('#openLogin');
     btn?.addEventListener('click', () => { createLoginModal(); });
-    // 반대 영역은 비워 중복 표시 방지
-    if (actions === topEl && bottomEl) bottomEl.innerHTML = '';
-    if (actions === bottomEl && topEl) topEl.innerHTML = '';
   }
+  dedupeAuthUI();
 }
+
+// 임베드(iframe)에서는 헤더/푸터 숨김용 클래스
+try {
+  if (window.self !== window.top) {
+    document.body.classList.add('embedded');
+  }
+} catch {}
 
 // 로그인 영역 렌더링(에러 폴백 포함)
 try {
   renderAuth();
 } catch (e) {
-  const actions = document.querySelector('.nav-actions');
+  const actions = document.querySelector('.site-header .header-bottom .nav-actions');
   if (actions) {
     actions.innerHTML = `<button type="button" class="btn login-compact" id="openLogin">로그인</button>`;
     const btn = actions.querySelector('#openLogin');
@@ -536,11 +804,11 @@ function renderNav() {
   const prefix = isFile ? (inPages ? '..' : '.') : '';
   const isAdmin = !!(user && (user.role||'').toLowerCase()==='admin');
   siteNavList.innerHTML = [
-    `<li><a href="#" data-menu="company">COMPANY</a></li>`,
-    `<li><a href="#" data-menu="products">PRODUCTS</a></li>`,
+    `<li><a href="#" data-menu="company">회사소개</a></li>`,
+    `<li><a href="#" data-menu="products">제품소개</a></li>`,
     `<li><a href="${prefix}/pages/quote.html">견적문의</a></li>`,
     `<li><a href="${prefix}/pages/contact.html">문의 게시판</a></li>`,
-    isAdmin ? `<li><a href="${prefix}/pages/admin/quotes.html" data-menu="admin">관리</a></li>` : ''
+    isAdmin ? `<li><a href="${prefix}/pages/admin/index.html" data-menu="admin">관리</a></li>` : ''
   ].join('');
   // When using mobile nav, close menu on link click
   document.querySelectorAll('.site-nav a').forEach(a => {
@@ -552,9 +820,41 @@ function renderNav() {
   initCompanyMega();
   initProductsMega();
   if (isAdmin) initAdminMega();
+  try { renderAuth(); } catch {}
 }
 
 renderNav();
+
+// Require login for quote pages (견적문의)
+try {
+  const user = getLocalUser();
+  const path = (location.pathname || '').toLowerCase();
+  const needsLogin = ['/pages/quote.html', '/pages/quote-register.html', '/pages/quote-history.html']
+    .some(p => path.endsWith(p));
+  if (!user && needsLogin) {
+    alert('로그인이 필요합니다. 상단 로그인 버튼을 사용하세요.');
+    try { if (typeof createLoginModal === 'function') createLoginModal(); } catch {}
+    const isFile = location.protocol === 'file:';
+    const inPages = location.pathname.includes('/pages/');
+    const loginPath = isFile ? (inPages ? 'login.html' : 'pages/login.html') : '/pages/login.html';
+    const ret = encodeURIComponent(location.pathname + location.search);
+    location.replace(`${loginPath}?return=${ret}`);
+  }
+} catch {}
+
+// Intercept quote links when not logged in
+try {
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a');
+    if (!a) return;
+    const href = (a.getAttribute('href') || '').toLowerCase();
+    if (!/quote\.html|quote-register\.html|quote-history\.html/.test(href)) return;
+    if (getLocalUser()) return;
+    e.preventDefault();
+    alert('로그인이 필요합니다. 상단 로그인 버튼을 사용하세요.');
+    try { if (typeof createLoginModal === 'function') createLoginModal(); } catch {}
+  });
+} catch {}
 
 // COMPANY 메가 메뉴 동작
 function initCompanyMega(){
@@ -678,12 +978,8 @@ function ensureDropdownMenus(prefixHint, isAdmin){
     wrap2.hidden = true;
     wrap2.innerHTML = `
       <ul class="menu-list" aria-label="Products 카테고리">
-        <li><a href="${prefix}/pages/products/color-box.html">칼라박스</a></li>
-        <li><a href="${prefix}/pages/products/corrugated-box.html">골판지 박스</a></li>
-        <li><a href="${prefix}/pages/products/special-printing.html">특수인쇄</a></li>
-        <li><a href="${prefix}/pages/products/commercial-printing.html">상업인쇄</a></li>
-        <li><a href="${prefix}/pages/products/shopping-bag.html">쇼핑백</a></li>
-        <li><a href="${prefix}/pages/products/etc.html">기타</a></li>
+        <li><a href="${prefix}/pages/vendor-products.html">업체별 제품</a></li>
+        <li><a href="${prefix}/pages/products.html#type-view">타입별 제품</a></li>
       </ul>`;
     container.appendChild(wrap2);
   }
@@ -750,11 +1046,21 @@ function createRegisterModal() {
         </div>
         <div class="modal-body">
           <label for="regId">아이디</label>
-          <input id="regId" placeholder="아이디" />
+          <div class="input-check-row">
+            <input id="regId" placeholder="아이디" />
+            <button type="button" class="btn btn-ghost" id="regIdCheck">중복확인</button>
+          </div>
+          <div class="input-hint" id="regIdHint" aria-live="polite"></div>
           <label for="regPw">비밀번호</label>
           <input id="regPw" type="password" placeholder="비밀번호" />
+          <label for="regPw2">비밀번호 확인</label>
+          <input id="regPw2" type="password" placeholder="비밀번호 확인" />
           <label for="regNick">닉네임</label>
-          <input id="regNick" placeholder="닉네임(선택)" />
+          <div class="input-check-row">
+            <input id="regNick" placeholder="닉네임(선택)" />
+            <button type="button" class="btn btn-ghost" id="regNickCheck">중복확인</button>
+          </div>
+          <div class="input-hint" id="regNickHint" aria-live="polite"></div>
           <div class="modal-actions">
             <button type="button" class="btn" data-modal-close>취소</button>
             <button type="button" class="btn btn-accent" id="regSubmit">가입</button>
@@ -766,57 +1072,103 @@ function createRegisterModal() {
   const closeAll = () => { wrap.remove(); };
   wrap.querySelectorAll('[data-modal-close]')?.forEach(el => el.addEventListener('click', closeAll));
   const submit = wrap.querySelector('#regSubmit');
+  const idInput = wrap.querySelector('#regId');
+  const nickInput = wrap.querySelector('#regNick');
+  const idCheckBtn = wrap.querySelector('#regIdCheck');
+  const nickCheckBtn = wrap.querySelector('#regNickCheck');
+  const idHint = wrap.querySelector('#regIdHint');
+  const nickHint = wrap.querySelector('#regNickHint');
+
+  const setHint = (el, msg, type) => {
+    if (!el) return;
+    el.textContent = msg || '';
+    el.classList.remove('ok', 'error', 'pending');
+    if (type) el.classList.add(type);
+  };
+
+  const checkAvailability = async ({ username, nickname }) => {
+    try {
+      const params = new URLSearchParams();
+      if (username) params.set('username', username);
+      if (nickname) params.set('nickname', nickname);
+      const url = API(`/api/auth_check.php?${params.toString()}`);
+      const res = await fetchWithTimeout(url, { credentials: 'include' });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+
+  idCheckBtn?.addEventListener('click', async () => {
+    const val = (idInput?.value || '').trim();
+    if (!val) { setHint(idHint, '아이디를 입력하세요.', 'error'); return; }
+    setHint(idHint, '확인 중...', 'pending');
+    const data = await checkAvailability({ username: val });
+    if (!data?.ok || typeof data.usernameAvailable !== 'boolean') {
+      setHint(idHint, '확인 실패', 'error');
+      return;
+    }
+    setHint(idHint, data.usernameAvailable ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.', data.usernameAvailable ? 'ok' : 'error');
+  });
+
+  nickCheckBtn?.addEventListener('click', async () => {
+    const val = (nickInput?.value || '').trim();
+    if (!val) { setHint(nickHint, '닉네임을 입력하세요.', 'error'); return; }
+    setHint(nickHint, '확인 중...', 'pending');
+    const data = await checkAvailability({ nickname: val });
+    if (!data?.ok || typeof data.nicknameAvailable !== 'boolean') {
+      setHint(nickHint, '확인 실패', 'error');
+      return;
+    }
+    setHint(nickHint, data.nicknameAvailable ? '사용 가능한 닉네임입니다.' : '이미 사용 중인 닉네임입니다.', data.nicknameAvailable ? 'ok' : 'error');
+  });
+
   submit?.addEventListener('click', async () => {
     const username = (document.getElementById('regId')?.value || '').trim();
     const password = (document.getElementById('regPw')?.value || '').trim();
+    const passwordConfirm = (document.getElementById('regPw2')?.value || '').trim();
     const nickname = (document.getElementById('regNick')?.value || '').trim();
-    if (!username || !password) return;
+    if (!username || !password || !passwordConfirm) return;
+    if (password !== passwordConfirm) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    const check = await checkAvailability({ username, nickname: nickname || undefined });
+    if (!check?.ok) { alert('중복 확인에 실패했습니다.'); return; }
+    if (check.usernameAvailable === false) {
+      setHint(idHint, '이미 사용 중인 아이디입니다.', 'error');
+      alert('이미 사용 중인 아이디입니다.');
+      return;
+    }
+    if (nickname && check.nicknameAvailable === false) {
+      setHint(nickHint, '이미 사용 중인 닉네임입니다.', 'error');
+      alert('이미 사용 중인 닉네임입니다.');
+      return;
+    }
     try {
-      const res = await fetch(API('/api/auth_register.php'), {
+      const res = await fetchWithTimeout(API('/api/auth_register.php'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ username, password, nickname })
+        body: JSON.stringify({ username, password, password_confirm: passwordConfirm, nickname })
       });
       const data = await res.json();
-      if (!data.ok) { alert('가입 실패(아이디 중복 등)'); return; }
-      // 즉시 승인 처리: 자동 로그인 시도
-      try {
-        // 1차: 정상 로그인 엔드포인트
-        let res2 = await fetch(API('/api/auth_login.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ username, password }) });
-        let data2 = await res2.json();
-        if (data2.ok) {
-          const u2 = data2.user || {};
-          if ((u2.username||'').toLowerCase() === 'sepnp') {
-            u2.role = 'admin';
-            u2.rank = 'Master';
-            u2.nickname = u2.nickname || '관리자';
-            u2.status = '승인완료';
-          }
-          localStorage.setItem('sepn_user', JSON.stringify(u2));
+      if (!data.ok) {
+        if (data.error === 'username_taken') {
+          setHint(idHint, '이미 사용 중인 아이디입니다.', 'error');
+          alert('이미 사용 중인 아이디입니다.');
+        } else if (data.error === 'nickname_taken') {
+          setHint(nickHint, '이미 사용 중인 닉네임입니다.', 'error');
+          alert('이미 사용 중인 닉네임입니다.');
         } else {
-          // 2차: 폴백 세션 확인 엔드포인트로 로그인 상태 점검
-          await fetch(API('/api/dev_force_login_admin.php'), { credentials: 'include' }).catch(()=>{});
-          const res3 = await fetch(API('/api/auth_me2.php'), { credentials: 'include' });
-          const data3 = await res3.json();
-          if (data3.ok && data3.user) {
-            localStorage.setItem('sepn_user', JSON.stringify(data3.user));
-          } else {
-            const isMaster = username.toLowerCase() === 'sepnp';
-            const user = isMaster
-              ? { username, nickname: '관리자', rank: 'Master', role: 'admin', status: '승인완료' }
-              : { username, nickname: nickname||username, rank: 'Normal', role: 'user', status: '승인완료' };
-            localStorage.setItem('sepn_user', JSON.stringify(user));
-          }
+          alert('가입 실패(아이디/닉네임 중복 등)');
         }
-      } catch {
-        const isMaster = username.toLowerCase() === 'sepnp';
-        const user = isMaster
-          ? { username, nickname: '관리자', rank: 'Master', role: 'admin', status: '승인완료' }
-          : { username, nickname: nickname||username, rank: 'Normal', role: 'user', status: '승인완료' };
-        localStorage.setItem('sepn_user', JSON.stringify(user));
+        return;
       }
-      alert('가입 완료 및 자동 로그인되었습니다.');
-      closeAll();
+      alert('가입이 완료되었습니다. 관리자 승인 후 로그인 가능합니다.');
+      closeAuthModals();
+      renderAuth();
+      renderNav();
       // 회원가입 직후 login 페이지라면 홈으로 이동
       try {
         const p = (location.pathname || '').toLowerCase();
@@ -920,19 +1272,30 @@ async function initAdminRanksPage() {
   }));
 }
 
-initAdminApprovalsPage();
-initAdminRanksPage();
 // Admin users page wiring
 async function initAdminUsersPage() {
   const table = document.getElementById('usersTable');
   if (!table) return;
   const tbody = table.querySelector('tbody');
+  const searchEl = document.getElementById('userSearch');
   let rows = [];
   try {
     const res = await fetch(API('/api/admin_users_all.php'), { credentials: 'include' });
     rows = await res.json();
   } catch {}
-  const dataRows = (rows || []).map(u => `
+  const q = (searchEl?.value || '').trim().toLowerCase();
+  const filtered = (rows || []).filter(u => {
+    if (!q) return true;
+    const username = (u.username || '').toString().toLowerCase();
+    const nickname = (u.nickname || '').toString().toLowerCase();
+    const status = (u.status || '').toString().toLowerCase();
+    return username.includes(q) || nickname.includes(q) || status.includes(q);
+  });
+  if (searchEl && !searchEl.dataset.bound) {
+    searchEl.dataset.bound = '1';
+    searchEl.addEventListener('input', () => initAdminUsersPage());
+  }
+  const dataRows = (filtered || []).map(u => `
     <tr>
       <td>${u.username}</td>
       <td>${u.nickname || '-'}</td>
@@ -943,10 +1306,14 @@ async function initAdminUsersPage() {
         <button class="btn btn-accent" data-status="정지" data-id="${u.id}">정지</button>
       </td>
     </tr>`).join('');
-  const placeholders = Array.from({length: Math.max(0, 15 - ((rows||[]).length))})
-    .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
-    .join('');
-  tbody.innerHTML = dataRows + placeholders;
+  if (!dataRows) {
+    tbody.innerHTML = `<tr><td colspan="4" class="quotes-empty-inline">검색 결과가 없습니다.</td></tr>`;
+  } else {
+    const placeholders = Array.from({length: Math.max(0, 15 - ((filtered||[]).length))})
+      .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
+      .join('');
+    tbody.innerHTML = dataRows + placeholders;
+  }
   tbody.querySelectorAll('[data-status]')?.forEach(btn => btn.addEventListener('click', async (e) => {
     const id = parseInt(e.currentTarget.getAttribute('data-id'), 10);
     const status = e.currentTarget.getAttribute('data-status');
@@ -960,6 +1327,86 @@ async function initAdminUsersPage() {
 }
 initAdminUsersPage();
 
+// Admin coupons page wiring
+function initAdminCouponsPage() {
+  const userSearch = document.getElementById('adminCouponUserSearch');
+  const couponSelect = document.getElementById('adminCouponSelect');
+  const grantBtn = document.getElementById('adminCouponGrantBtn');
+  const revokeBtn = document.getElementById('adminCouponRevokeBtn');
+  const tableWrap = document.getElementById('adminCouponsTableWrap');
+  let selectedUserId = null;
+  let selectedCouponId = null;
+  let selectedUserCouponId = null;
+
+  // 쿠폰 목록 불러오기
+  fetch('api/coupons_my.php')
+    .then(r => r.json())
+    .then(list => {
+      couponSelect.innerHTML = list.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+    });
+
+  // 사용자 검색 및 쿠폰 목록 조회
+  userSearch.addEventListener('change', () => {
+    const q = userSearch.value.trim();
+    if (!q) return;
+    fetch(`api/admin_coupons_list.php?user_id=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(rows => {
+        selectedUserId = q;
+        renderTable(rows);
+      });
+  });
+
+  function renderTable(rows) {
+    let html = `<table class="admin-coupons-table"><thead><tr><th>쿠폰명</th><th>수량</th><th>발급일</th><th>회수일</th><th>선택</th></tr></thead><tbody>`;
+    for (const r of rows) {
+      html += `<tr><td>${r.coupon_name}</td><td>${r.qty ?? 1}</td><td>${r.granted_at ?? '-'}</td><td>${r.revoked_at ?? '-'}</td><td><input type="radio" name="user_coupon" value="${r.user_coupon_id}"></td></tr>`;
+    }
+    html += '</tbody></table>';
+    tableWrap.innerHTML = html;
+    // 라디오 선택 이벤트
+    tableWrap.querySelectorAll('input[name="user_coupon"]').forEach(input => {
+      input.addEventListener('change', e => {
+        selectedUserCouponId = input.value;
+      });
+    });
+  }
+
+  grantBtn.addEventListener('click', () => {
+    if (!selectedUserId || !couponSelect.value) return alert('사용자와 쿠폰을 선택하세요');
+    fetch('api/admin_coupon_grant.php', {
+      method: 'POST',
+      body: new URLSearchParams({ user_id: selectedUserId, coupon_id: couponSelect.value })
+    }).then(r => r.json()).then(res => {
+      if (res.success) {
+        alert('쿠폰 발급 완료');
+        userSearch.dispatchEvent(new Event('change'));
+      } else {
+        alert(res.error || '발급 실패');
+      }
+    });
+  });
+
+  revokeBtn.addEventListener('click', () => {
+    if (!selectedUserCouponId) return alert('회수할 쿠폰을 선택하세요');
+    fetch('api/admin_coupon_revoke.php', {
+      method: 'POST',
+      body: new URLSearchParams({ user_coupon_id: selectedUserCouponId })
+    }).then(r => r.json()).then(res => {
+      if (res.success) {
+        alert('쿠폰 회수 완료');
+        userSearch.dispatchEvent(new Event('change'));
+      } else {
+        alert(res.error || '회수 실패');
+      }
+    });
+  });
+}
+
+initAdminApprovalsPage();
+initAdminRanksPage();
+initAdminUsersPage();
+initAdminCouponsPage();
 // (중복 제거) 인덱스 페이지의 견적 목록은 상단부의 SSE+폴링 로직을 사용합니다.
 
 // Board (문의 게시판)
@@ -1171,3 +1618,49 @@ initAdminUsersPage();
   writeBtn.addEventListener('click', openWrite);
   load();
 })();
+
+function showMainAdPopup() {
+  if (localStorage.getItem('hideMainAdToday') === getTodayStr()) return;
+  let popup = document.createElement('div');
+  popup.className = 'main-ad-popup';
+  popup.innerHTML = `
+    <div class="main-ad-content">
+      <strong>🎉 SEPNP 특별 이벤트!</strong>
+      <p>지금 회원가입 시 <b>목형비 면제 쿠폰</b> 증정!<br>견적 문의도 빠르게!</p>
+      <div class="main-ad-actions">
+        <button id="mainAdCloseBtn">닫기</button>
+        <button id="mainAdHideTodayBtn">오늘 하루 보지 않기</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(popup);
+  document.getElementById('mainAdCloseBtn').onclick = () => popup.remove();
+  document.getElementById('mainAdHideTodayBtn').onclick = () => {
+    localStorage.setItem('hideMainAdToday', getTodayStr());
+    popup.remove();
+  };
+}
+function getTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
+}
+if (document.body && location.pathname.endsWith('index.html')) {
+  window.addEventListener('DOMContentLoaded', showMainAdPopup);
+}
+
+function showMainAdPopupAlways() {
+  let popup = document.createElement('div');
+  popup.className = 'main-ad-popup';
+  popup.innerHTML = `
+    <div class="main-ad-content">
+      <strong>🚀 테스트 팝업</strong>
+      <p>이 팝업은 항상 뜹니다.<br>광고/이벤트/공지 등 원하는 내용을 넣으세요.</p>
+      <div class="main-ad-actions">
+        <button id="mainAdCloseBtn2">닫기</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(popup);
+  document.getElementById('mainAdCloseBtn2').onclick = () => popup.remove();
+}
+window.onload = showMainAdPopupAlways;

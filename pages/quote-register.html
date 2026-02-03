@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>견적문의 등록 — SEPNP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+    <style>
+      .form-wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 12px; }
+      .form { width: 100%; display: grid; gap: 14px; max-width: 760px; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--bg-elev); box-shadow: var(--shadow-sm); overflow-wrap: break-word; }
+      .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; justify-content: start; align-items: start; }
+      .grid-2.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: start; column-gap: 12px; }
+      .stack-2 { display: grid; gap: 12px; }
+      .field { display: grid; gap: 8px; align-content: start; }
+      .field label { font-weight: 600; color: var(--muted); }
+      .field input, .field textarea, .field select, .subfield input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; background: #fff; }
+      .field.is-compact { max-width: none; justify-self: start; }
+      .field.is-medium { max-width: none; justify-self: start; }
+      .field.is-compact input { max-width: 240px; }
+      .field.is-medium input { max-width: 320px; }
+      .phone-grid input { max-width: 110px; }
+      .subfield { display: grid; gap: 8px; align-content: start; }
+      .subfield input { max-width: 140px; }
+      .field textarea { min-height: 100px; resize: vertical; }
+      .phone-grid { display: grid; grid-template-columns: 90px auto 110px auto 110px; gap: 6px; align-items: center; max-width: 360px; margin: 0; }
+      .phone-grid input { text-align: center; }
+      .phone-sep { color: var(--muted); font-weight: 600; }
+      .subgrid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; align-items: end; justify-content: start; }
+      .row-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; align-items: end; }
+      .row-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; align-items: end; }
+      .row-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; align-items: start; }
+      .email-row { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,200px); gap: 8px; align-items: end; }
+      .email-row .at { color: var(--muted); font-weight: 600; align-self: center; }
+      #emailDomainCustom { margin-top: 6px; }
+      .compact-legend { font-weight: 700; margin-bottom: 8px; }
+      .chip-group { display: flex; flex-wrap: wrap; gap: 10px; }
+      .chip-group label { display: inline-flex; position: relative; }
+      .chip-group input {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        pointer-events: none;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+        cursor: pointer;
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+      }
+      .chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+      .chip-group input:checked + .chip {
+        border-color: var(--accent);
+        background: rgba(140,47,57,0.08);
+        box-shadow: 0 10px 24px rgba(140,47,57,0.16);
+      }
+      .chip-icon { width: 18px; height: 18px; border-radius: 4px; background: var(--bg-muted); border: 1px solid var(--border); display: inline-block; }
+      .chip-preview {
+        margin-top: 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+      .chip-preview img {
+        width: 100%;
+        height: 200px;
+        object-fit: contain;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        display: block;
+        background: #fff;
+      }
+      .chip-preview .muted { font-size: 12.5px; }
+      .chk { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; white-space: normal; word-break: keep-all; }
+      .lamination-field { display: grid; gap: 6px; justify-content: flex-start; }
+      .lamination-options { display: inline-flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+      .row .field { min-width: 140px; flex: 1 1 140px; }
+      .row.is-hidden { display: none; }
+      .section-block { padding: 10px; border-radius: 12px; background: var(--bg-muted); border: 1px solid var(--border); max-width: none; margin: 0; }
+      .actions { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
+      @media (max-width: 900px) { .subgrid-3 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+      @media (max-width: 768px) {
+        .grid-2 { grid-template-columns: 1fr; }
+        .grid-2.compact { grid-template-columns: 1fr; }
+        .subgrid-3 { grid-template-columns: 1fr; }
+        .row-2 { grid-template-columns: 1fr; }
+        .row-4 { grid-template-columns: 1fr; }
+        .row-1-2 { grid-template-columns: 1fr; }
+        .phone-grid { grid-template-columns: 1fr; }
+        .phone-sep { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="../index.html" class="logo" aria-label="홈으로 이동">
+          <img src="../assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요">
+          <ul>
+            <li><a href="about.html">회사소개</a></li>
+            <li><a href="products.html">제품소개</a></li>
+            <li><a href="quote.html" aria-current="page">견적문의</a></li>
+            <li><a href="contact.html">문의 게시판</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+    <main class="container page-main">
+      <div class="form-wrap">
+      <h1 class="page-title">견적 문의 등록</h1>
+      <form class="form" id="quoteForm">
+        <div class="stack-2">
+          <div class="field">
+            <label>박스타입</label>
+            <div class="chip-preview" aria-live="polite">
+              <img id="boxTypePreview" src="../assets/img/3면 예시.jpg" alt="C타입 3면접착 미리보기" />
+              <div id="boxTypePreviewLabel" class="muted">C타입 3면접착 미리보기</div>
+            </div>
+            <div class="chip-group" role="radiogroup" aria-label="박스타입 선택">
+              <label>
+                <input type="radio" name="box_type" value="A타입 1면접착" data-preview="../assets/img/PD_1.jpg" required />
+                <span class="chip"><span class="chip-icon" aria-hidden="true"></span>A타입 1면접착</span>
+              </label>
+              <label>
+                <input type="radio" name="box_type" value="B타입 2면접착" data-preview="../assets/img/PD_2.jpg" />
+                <span class="chip"><span class="chip-icon" aria-hidden="true"></span>B타입 2면접착</span>
+              </label>
+              <label>
+                <input type="radio" name="box_type" value="C타입 3면접착" data-preview="../assets/img/3면 예시.jpg" checked />
+                <span class="chip"><span class="chip-icon" aria-hidden="true"></span>C타입 3면접착</span>
+              </label>
+              <label>
+                <input type="radio" name="box_type" value="D타입 조립식 박스" data-preview="../assets/img/PD_4.jpg" />
+                <span class="chip"><span class="chip-icon" aria-hidden="true"></span>D타입 조립식 박스</span>
+              </label>
+              <label>
+                <input type="radio" name="box_type" value="E타입 자동카토너" data-preview="../assets/img/PD_5.jpg" />
+                <span class="chip"><span class="chip-icon" aria-hidden="true"></span>E타입 자동카토너</span>
+              </label>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="name">성함</label>
+              <input id="name" name="name" required />
+            </div>
+            <div class="field">
+              <label for="email">이메일</label>
+              <div class="email-row">
+                <input id="emailId" name="email_id" placeholder="아이디" required />
+                <span class="at">@</span>
+                <select id="emailDomainSelect" name="email_domain_select" aria-label="이메일 도메인 선택">
+                  <option value="naver.com">naver.com</option>
+                  <option value="nate.com">nate.com</option>
+                  <option value="gmail.com">gmail.com</option>
+                  <option value="daum.net">daum.net</option>
+                  <option value="hanmail.net">hanmail.net</option>
+                  <option value="outlook.com">outlook.com</option>
+                  <option value="hotmail.com">hotmail.com</option>
+                  <option value="icloud.com">icloud.com</option>
+                  <option value="yahoo.com">yahoo.com</option>
+                  <option value="direct">직접입력</option>
+                </select>
+              </div>
+              <input id="emailDomainCustom" name="email_domain_custom" placeholder="도메인 직접입력" class="is-hidden" />
+            </div>
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label for="phone1">연락처</label>
+            <div class="phone-grid">
+              <input id="phone1" name="phone1" inputmode="numeric" maxlength="3" placeholder="010" aria-label="연락처 앞자리" />
+              <span class="phone-sep" aria-hidden="true">-</span>
+              <input id="phone2" name="phone2" inputmode="numeric" maxlength="4" placeholder="1234" aria-label="연락처 중간자리" />
+              <span class="phone-sep" aria-hidden="true">-</span>
+              <input id="phone3" name="phone3" inputmode="numeric" maxlength="4" placeholder="5678" aria-label="연락처 뒷자리" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="product">제품명</label>
+            <input id="product" name="product" required />
+          </div>
+        </div>
+        <div class="row-4">
+          <div class="subfield">
+            <label for="length">장 (mm)</label>
+            <input id="length" name="length" type="number" min="1" step="0.1" />
+          </div>
+          <div class="subfield">
+            <label for="width">폭 (mm)</label>
+            <input id="width" name="width" type="number" min="1" step="0.1" />
+          </div>
+          <div class="subfield">
+            <label for="height">고 (mm)</label>
+            <input id="height" name="height" type="number" min="1" step="0.1" />
+          </div>
+          <div class="field">
+            <label for="qty">수량</label>
+            <input id="qty" name="qty" type="number" min="1" placeholder="예: 1000" />
+          </div>
+        </div>
+        <div class="row-1-2">
+          <div class="field lamination-field">
+            <label>합지 유무</label>
+            <div class="lamination-options" role="radiogroup" aria-label="합지 유무 선택">
+              <label class="chk"><input type="radio" name="lamination" value="유" required /> 유</label>
+              <label class="chk"><input type="radio" name="lamination" value="무" /> 무</label>
+            </div>
+          </div>
+          <section class="field field-top-tight section-block">
+            <div class="compact-legend">후가공(중복 선택 가능)</div>
+            <div class="row">
+              <label class="chk"><input id="finCoating" type="checkbox" name="finishing[]" value="코팅" aria-controls="coatingOptions" /> 코팅</label>
+            </div>
+            <div id="coatingOptions" class="row is-hidden">
+              <label class="chk"><input type="checkbox" name="coating[]" value="무광CR" /> 무광CR</label>
+              <label class="chk"><input type="checkbox" name="coating[]" value="유광CR" /> 유광CR</label>
+              <label class="chk"><input type="checkbox" name="coating[]" value="무광라미" /> 무광라미</label>
+              <label class="chk"><input type="checkbox" name="coating[]" value="유광라미" /> 유광라미</label>
+            </div>
+            <div class="row">
+              <label class="chk"><input id="finFoil" type="checkbox" name="finishing[]" value="금박" aria-controls="foilOptions" /> 금박</label>
+            </div>
+            <div id="foilOptions" class="row is-hidden">
+              <div class="field"><label for="foil_w">가로(mm)</label><input id="foil_w" name="foil_w" type="number" min="0" step="0.1" /></div>
+              <div class="field"><label for="foil_h">세로(mm)</label><input id="foil_h" name="foil_h" type="number" min="0" step="0.1" /></div>
+            </div>
+            <div class="row">
+              <label class="chk"><input id="finEmboss" type="checkbox" name="finishing[]" value="형압" aria-controls="embossOptions" /> 형압</label>
+            </div>
+            <div id="embossOptions" class="row is-hidden">
+              <div class="field"><label for="emboss_w">가로(mm)</label><input id="emboss_w" name="emboss_w" type="number" min="0" step="0.1" /></div>
+              <div class="field"><label for="emboss_h">세로(mm)</label><input id="emboss_h" name="emboss_h" type="number" min="0" step="0.1" /></div>
+            </div>
+          </section>
+        </div>
+        <div class="field">
+          <label for="message">요청사항</label>
+          <textarea id="message" name="message" placeholder="상세 요청사항을 입력해 주세요"></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn" type="submit">등록하기</button>
+          <span id="status" class="note" aria-live="polite"></span>
+        </div>
+      </form>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-divider"></div>
+      <div class="container footer-bottom">
+        <div class="footer-bottom-inner">
+          <div class="footer-meta">
+            <div class="footer-links" aria-label="정책 링크">
+              <a href="#" class="footer-link">개인정보처리방침</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">이용약관</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">문의하기</a>
+            </div>
+          </div>
+          <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+        </div>
+      </div>
+    </footer>
+    <script src="../assets/js/main.js"></script>
+    <script>
+      // 로그인 필요: 미로그인 시 로그인 페이지로 이동
+      (function(){
+        try {
+          const raw = localStorage.getItem('sepn_user');
+          const u = raw ? JSON.parse(raw) : null;
+          if (!u || !u.username) {
+            const ret = encodeURIComponent(location.pathname);
+            location.href = 'login.html?return=' + ret;
+            return;
+          }
+        } catch {
+          const ret = encodeURIComponent(location.pathname);
+          location.href = 'login.html?return=' + ret;
+          return;
+        }
+      })();
+      const form = document.getElementById('quoteForm');
+      const statusEl = document.getElementById('status');
+      // 코팅 선택 시 하위 옵션 토글
+      const finCoating = document.getElementById('finCoating');
+      const coatingRow = document.getElementById('coatingOptions');
+      function updateCoatingVisibility(){
+        const show = !!(finCoating && finCoating.checked);
+        if (coatingRow){
+          coatingRow.classList.toggle('is-hidden', !show);
+          if (!show){
+            coatingRow.querySelectorAll('input[name="coating[]"]').forEach(cb => { cb.checked = false; });
+          }
+        }
+      }
+      finCoating && finCoating.addEventListener('change', updateCoatingVisibility);
+      updateCoatingVisibility();
+      // 금박/형압 선택 시 사이즈 입력 토글
+      const finFoil = document.getElementById('finFoil');
+      const foilRow = document.getElementById('foilOptions');
+      function updateFoilVisibility(){
+        const show = !!(finFoil && finFoil.checked);
+        if (foilRow){
+          foilRow.classList.toggle('is-hidden', !show);
+          if (!show){
+            const fw = document.getElementById('foil_w');
+            const fh = document.getElementById('foil_h');
+            if (fw) fw.value = '';
+            if (fh) fh.value = '';
+          }
+        }
+      }
+      finFoil && finFoil.addEventListener('change', updateFoilVisibility);
+      updateFoilVisibility();
+
+      const finEmboss = document.getElementById('finEmboss');
+      const embossRow = document.getElementById('embossOptions');
+      function updateEmbossVisibility(){
+        const show = !!(finEmboss && finEmboss.checked);
+        if (embossRow){
+          embossRow.classList.toggle('is-hidden', !show);
+          if (!show){
+            const ew = document.getElementById('emboss_w');
+            const eh = document.getElementById('emboss_h');
+            if (ew) ew.value = '';
+            if (eh) eh.value = '';
+          }
+        }
+      }
+      finEmboss && finEmboss.addEventListener('change', updateEmbossVisibility);
+      updateEmbossVisibility();
+      // 연락처 자동 포커스 이동
+      const phone1 = document.getElementById('phone1');
+      const phone2 = document.getElementById('phone2');
+      const phone3 = document.getElementById('phone3');
+      function onlyDigits(el){ if (!el) return; el.value = el.value.replace(/\D+/g, ''); }
+      phone1?.addEventListener('input', () => {
+        onlyDigits(phone1);
+        if (phone1.value.length >= 3) phone2?.focus();
+      });
+      phone2?.addEventListener('input', () => {
+        onlyDigits(phone2);
+        if (phone2.value.length >= 4) phone3?.focus();
+      });
+      phone3?.addEventListener('input', () => { onlyDigits(phone3); });
+
+      // 이메일 도메인 선택/직접입력
+      const emailDomainSelect = document.getElementById('emailDomainSelect');
+      const emailDomainCustom = document.getElementById('emailDomainCustom');
+      function updateEmailDomainUI(){
+        const direct = emailDomainSelect?.value === 'direct';
+        if (emailDomainCustom){
+          emailDomainCustom.classList.toggle('is-hidden', !direct);
+          if (!direct) emailDomainCustom.value = '';
+        }
+      }
+      emailDomainSelect?.addEventListener('change', updateEmailDomainUI);
+      updateEmailDomainUI();
+
+      // 박스타입 미리보기
+      const previewImg = document.getElementById('boxTypePreview');
+      const previewLabel = document.getElementById('boxTypePreviewLabel');
+      function updateBoxPreview(){
+        const selected = document.querySelector('input[name="box_type"]:checked');
+        if (!selected || !previewImg || !previewLabel) return;
+        const src = selected.getAttribute('data-preview') || '../assets/img/PD_3.jpg';
+        const label = selected.value || '박스타입 미리보기';
+        previewImg.src = src;
+        previewImg.alt = label + ' 미리보기';
+        previewLabel.textContent = label + ' 미리보기';
+      }
+      document.querySelectorAll('input[name="box_type"]').forEach(radio => {
+        radio.addEventListener('change', updateBoxPreview);
+      });
+      updateBoxPreview();
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        statusEl.textContent = '등록 중…';
+        const fd = new FormData(form);
+        // 이메일 조합
+        const emailId = (fd.get('email_id') || '').toString().trim();
+        const domainSelect = (fd.get('email_domain_select') || '').toString().trim();
+        const domainCustom = (fd.get('email_domain_custom') || '').toString().trim();
+        const domain = domainSelect === 'direct' ? domainCustom : domainSelect;
+        if (emailId && domain) {
+          fd.set('email', `${emailId}@${domain}`);
+        }
+        fd.delete('email_id');
+        fd.delete('email_domain_select');
+        fd.delete('email_domain_custom');
+        // 연락처 조합
+        const p1 = (fd.get('phone1') || '').toString().trim();
+        const p2 = (fd.get('phone2') || '').toString().trim();
+        const p3 = (fd.get('phone3') || '').toString().trim();
+        if (p1 || p2 || p3) {
+          const joined = [p1, p2, p3].filter(Boolean).join('-');
+          fd.set('phone', joined);
+        }
+        fd.delete('phone1');
+        fd.delete('phone2');
+        fd.delete('phone3');
+        const finishings = fd.getAll('finishing[]'); fd.delete('finishing[]');
+        const coatings = fd.getAll('coating[]'); fd.delete('coating[]');
+        const data = Object.fromEntries(fd.entries());
+        if (finishings.length) data.finishing = finishings;
+        if (coatings.length) data.coating = coatings;
+        // 요약 문자열 생성(관리/목록 표시 용이)
+        const parts = [];
+        if (coatings.length) parts.push('코팅:' + coatings.join(', '));
+        const fw = data.foil_w||''; const fh = data.foil_h||'';
+        if (finishings.includes('금박') && (fw || fh)) parts.push(`금박:${fw||0}x${fh||0}mm`);
+        const ew = data.emboss_w||''; const eh = data.emboss_h||'';
+        if (finishings.includes('형압') && (ew || eh)) parts.push(`형압:${ew||0}x${eh||0}mm`);
+        if (parts.length) data.finishing_detail = parts.join(' | ');
+        try {
+          const res = await fetch(API('/api/submit_quote.php'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          if (!res.ok) throw new Error('서버 오류');
+          const j = await res.json();
+          if (j && j.ok) {
+            statusEl.textContent = '등록되었습니다. 홈페이지에서 실시간으로 확인 가능합니다.';
+            statusEl.className = 'note success';
+            form.reset();
+          } else {
+            throw new Error(j?.error || '등록 실패');
+          }
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            statusEl.textContent = '서버 응답이 없습니다. 네트워크 상태를 확인해 주세요.';
+          } else {
+            statusEl.textContent = '오류: ' + (err?.message || '등록에 실패했습니다');
+          }
+          statusEl.className = 'note error';
+        }
+      });
+    </script>
+  </body>
+</html>

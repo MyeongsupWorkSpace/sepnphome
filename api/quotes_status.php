@@ -23,7 +23,7 @@ if (use_json_fallback()) {
 } else {
   $pdo = get_db();
   require_admin($pdo);
-  $stmt = $pdo->prepare('UPDATE quotes SET status = :s WHERE id = :id');
+  $stmt = $pdo->prepare('UPDATE `quotes` SET `status` = :s WHERE `id` = :id');
   $ok = false;
   try {
     $ok = $stmt->execute([':s'=>$status, ':id'=>$id]);

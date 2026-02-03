@@ -8,7 +8,7 @@ if (use_json_fallback()) {
 } else {
   $pdo = get_db();
   if ($pdo instanceof PDO) {
-    $stmt = $pdo->query('SELECT id, name, product, message, email, phone, status, timestamp FROM quotes ORDER BY timestamp DESC');
+    $stmt = $pdo->query('SELECT `id`, `name`, `product`, `message`, `email`, `phone`, `status`, `timestamp` FROM `quotes` ORDER BY `timestamp` DESC');
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode($rows, JSON_UNESCAPED_UNICODE);
   } else {

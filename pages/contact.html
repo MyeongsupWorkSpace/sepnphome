@@ -30,11 +30,33 @@
         <div class="nav-actions" aria-label="계정 영역"></div>
       </div>
     </header>
-    <main class="container" style="padding: 24px 0;">
-      <h1>문의 게시판</h1>
+    <main class="container page-main">
+      <h1 class="page-title">문의 게시판</h1>
       <section class="board">
         <div id="boardList" class="board-list" aria-live="polite" aria-busy="true">
-          <div class="loading">게시글을 불러오는 중…</div>
+          <table class="board-table" aria-label="문의 게시판">
+            <thead>
+              <tr><th>번호</th><th>제목</th><th>작성자</th><th>작성일</th><th>처리</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td colspan="5" class="empty-inline">등록한 글이 없습니다</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            </tbody>
+          </table>
+          <div class="board-pager"></div>
         </div>
         <button type="button" class="btn btn-accent fab-write" id="boardWriteBtn">글쓰기</button>
       </section>
@@ -43,7 +65,7 @@
       <div id="boardWriteModal" hidden>
         <div class="modal-backdrop" data-modal-close></div>
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="writeTitle">
-          <div class="modal-card" style="max-width:640px;">
+          <div class="modal-card modal-md">
             <div class="modal-header">
               <div class="modal-title" id="writeTitle">글쓰기</div>
               <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
@@ -61,12 +83,12 @@
               <input id="wName" />
 
               <label>연락처</label>
-              <div style="display:flex;gap:8px;">
-                <input id="wPhone1" style="flex:1;" />
-                <span style="align-self:center;opacity:.5;">-</span>
-                <input id="wPhone2" style="flex:1;" />
-                <span style="align-self:center;opacity:.5;">-</span>
-                <input id="wPhone3" style="flex:1;" />
+              <div class="inline-row">
+                <input id="wPhone1" class="flex-1" />
+                <span class="divider">-</span>
+                <input id="wPhone2" class="flex-1" />
+                <span class="divider">-</span>
+                <input id="wPhone3" class="flex-1" />
               </div>
 
 
@@ -77,13 +99,13 @@
               <input id="wTitle" />
 
               <label>파일첨부</label>
-              <div style="display:grid;gap:8px;">
+              <div class="grid-gap-8">
                 <input id="wFile1" type="file" />
                 <input id="wFile2" type="file" />
               </div>
 
               <label for="wContent">내용</label>
-              <textarea id="wContent" style="min-height:220px;"></textarea>
+              <textarea id="wContent" class="textarea-lg"></textarea>
 
               <label class="secret-row">
                 <input type="checkbox" id="wSecret" />
@@ -102,7 +124,7 @@
       <div id="boardViewModal" hidden>
         <div class="modal-backdrop" data-modal-close></div>
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="viewTitle">
-          <div class="modal-card" style="max-width:720px;">
+          <div class="modal-card modal-lg">
             <div class="modal-header">
               <div class="modal-title" id="viewTitle">게시글</div>
               <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
@@ -113,7 +135,21 @@
       </div>
     </main>
     <footer class="site-footer">
-      <div class="container footer-bottom">© <span id="year"></span> SEPNP.</div>
+      <div class="footer-divider"></div>
+      <div class="container footer-bottom">
+        <div class="footer-bottom-inner">
+          <div class="footer-meta">
+            <div class="footer-links" aria-label="정책 링크">
+              <a href="#" class="footer-link">개인정보처리방침</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">이용약관</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">문의하기</a>
+            </div>
+          </div>
+          <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+        </div>
+      </div>
     </footer>
     <script src="../assets/js/main.js"></script>
   </body>
