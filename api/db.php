@@ -75,6 +75,7 @@ function get_db(): PDO {
   migrate($pdo);
   seed_coupons($pdo);
   seed_admin($pdo);
+  seed_portal_admin($pdo);
   seed_sample_data($pdo);
   return $pdo;
 }
@@ -142,6 +143,85 @@ function migrate(PDO $pdo): void {
     `created_at` INT,
     `updated_at` INT,
     UNIQUE KEY `uniq_user_coupon` (`user_id`, `coupon_id`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  // ===== Portal tables =====
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_employees` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `emp_no` VARCHAR(64) NULL,
+    `username` VARCHAR(191) NULL,
+    `password_hash` VARCHAR(255) NULL,
+    `name` VARCHAR(191) NULL,
+    `dept` VARCHAR(191) NULL,
+    `position` VARCHAR(191) NULL,
+    `phone` VARCHAR(64) NULL,
+    `email` VARCHAR(191) NULL,
+    `join_date` VARCHAR(32) NULL,
+    `status` VARCHAR(32) DEFAULT "pending",
+    `role` VARCHAR(32) DEFAULT "viewer",
+    `perms_json` TEXT NULL,
+    `created_at` BIGINT NULL,
+    `updated_at` BIGINT NULL,
+    INDEX (`emp_no`),
+    INDEX (`username`),
+    INDEX (`status`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_suppliers` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `data_json` MEDIUMTEXT NULL,
+    `created_at` BIGINT NULL,
+    `updated_at` BIGINT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_papers` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `data_json` MEDIUMTEXT NULL,
+    `created_at` BIGINT NULL,
+    `updated_at` BIGINT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_materials` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `data_json` MEDIUMTEXT NULL,
+    `created_at` BIGINT NULL,
+    `updated_at` BIGINT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_products` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `data_json` MEDIUMTEXT NULL,
+    `created_at` BIGINT NULL,
+    `updated_at` BIGINT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_customers` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `data_json` MEDIUMTEXT NULL,
+    `created_at` BIGINT NULL,
+    `updated_at` BIGINT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_orders` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `data_json` MEDIUMTEXT NULL,
+    `created_at` BIGINT NULL,
+    `updated_at` BIGINT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_assignments` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `date_key` VARCHAR(32) NULL,
+    `data_json` MEDIUMTEXT NULL,
+    `created_at` BIGINT NULL,
+    `updated_at` BIGINT NULL,
+    INDEX (`date_key`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_kv` (
+    `kv_key` VARCHAR(191) NOT NULL PRIMARY KEY,
+    `data_json` MEDIUMTEXT NULL,
+    `updated_at` BIGINT NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
   // 기존 테이블에 새 컬럼 추가
@@ -224,6 +304,35 @@ function seed_admin(PDO $pdo): void {
         ':s' => '승인완료',
         ':ts' => time(),
       ]);
+  }
+}
+
+function seed_portal_admin(PDO $pdo): void {
+  try {
+    $stmt = $pdo->prepare('SELECT `id` FROM `portal_employees` WHERE `username` = :u LIMIT 1');
+    $stmt->execute([':u' => 'sepnp']);
+    $exists = $stmt->fetchColumn();
+    if ($exists) return;
+    $hash = password_hash('0536', PASSWORD_DEFAULT);
+    $now = time();
+    $pdo->prepare('INSERT INTO `portal_employees`(`emp_no`,`username`,`password_hash`,`name`,`dept`,`position`,`phone`,`email`,`join_date`,`status`,`role`,`perms_json`,`created_at`,`updated_at`) VALUES(:emp_no,:u,:ph,:name,:dept,:pos,:phone,:email,:join_date,:status,:role,:perms,:ts,:ts)')
+      ->execute([
+        ':emp_no' => 'ADMIN',
+        ':u' => 'sepnp',
+        ':ph' => $hash,
+        ':name' => '관리자',
+        ':dept' => '관리부',
+        ':pos' => '관리자',
+        ':phone' => '',
+        ':email' => '',
+        ':join_date' => date('Y-m-d'),
+        ':status' => 'active',
+        ':role' => 'admin',
+        ':perms' => json_encode(['*'], JSON_UNESCAPED_UNICODE),
+        ':ts' => $now,
+      ]);
+  } catch (Throwable $e) {
+    // ignore
   }
 }
 
@@ -388,6 +497,16 @@ function json_users_path(): string { return data_dir() . DIRECTORY_SEPARATOR . '
 function json_quotes_path(): string { return data_dir() . DIRECTORY_SEPARATOR . 'quotes.json'; }
 function json_coupons_path(): string { return data_dir() . DIRECTORY_SEPARATOR . 'coupons.json'; }
 function json_user_coupons_path(): string { return data_dir() . DIRECTORY_SEPARATOR . 'user_coupons.json'; }
+
+function json_portal_path(string $name): string {
+  return data_dir() . DIRECTORY_SEPARATOR . 'portal_' . $name . '.json';
+}
+function json_portal_all(string $name): array { return json_load(json_portal_path($name)); }
+function json_portal_save(string $name, array $rows): void { json_save(json_portal_path($name), $rows); }
+function json_portal_next_id(array $rows): int {
+  $max = 0; foreach ($rows as $r) { $id = (int)($r['id'] ?? 0); if ($id > $max) $max = $id; }
+  return $max + 1;
+}
 
 function json_load(string $path): array {
   if (!is_file($path)) return [];

@@ -102,6 +102,17 @@ try {
 window.API_BASE = API_BASE;
 const API = (p) => `${API_BASE}${p}`;
 
+function getPortalUrl() {
+  try {
+    const isFile = location.protocol === 'file:';
+    const inPages = location.pathname.includes('/pages/');
+    const prefix = isFile ? (inPages ? '..' : '.') : '';
+    return `${prefix}/SEportal/public/index.html`;
+  } catch {
+    return '/SEportal/public/index.html';
+  }
+}
+
 function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -644,6 +655,22 @@ function createLoginModal() {
       if (rememberEl?.checked) localStorage.setItem('sepn_login_id', username);
       else localStorage.removeItem('sepn_login_id');
     } catch {}
+    // 정적 환경용: sepnp/0536은 서버 없이 로그인 허용
+    if ((username || '').toLowerCase() === 'sepnp' && password === '0536') {
+      const u = {
+        id: 1,
+        username: 'sepnp',
+        nickname: '관리자',
+        rank: 'Master',
+        role: 'admin',
+        status: '승인완료'
+      };
+      localStorage.setItem('sepn_user', JSON.stringify(u));
+      closeAuthModals();
+      renderAuth();
+      renderNav();
+      return;
+    }
     try {
       const res = await fetchWithTimeout(API('/api/auth_login.php'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -664,6 +691,11 @@ function createLoginModal() {
       }
       localStorage.setItem('sepn_user', JSON.stringify(u));
       closeAuthModals();
+      // 직원 계정이면 포털로 이동
+      if (['employee','staff'].includes((u.role || '').toLowerCase())) {
+        window.location.href = getPortalUrl();
+        return;
+      }
       renderAuth();
       renderNav();
     } catch {
@@ -746,8 +778,16 @@ function renderAuth() {
         <span class="rank-badge ${rankClass}">${rankLabel}</span>
         <span class="nickname">${user.nickname}</span>
       </span>
+      ${['employee','staff'].includes((user.role || '').toLowerCase())
+        ? '<a class="btn login-compact" id="portalLink" href="#">SE포털</a>'
+        : ''}
       <button type="button" class="btn login-compact logout-btn">로그아웃</button>
     `;
+    const portalLink = actions.querySelector('#portalLink');
+    portalLink?.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.href = getPortalUrl();
+    });
     const logout = actions.querySelector('.logout-btn');
     logout?.addEventListener('click', () => {
       // 서버 세션도 종료
@@ -802,14 +842,17 @@ function renderNav() {
   const isFile = location.protocol === 'file:';
   const inPages = location.pathname.includes('/pages/');
   const prefix = isFile ? (inPages ? '..' : '.') : '';
-  const isAdmin = !!(user && (user.role||'').toLowerCase()==='admin');
+  const roleLower = (user?.role || '').toLowerCase();
+  const isAdmin = !!(user && roleLower==='admin');
+  const isEmployee = isAdmin || ['employee','staff'].includes(roleLower);
   siteNavList.innerHTML = [
+    isEmployee ? `<li><a href="${getPortalUrl()}" data-menu="portal">SE포털</a></li>` : '',
     `<li><a href="#" data-menu="company">회사소개</a></li>`,
     `<li><a href="#" data-menu="products">제품소개</a></li>`,
     `<li><a href="${prefix}/pages/quote.html">견적문의</a></li>`,
     `<li><a href="${prefix}/pages/contact.html">문의 게시판</a></li>`,
     isAdmin ? `<li><a href="${prefix}/pages/admin/index.html" data-menu="admin">관리</a></li>` : ''
-  ].join('');
+  ].filter(Boolean).join('');
   // When using mobile nav, close menu on link click
   document.querySelectorAll('.site-nav a').forEach(a => {
     a.addEventListener('click', () => { try { closeNav(); } catch {} });
@@ -992,6 +1035,8 @@ function ensureDropdownMenus(prefixHint, isAdmin){
     wrap3.innerHTML = `
       <ul class="menu-list" aria-label="Admin 관리">
         <li><a href="${prefix}/pages/admin/approvals.html">승인 관리</a></li>
+        <li><a href="${prefix}/pages/admin/users.html?tab=employee">직원 관리</a></li>
+        <li><a href="${prefix}/pages/admin/users.html?tab=customer">고객 관리</a></li>
         <li><a href="${prefix}/pages/admin/users.html">사용자 상태</a></li>
         <li><a href="${prefix}/pages/admin/ranks.html">등급 관리</a></li>
         <li><a href="${prefix}/pages/admin/quotes.html">견적 접수</a></li>
@@ -1278,13 +1323,49 @@ async function initAdminUsersPage() {
   if (!table) return;
   const tbody = table.querySelector('tbody');
   const searchEl = document.getElementById('userSearch');
+  const tabWrap = document.querySelector('.admin-user-tabs');
+  const tabButtons = tabWrap?.querySelectorAll('[data-user-tab]') || [];
   let rows = [];
   try {
     const res = await fetch(API('/api/admin_users_all.php'), { credentials: 'include' });
     rows = await res.json();
   } catch {}
+  const employeeRoles = ['employee','staff'];
+  const getActiveTab = () => {
+    const active = tabWrap?.querySelector('[data-user-tab].active');
+    return (active?.getAttribute('data-user-tab') || 'all');
+  };
+  if (tabWrap && !tabWrap.dataset.bound) {
+    tabWrap.dataset.bound = '1';
+    try {
+      const urlTab = new URLSearchParams(location.search).get('tab');
+      if (urlTab && ['all','customer','employee'].includes(urlTab)) {
+        tabButtons.forEach(btn => {
+          const isActive = btn.getAttribute('data-user-tab') === urlTab;
+          btn.classList.toggle('active', isActive);
+          btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+      }
+    } catch {}
+    tabButtons.forEach(btn => btn.addEventListener('click', () => {
+      tabButtons.forEach(b => {
+        const isActive = b === btn;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      initAdminUsersPage();
+    }));
+  }
   const q = (searchEl?.value || '').trim().toLowerCase();
-  const filtered = (rows || []).filter(u => {
+  const roleFiltered = (rows || []).filter(u => {
+    const role = (u.role || '').toString().toLowerCase();
+    const isEmployee = employeeRoles.includes(role);
+    const tab = getActiveTab();
+    if (tab === 'employee') return isEmployee;
+    if (tab === 'customer') return !isEmployee && role !== 'admin';
+    return true;
+  });
+  const filtered = (roleFiltered || []).filter(u => {
     if (!q) return true;
     const username = (u.username || '').toString().toLowerCase();
     const nickname = (u.nickname || '').toString().toLowerCase();
