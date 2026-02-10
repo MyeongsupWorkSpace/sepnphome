@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>재고 현황</title>
+  <link rel="stylesheet" href="assets/nav.css">
+  <style>
+    :root{ --bd:#e5e7eb; --fg:#111; --mut:#6b7280; --bg:#f5f6f8; --card:#fff; --primary:#2563eb; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",Arial,sans-serif}
+    .container{max-width:1200px;margin:24px auto;padding:0 16px}
+    h2{margin:0 0 14px;font-size:22px;font-weight:800}
+    .tabs{display:flex;gap:6px;margin-bottom:12px}
+    .tab{height:36px;padding:0 14px;border:1px solid var(--bd);border-radius:8px;background:#fff;cursor:pointer}
+    .tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:12px}
+    .stat{background:#fafafa;border:1px solid var(--bd);border-radius:10px;padding:14px}
+    .stat .l{font-size:12px;color:var(--mut)}
+    .stat .v{margin-top:6px;font-size:22px;font-weight:800}
+    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+    .inp,.sel,.btn{height:36px;border:1px solid var(--bd);border-radius:8px;font-size:14px}
+    .inp{padding:8px 12px;background:#fff}
+    .sel{padding:0 10px;background:#fff}
+    .btn{padding:0 14px;background:#fff;cursor:pointer}
+    .btn:hover{background:#f3f4f6}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .btn.danger{background:#dc2626;border-color:#dc2626;color:#fff}
+    .table-wrap{border:1px solid var(--bd);border-radius:10px;overflow:auto}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    thead{background:#f8f9fa}
+    th,td{padding:10px 12px;border-bottom:1px solid #f1f3f5;font-size:14px;white-space:nowrap}
+    th{text-align:left;font-weight:600}
+    tbody tr:hover{background:#fbfcfd}
+    
+    /* 정렬 */
+    .align-left{text-align:left}
+    .align-center{text-align:center}
+    .align-right{text-align:right}
+    
+    .badge{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;display:inline-block}
+    .ok{background:#d1fae5;color:#065f46}
+    .low{background:#fef3c7;color:#92400e}
+    .out{background:#fee2e2;color:#991b1b}
+
+    /* 모달 */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+    .modal.show[data-open="true"]{display:flex}
+    .modal-content{background:#fff;border-radius:12px;width:min(500px,90%);padding:24px;box-shadow:0 4px 24px rgba(0,0,0,.2)}
+    .modal-content h3{margin:0 0 16px;font-size:18px;font-weight:700}
+    .form-row{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+    .form-row label{font-size:13px;font-weight:600;color:#374151}
+    .form-row input,.form-row select{height:38px;padding:0 12px;border:1px solid var(--bd);border-radius:6px;font-size:14px;width:100%}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+  </style>
+</head>
+<body>
+  <header class="fixed-header"></header>
+
+  <main class="container">
+    <h2>재고 현황</h2>
+
+    <div class="tabs">
+      <button class="tab active" id="tabProduct" data-tab="product">제품 재고</button>
+      <button class="tab" id="tabPaper" data-tab="paper">용지 재고</button>
+    </div>
+
+    <section class="stats">
+      <div class="stat"><div class="l">전체 품목</div><div class="v" id="statTotal">0개</div></div>
+      <div class="stat"><div class="l">정상 재고</div><div class="v" id="statOk">0개</div></div>
+      <div class="stat"><div class="l">부족 품목</div><div class="v" id="statLow">0개</div></div>
+      <div class="stat"><div class="l">품절 품목</div><div class="v" id="statOut">0개</div></div>
+    </section>
+
+    <section class="card">
+      <div class="toolbar">
+        <input id="q" class="inp" style="flex:1;min-width:220px" placeholder="품목명, 규격, 거래처 검색..." />
+        <select id="grain" class="sel" style="display:none">
+          <option value="">결(전체)</option>
+          <option value="가로결">가로결</option>
+          <option value="세로결">세로결</option>
+        </select>
+        <select id="status" class="sel">
+          <option value="">상태(전체)</option>
+          <option value="ok">정상</option>
+          <option value="low">부족</option>
+          <option value="out">품절</option>
+        </select>
+        <button class="btn" id="btnSearch">검색</button>
+        <div style="flex:1"></div>
+        <button class="btn" id="btnExport">내보내기(CSV)</button>
+        <button class="btn primary" id="btnRegister">+ 재고 등록</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- 수정 모달 -->
+  <div id="editModal" class="modal" data-open="false" onclick="if(event.target.id==='editModal') closeEditModal()">
+    <div class="modal-content">
+      <h3 id="modalTitle">재고 수정</h3>
+      
+      <div id="productForm" style="display:none">
+        <div class="form-row">
+          <label>제품명</label>
+          <input type="text" id="editProductName">
+        </div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label>장(mm)</label>
+            <input type="number" id="editLength" min="0">
+          </div>
+          <div class="form-row">
+            <label>폭(mm)</label>
+            <input type="number" id="editWidth" min="0">
+          </div>
+          <div class="form-row">
+            <label>고(mm)</label>
+            <input type="number" id="editHeight" min="0">
+          </div>
+          <div class="form-row">
+            <label>단위</label>
+            <input type="text" id="editProductUnit" placeholder="예: 개">
+          </div>
+        </div>
+      </div>
+
+      <div id="paperForm" style="display:none">
+        <div class="form-row">
+          <label>용지명</label>
+          <input type="text" id="editPaperName">
+        </div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label>가로(mm)</label>
+            <input type="number" id="editPaperWidth" min="0">
+          </div>
+          <div class="form-row">
+            <label>세로(mm)</label>
+            <input type="number" id="editPaperHeight" min="0">
+          </div>
+          <div class="form-row">
+            <label>결</label>
+            <select id="editGrain">
+              <option value="">선택</option>
+              <option value="가로결">가로결</option>
+              <option value="세로결">세로결</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>단위</label>
+            <input type="text" id="editPaperUnit" placeholder="예: 매">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>거래처</label>
+        <input type="text" id="editVendor">
+      </div>
+
+      <div class="form-grid">
+        <div class="form-row">
+          <label>현재고</label>
+          <input type="number" id="editQty" min="0">
+        </div>
+        <div class="form-row">
+          <label>안전재고</label>
+          <input type="number" id="editSafety" min="0">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>최종입고일</label>
+        <input type="date" id="editLastIn">
+      </div>
+
+      <div class="form-actions">
+        <button class="btn danger" id="btnDelete">삭제</button>
+        <button class="btn" id="btnCancel" onclick="closeEditModal()">취소</button>
+        <button class="btn primary" id="btnSave">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/api.js"></script>
+  <script src="assets/portal-storage.js"></script>
+  <script src="assets/nav.js"></script>
+  <script>
+  PortalStore.hydrate(['sepnp_inventory_products','sepnp_inventory_papers']).then(() => {
+  (function(){
+    // 샘플 데이터
+    const SAMPLE_PRODUCTS = [
+      {id:'p1', name:'화장품 박스', length:200, width:120, height:60, vendor:'세팍패키지', qty:340, safety:100, unit:'개', lastIn:'2025-01-18'},
+      {id:'p2', name:'식품 박스',   length:180, width:100, height:80, vendor:'푸드팩',   qty:40,  safety:80,  unit:'개', lastIn:'2025-01-22'},
+      {id:'p3', name:'의류 택박스', length:90,  width:60,  height:40, vendor:'어패럴',   qty:0,   safety:50,  unit:'개', lastIn:'2024-12-30'}
+    ];
+    const SAMPLE_PAPERS = [
+      {id:'pp1', name:'아트지 250g', width:900, height:600, grain:'세로결', vendor:'세팍상사', qty:1200, safety:500, unit:'매', lastIn:'2025-01-25'},
+      {id:'pp2', name:'골판 A플루트', width:1200, height:800, grain:'가로결', vendor:'한국지류', qty:80, safety:100, unit:'매', lastIn:'2025-01-20'},
+      {id:'pp3', name:'백판지 350g', width:800, height:500, grain:'세로결', vendor:'대한제지', qty:0, safety:200, unit:'매', lastIn:'2025-01-10'},
+    ];
+    const KEY_PRODUCTS = 'sepnp_inventory_products';
+    const KEY_PAPERS   = 'sepnp_inventory_papers';
+
+    const $  = s=>document.querySelector(s);
+    const $$ = s=>Array.from(document.querySelectorAll(s));
+    const tab = ()=> $('.tab.active')?.dataset.tab || 'product';
+
+    const fmtNum = v=>Number(v||0).toLocaleString();
+    const fmtBox = (l,w,h)=>`${fmtNum(l)}×${fmtNum(w)}×${fmtNum(h)}mm`;
+    const fmtSize = (w,h)=>`${fmtNum(w)}×${fmtNum(h)}mm`;
+    const statusClass = (q,s)=> q<=0?'out':(q<s?'low':'ok');
+    const statusLabel = c => c==='ok'?'정상':(c==='low'?'부족':'품절');
+
+    function load(key, sample){
+      const raw = JSON.parse(localStorage.getItem(key) || 'null');
+      if(Array.isArray(raw) && raw.length) return raw;
+      // 샘플에 id 보장
+      sample.forEach((item, idx) => {
+        if(!item.id) item.id = `${key}_${idx}_${Date.now()}`;
+      });
+      localStorage.setItem(key, JSON.stringify(sample));
+      return sample;
+    }
+
+    function save(key, list){
+      localStorage.setItem(key, JSON.stringify(list));
+    }
+
+    let editingItem = null;
+    let editingType = null;
+
+    function forceCloseModal(){
+      const modal = document.getElementById('editModal');
+      if(!modal) return;
+      modal.setAttribute('data-open', 'false');
+      modal.classList.remove('show');
+      modal.style.display = 'none';
+    }
+
+    forceCloseModal();
+
+    window.openEditModal = function(id, type){
+      editingType = type;
+      const key = type === 'product' ? KEY_PRODUCTS : KEY_PAPERS;
+      const list = load(key, type === 'product' ? SAMPLE_PRODUCTS : SAMPLE_PAPERS);
+      const item = list.find(i => i.id === id);
+      if(!item){ alert('항목을 찾을 수 없습니다.'); return; }
+      
+      editingItem = item;
+
+      $('#modalTitle').textContent = type === 'product' ? '제품 재고 수정' : '용지 재고 수정';
+
+      if(type === 'product'){
+        $('#productForm').style.display = '';
+        $('#paperForm').style.display = 'none';
+        $('#editProductName').value = item.name || '';
+        $('#editLength').value = item.length || 0;
+        $('#editWidth').value = item.width || 0;
+        $('#editHeight').value = item.height || 0;
+        $('#editProductUnit').value = item.unit || '개';
+      } else {
+        $('#productForm').style.display = 'none';
+        $('#paperForm').style.display = '';
+        $('#editPaperName').value = item.name || '';
+        $('#editPaperWidth').value = item.width || 0;
+        $('#editPaperHeight').value = item.height || 0;
+        $('#editGrain').value = item.grain || '';
+        $('#editPaperUnit').value = item.unit || '매';
+      }
+
+      $('#editVendor').value = item.vendor || '';
+      $('#editQty').value = item.qty || 0;
+      $('#editSafety').value = item.safety || 0;
+      $('#editLastIn').value = item.lastIn || '';
+
+      const modal = $('#editModal');
+      modal.setAttribute('data-open', 'true');
+      modal.classList.add('show');
+      modal.style.display = 'flex';
+    };
+
+    function closeEditModal(){
+      const modal = $('#editModal');
+      modal.setAttribute('data-open', 'false');
+      modal.classList.remove('show');
+      modal.style.display = 'none';
+      editingItem = null;
+      editingType = null;
+    }
+
+    window.closeEditModal = closeEditModal;
+    window.addEventListener('pageshow', closeEditModal);
+
+    function saveEdit(){
+      if(!editingItem || !editingType) return;
+
+      const key = editingType === 'product' ? KEY_PRODUCTS : KEY_PAPERS;
+      const list = load(key, editingType === 'product' ? SAMPLE_PRODUCTS : SAMPLE_PAPERS);
+
+      if(editingType === 'product'){
+        editingItem.name = $('#editProductName').value.trim();
+        editingItem.length = parseFloat($('#editLength').value) || 0;
+        editingItem.width = parseFloat($('#editWidth').value) || 0;
+        editingItem.height = parseFloat($('#editHeight').value) || 0;
+        editingItem.unit = $('#editProductUnit').value.trim() || '개';
+      } else {
+        editingItem.name = $('#editPaperName').value.trim();
+        editingItem.width = parseFloat($('#editPaperWidth').value) || 0;
+        editingItem.height = parseFloat($('#editPaperHeight').value) || 0;
+        editingItem.grain = $('#editGrain').value;
+        editingItem.unit = $('#editPaperUnit').value.trim() || '매';
+      }
+
+      editingItem.vendor = $('#editVendor').value.trim();
+      editingItem.qty = parseFloat($('#editQty').value) || 0;
+      editingItem.safety = parseFloat($('#editSafety').value) || 0;
+      editingItem.lastIn = $('#editLastIn').value;
+
+      save(key, list);
+      closeEditModal();
+      render();
+      alert('저장되었습니다.');
+    }
+
+    function deleteItem(){
+      if(!editingItem || !editingType) return;
+      if(!confirm('이 항목을 삭제하시겠습니까?')) return;
+
+      const key = editingType === 'product' ? KEY_PRODUCTS : KEY_PAPERS;
+      const list = load(key, editingType === 'product' ? SAMPLE_PRODUCTS : SAMPLE_PAPERS);
+      const filtered = list.filter(i => i.id !== editingItem.id);
+      
+      save(key, filtered);
+      closeEditModal();
+      render();
+      alert('삭제되었습니다.');
+    }
+
+    function renderHead(){
+      if(tab()==='product'){
+        $('#thead').innerHTML = (
+          '<tr>' +
+            '<th class="align-left">제품명</th>' +
+            '<th class="align-center">규격(장×폭×고)</th>' +
+            '<th class="align-left">거래처</th>' +
+            '<th class="align-right">현재고</th>' +
+            '<th class="align-right">안전재고</th>' +
+            '<th class="align-center">상태</th>' +
+            '<th class="align-center">최종입고일</th>' +
+            '<th class="align-center">관리</th>' +
+          '</tr>'
+        );
+      } else {
+        $('#thead').innerHTML = (
+          '<tr>' +
+            '<th class="align-left">용지명</th>' +
+            '<th class="align-center">원단 크기</th>' +
+            '<th class="align-center">결</th>' +
+            '<th class="align-left">거래처</th>' +
+            '<th class="align-right">현재고</th>' +
+            '<th class="align-right">안전재고</th>' +
+            '<th class="align-center">상태</th>' +
+            '<th class="align-center">최종입고일</th>' +
+            '<th class="align-center">관리</th>' +
+          '</tr>'
+        );
+      }
+    }
+
+    function rowsTemplate(list){
+      const t = tab();
+      return list.map(it=>{
+        const st = statusClass(it.qty, it.safety);
+        if(t==='product'){
+          return (
+            '<tr>' +
+              `<td class="align-left">${it.name}</td>` +
+              `<td class="align-center">${fmtBox(it.length,it.width,it.height)}</td>` +
+              `<td class="align-left">${it.vendor||''}</td>` +
+              `<td class="align-right">${fmtNum(it.qty)}${it.unit||''}</td>` +
+              `<td class="align-right">${fmtNum(it.safety)}${it.unit||''}</td>` +
+              `<td class="align-center"><span class="badge ${st}">${statusLabel(st)}</span></td>` +
+              `<td class="align-center">${it.lastIn||''}</td>` +
+              `<td class="align-center"><button class="btn" style="height:28px;padding:0 10px;font-size:12px" onclick="openEditModal('${it.id}','product')">수정</button></td>` +
+            '</tr>'
+          );
+        }
+        return (
+          '<tr>' +
+            `<td class="align-left">${it.name}</td>` +
+            `<td class="align-center">${fmtSize(it.width,it.height)}</td>` +
+            `<td class="align-center">${it.grain||''}</td>` +
+            `<td class="align-left">${it.vendor||''}</td>` +
+            `<td class="align-right">${fmtNum(it.qty)}${it.unit||''}</td>` +
+            `<td class="align-right">${fmtNum(it.safety)}${it.unit||''}</td>` +
+            `<td class="align-center"><span class="badge ${st}">${statusLabel(st)}</span></td>` +
+            `<td class="align-center">${it.lastIn||''}</td>` +
+            `<td class="align-center"><button class="btn" style="height:28px;padding:0 10px;font-size:12px" onclick="openEditModal('${it.id}','paper')">수정</button></td>` +
+          '</tr>'
+        );
+      }).join('');
+    }
+
+    function render(){
+      const t = tab();
+      $('#grain').style.display = (t==='paper') ? '' : 'none';
+      $('#btnRegister').onclick = ()=> location.href = `inventory-register.html?type=${t}`;
+
+      renderHead();
+
+      const q = $('#q').value.trim().toLowerCase();
+      const st = $('#status').value;
+      const g  = $('#grain').value;
+
+      const list = t==='product' ? load(KEY_PRODUCTS, SAMPLE_PRODUCTS) : load(KEY_PAPERS, SAMPLE_PAPERS);
+      const filtered = list.filter(it=>{
+        const text = (t==='product'
+          ? `${it.name} ${it.vendor} ${fmtBox(it.length,it.width,it.height)}`
+          : `${it.name} ${it.vendor} ${fmtSize(it.width,it.height)} ${it.grain||''}`
+        ).toLowerCase();
+        const okQ = !q || text.includes(q);
+        const sc  = statusClass(it.qty, it.safety);
+        const okS = !st || sc===st;
+        const okG = t==='paper' ? (!g || it.grain===g) : true;
+        return okQ && okS && okG;
+      });
+
+      $('#tbody').innerHTML = rowsTemplate(filtered);
+
+      // 통계
+      const all = list;
+      $('#statTotal').textContent = `${all.length}개`;
+      $('#statOk').textContent  = `${all.filter(i=>statusClass(i.qty,i.safety)==='ok').length}개`;
+      $('#statLow').textContent = `${all.filter(i=>statusClass(i.qty,i.safety)==='low').length}개`;
+      $('#statOut').textContent = `${all.filter(i=>statusClass(i.qty,i.safety)==='out').length}개`;
+    }
+
+    function initInventoryPage(){
+      ['q','status','grain'].forEach(id=>{
+        const el = document.getElementById(id);
+        el && el.addEventListener('change', render);
+        if(id==='q') el && el.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); render(); } });
+      });
+      ['tabProduct','tabPaper'].forEach(id=>{
+        const el = document.getElementById(id);
+        el.addEventListener('click', ()=>{
+          document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+          el.classList.add('active');
+          render();
+        });
+      });
+      document.getElementById('btnSearch').addEventListener('click', render);
+      document.getElementById('btnExport').addEventListener('click', ()=>{
+        const t = tab();
+        const rows = t==='product' ? load(KEY_PRODUCTS,SAMPLE_PRODUCTS) : load(KEY_PAPERS,SAMPLE_PAPERS);
+        const header = t==='product'
+          ? ['제품명','장(mm)','폭(mm)','고(mm)','거래처','현재고','안전재고','단위','최종입고일']
+          : ['용지명','가로(mm)','세로(mm)','결','거래처','현재고','안전재고','단위','최종입고일'];
+        const body = rows.map(r => t==='product'
+          ? [r.name,r.length,r.width,r.height,r.vendor,r.qty,r.safety,r.unit||'',r.lastIn||'']
+          : [r.name,r.width,r.height,r.grain||'',r.vendor,r.qty,r.safety,r.unit||'',r.lastIn||'']
+        );
+        const csv = [header].concat(body).map(a=>a.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `inventory_${t}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+        URL.revokeObjectURL(a.href);
+      });
+
+      $('#btnCancel').addEventListener('click', closeEditModal);
+      $('#btnSave').addEventListener('click', saveEdit);
+      $('#btnDelete').addEventListener('click', deleteItem);
+      $('#editModal').addEventListener('click', e => {
+        if(e.target.id === 'editModal') closeEditModal();
+      });
+
+      closeEditModal();
+      render();
+    }
+
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', initInventoryPage);
+    }else{
+      initInventoryPage();
+    }
+  })();
+  });
+  </script>
+</body>
+</html>

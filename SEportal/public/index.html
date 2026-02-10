@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SEPNP 포털 로그인</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/styles.css">
+  <link rel="stylesheet" href="assets/portal.css">
+  <style>
+    :root {
+      --primary: #667eea;
+      --primary-dark: #5568d3;
+      --bg: #f5f6f8;
+      --card: #fff;
+      --border: #e5e7eb;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --error: #ef4444;
+      --success: #10b981;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+    }
+    
+    .login-card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      animation: slideUp 0.4s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    .logo-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    
+    .logo-text {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .logo-subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    
+    .form-control {
+      width: 100%;
+      height: 48px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 0 16px;
+      font-size: 15px;
+      transition: all 0.2s;
+      background: #fafafa;
+    }
+    
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn {
+      width: 100%;
+      height: 48px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 24px;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: none;
+      animation: slideDown 0.3s ease-out;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .alert.show {
+      display: block;
+    }
+    
+    .alert-error {
+      background: #fee;
+      color: var(--error);
+      border: 1px solid #fcc;
+    }
+    
+    .alert-success {
+      background: #efe;
+      color: var(--success);
+      border: 1px solid #cfc;
+    }
+    
+    .links {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .links a:hover {
+      text-decoration: underline;
+    }
+    
+    .test-accounts {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f9fafb;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    
+    .test-accounts h4 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    
+    .test-accounts code {
+      background: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      color: var(--primary);
+    }
+    
+    .divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      margin: 20px 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .divider span {
+      padding: 0 10px;
+    }
+  </style>
+</head>
+<body class="landing-page">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="logo">
+        <div class="logo-icon">🏢</div>
+        <div class="logo-text">SEPNP</div>
+        <div class="logo-subtitle">생산 관리 시스템</div>
+      </div>
+
+      <div id="loginAlert" class="alert"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="loginId">아이디 또는 사번</label>
+          <input 
+            type="text" 
+            id="loginId" 
+            class="form-control" 
+            placeholder="sepnp 또는 ADMIN"
+            autocomplete="username" 
+            required
+          >
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">비밀번호</label>
+          <input 
+            type="password" 
+            id="loginPassword" 
+            class="form-control" 
+            placeholder="비밀번호를 입력하세요"
+            autocomplete="current-password" 
+            required
+          >
+        </div>
+
+        <button type="submit" class="btn" id="loginBtn">
+          로그인
+        </button>
+      </form>
+
+      <div class="divider">
+        <span>또는</span>
+      </div>
+
+      <div class="links">
+        <a href="register.html">회원가입</a>
+      </div>
+
+      <div class="test-accounts">
+        <h4>💡 테스트 계정</h4>
+        <div style="line-height:1.6">
+          관리자: <code>sepnp / 0536</code> 또는 <code>test / 123</code><br>
+          인쇄: <code>print / 1234</code><br>
+          톰슨: <code>thomson / 1234</code><br>
+          코팅: <code>coating / 1234</code><br>
+          접착: <code>adhesive / 1234</code><br>
+          합지: <code>lamination / 1234</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API 모듈 먼저 로드 -->
+  <script src="assets/api.js"></script>
+  <script src="assets/auth.js"></script>
+  
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginAlert = document.getElementById('loginAlert');
+    const loginIdInput = document.getElementById('loginId');
+    const loginPasswordInput = document.getElementById('loginPassword');
+
+    function showAlert(message, type = 'error') {
+      loginAlert.textContent = message;
+      loginAlert.className = `alert alert-${type} show`;
+      
+      setTimeout(() => {
+        loginAlert.classList.remove('show');
+      }, 4000);
+    }
+
+    // 서버 로그인
+    async function loginWithServer(loginId, password) {
+      try {
+        const result = await API.login(loginId, password);
+        if (result.ok) {
+          sessionStorage.setItem('sepnp_emp_no', result.emp.empNo);
+          sessionStorage.setItem('sepnp_emp_name', result.emp.name);
+          sessionStorage.setItem('sepnp_emp_role', result.emp.role);
+          sessionStorage.setItem('sepnp_emp_username', result.emp.username);
+          if (result.emp.perms) {
+            sessionStorage.setItem('sepnp_emp_perms', JSON.stringify(result.emp.perms));
+          }
+          showAlert('로그인 성공!', 'success');
+          setTimeout(() => {
+            window.location.href = 'employee.html';
+          }, 500);
+          return true;
+        }
+      } catch (error) {
+        console.error('로그인 오류:', error);
+        showAlert(error?.message || '로그인 실패', 'error');
+        return false;
+      }
+    }
+
+    // 로그인 폼 제출
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const loginId = loginIdInput.value.trim();
+      const password = loginPasswordInput.value;
+      
+      if (!loginId || !password) {
+        showAlert('ID와 비밀번호를 입력하세요.', 'error');
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = '로그인 중...';
+      const success = await loginWithServer(loginId, password);
+
+      if (!success) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = '로그인';
+      }
+    });
+
+    // Enter 키 처리
+    loginPasswordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        loginForm.dispatchEvent(new Event('submit'));
+      }
+    });
+
+    // 페이지 로드 시
+    window.addEventListener('DOMContentLoaded', () => {
+      loginIdInput.focus();
+      
+      // 이미 로그인되어 있으면 리디렉션
+      const empNo = sessionStorage.getItem('sepnp_emp_no');
+      if (empNo) {
+        window.location.href = 'employee.html';
+      }
+
+      // 모드 표시
+      console.log('🔧 로그인 모드: SERVER');
+    });
+
+    // 디버그 모드 (Ctrl + Shift + D)
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        console.log('=== 디버그 정보 ===');
+        console.log('모드: SERVER');
+        console.log('API 서버:', 'http://localhost:3000');
+        console.log('세션:', {
+          empNo: sessionStorage.getItem('sepnp_emp_no'),
+          empName: sessionStorage.getItem('sepnp_emp_name'),
+          empRole: sessionStorage.getItem('sepnp_emp_role')
+        });
+        
+        if (confirm('관리자 계정으로 자동 로그인하시겠습니까?')) {
+          loginIdInput.value = 'sepnp';
+          loginPasswordInput.value = '0536';
+          loginForm.dispatchEvent(new Event('submit'));
+        }
+      }
+    });
+  </script>
+</body>
+</html>

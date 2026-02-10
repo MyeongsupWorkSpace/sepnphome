@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>수주 오더 등록</title>
+  <link rel="stylesheet" href="assets/nav.css">
+  <style>
+    :root { --bd:#dee2e6; --fg:#495057; --fg2:#666; --soft:#f8f9fa; --card:#fff; --pri:#0078d4; }
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,"Noto Sans KR",sans-serif;background:#f5f6f8;color:#111;padding-top:60px}
+    .container{max-width:1200px;margin:24px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns: 1.4fr 1fr; gap:16px}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+    .card{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:20px}
+    h2{margin:0 0 12px}
+    .section-title{margin:0 0 10px;font-size:16px;color:#111}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .input, select{height:36px;padding:0 12px;border:1px solid var(--bd);border-radius:6px;font-size:14px;box-sizing:border-box}
+    .input.w100{width:100%}
+    .input.w120{width:120px}
+    .btn{height:36px;padding:0 14px;border:1px solid var(--bd);border-radius:6px;background:#fff;cursor:pointer}
+    .btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
+    .muted{color:var(--fg2);font-size:12px}
+    .soft{background:var(--soft)}
+    .spec-grid{display:grid;grid-template-columns: repeat(auto-fit,minmax(160px,1fr));gap:10px}
+    .spec{background:var(--soft);border:1px solid var(--bd);border-radius:8px;padding:10px}
+    .spec label{display:block;color:var(--fg2);font-size:12px;margin-bottom:4px}
+    .spec .v{font-weight:600}
+    .hist{display:flex;flex-direction:column;gap:8px; max-height:70vh; overflow:auto}
+    .hist-item{border:1px solid var(--bd);border-radius:8px;padding:10px;background:#fff}
+    .badge{display:inline-block;padding:2px 8px;border-radius:4px;background:#e7f3ff;color:#0b69c7;font-size:12px}
+    /* 검색 드롭다운 */
+    .search-wrap{position:relative}
+    .dropdown{position:absolute;left:0;right:0;top:40px;background:#fff;border:1px solid var(--bd);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.06);max-height:260px;overflow:auto;display:none;z-index:20}
+    .dropdown .item{padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px}
+    .dropdown .item:hover,.dropdown .item.active{background:#f2f6fa}
+    .dropdown .vendor{color:#666;font-size:12px}
+    .empty{padding:16px;text-align:center;color:#777}
+    .right{display:flex;gap:8px;justify-content:flex-end}
+    .kpi{display:flex;gap:12px;margin:10px 0 0;flex-wrap:wrap}
+    .kpi .box{flex:1;min-width:150px;background:var(--soft);border:1px solid var(--bd);border-radius:8px;padding:10px}
+    .kpi .box label{display:block;font-size:12px;color:var(--fg2)}
+    .kpi .box .val{font-weight:700;font-size:18px;color:var(--pri)}
+    .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:6px;opacity:0;transition:.2s;z-index:1000}
+    .toast.show{opacity:1}
+    /* 공정 요약 칩 */
+    .proc-list{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+    .proc-list li{padding:4px 10px;background:#e7f3ff;border:1px solid #b3d9ff;border-radius:12px;font-size:12px;color:#0b69c7}
+  </style>
+</head>
+<body>
+  <header class="fixed-header"></header>
+<main class="container">
+  <div class="grid">
+    <!-- 좌측: 검색 + 입력 -->
+    <section class="card">
+      <h2>수주 오더 등록</h2>
+
+      <!-- 검색 -->
+      <h3 class="section-title">1) 제품 검색</h3>
+      <div class="search-wrap">
+        <input id="searchInput" class="input w100" placeholder="제품명 또는 거래처로 검색" />
+        <div id="searchDropdown" class="dropdown"></div>
+      </div>
+      <div class="muted" style="margin-top:6px">Enter로 선택, ↑/↓ 이동, ESC 닫기</div>
+
+      <!-- 선택된 제품 사양 -->
+      <div id="specArea" style="margin-top:14px;display:none">
+        <div class="row" style="justify-content:space-between;align-items:flex-end">
+          <h3 class="section-title" style="margin:0">2) 제품 사양</h3>
+          <span class="badge" id="selId">-</span>
+        </div>
+        <div class="spec-grid">
+          <div class="spec"><label>거래처</label><div class="v" id="spVendor">-</div></div>
+          <div class="spec"><label>제품명</label><div class="v" id="spName">-</div></div>
+          <div class="spec"><label>크기(장×폭×고)</label><div class="v" id="spSize">-</div></div>
+          <div class="spec"><label>용지</label><div class="v" id="spPaper">-</div></div>
+          <div class="spec"><label>원단(합지)</label><div class="v" id="spLam">-</div></div>
+          <div class="spec"><label>단가</label><div class="v" id="spPrice">-</div></div>
+          <div class="spec"><label>절 수</label><div class="v" id="spCut">-</div></div>
+        </div>
+        <!-- 공정 요약 -->
+        <div id="procWrap" style="display:none">
+          <div class="section-title" style="font-size:14px;margin-top:8px;margin-bottom:6px">공정 요약</div>
+          <ul id="procList" class="proc-list"></ul>
+        </div>
+      </div>
+
+      <!-- 주문 입력 -->
+      <div id="orderArea" style="margin-top:16px;display:none">
+        <h3 class="section-title">3) 수량/납기 입력</h3>
+        <div class="row" style="gap:12px">
+          <label>수량(장)
+            <input id="qty" type="number" class="input w120" min="1" value="1000">
+          </label>
+          <label>여분(장)
+            <input id="extra" type="number" class="input w120" min="0" value="0">
+          </label>
+          <label>정미
+            <input id="net" type="number" class="input w120" min="0" value="0">
+          </label>
+          <label>납기일
+            <input id="due" type="date" class="input" style="width:180px">
+          </label>
+          <label>비고
+            <input id="note" type="text" class="input" style="width:260px" placeholder="전달 사항 (선택)">
+          </label>
+        </div>
+
+        <div class="kpi">
+          <div class="box"><label>장수(본수)</label><div class="val" id="kpiSheets">0</div></div>
+          <div class="box"><label>여분(장)</label><div class="val" id="kpiExtra">0</div></div>
+          <div class="box"><label>총 제품 수량(절수 반영)</label><div class="val" id="kpiTotal">0</div></div>
+          <div class="box"><label>정미</label><div class="val" id="kpiNet">0</div></div>
+          <div class="box"><label>예상 금액</label><div class="val" id="kpiAmt">-</div></div>
+        </div>
+
+        <div class="right" style="margin-top:12px">
+          <button class="btn" id="btnReset">초기화</button>
+          <button class="btn primary" id="btnSave">오더 저장</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 우측: 전체 이력 -->
+    <aside class="card">
+      <h3 class="section-title">전체 이력</h3>
+      <div id="histWrap" class="hist">
+        <div class="empty">제품을 선택하면 수주 이력이 모두 표시됩니다.</div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script src="assets/api.js"></script>
+<script src="assets/portal-storage.js"></script>
+<script src="assets/nav.js"></script>
+<script>
+PortalStore.hydrate(['sepnp_workstatus','sepnp_assign','sepnp_orders']).then(() => {
+  // 로그인 확인
+  const empNo = sessionStorage.getItem('sepnp_emp_no');
+  if(!empNo) location.href='index.html';
+
+  // 로그아웃
+  document.getElementById('btnLogout')?.addEventListener('click',()=>{
+    sessionStorage.removeItem('sepnp_emp_no'); location.href='index.html';
+  });
+
+  // 상수/도우미
+  let products = [];
+  let orders = [];
+  // 변경: v6 작업현황, v2 인쇄배정
+  const WS_KEY   = 'sepnp_workstatus_v6';
+  const ASSIGN_KEY = 'sepnp_assign_v2';
+
+  // 공정 우선순위(인쇄 → 코팅 → 금박 → 형압 → 합지 → 톰슨 → 접착)
+  const PROC_PRECEDENCE = [
+    { id:'print',      re:/인쇄|print/i },
+    { id:'coating',    re:/코팅|uv|라미/i },
+    { id:'foil',       re:/금박/i },
+    { id:'emboss',     re:/형압/i },
+    { id:'lamination', re:/합지|골|lam/i },
+    { id:'thomson',    re:/톰슨|타발|die/i },
+    { id:'adhesive',   re:/접착|글루|glue|bond/i }
+  ];
+
+  // 제품 공정 → 라우트(cat id 배열)로 변환
+  function mapProcessesToRoute(product){
+    const list = Array.isArray(product?.processes) ? product.processes.map(String) : [];
+    const route = PROC_PRECEDENCE.filter(p => list.some(x => p.re.test(x))).map(p=>p.id);
+    return route.length ? route : ['print'];
+  }
+
+  // 작업현황 v6 상태 로드/세이브
+  function wsLoad() {
+    let s;
+    try { s = JSON.parse(localStorage.getItem(WS_KEY) || ''); } catch {}
+    return s && typeof s==='object' ? s : null;
+  }
+  function wsSave(state){ localStorage.setItem(WS_KEY, JSON.stringify(state)); }
+
+  // 작업현황 v6 최소 구조 보장(풀 레인만 보장, 설비 레인은 화면에서 보장)
+  function wsEnsurePools(state){
+    if(!state || typeof state!=='object') state = {};
+    if(!state.lanes || typeof state.lanes!=='object') state.lanes = {};
+    if(!state.completed || typeof state.completed!=='object') state.completed = {};
+    PROC_PRECEDENCE.forEach(p=>{
+      const poolKey = `${p.id}::pool`;
+      if(!Array.isArray(state.lanes[poolKey])) state.lanes[poolKey] = [];
+      if(!Array.isArray(state.completed[p.id])) state.completed[p.id] = [];
+    });
+    if(typeof state.seq!=='number') state.seq = 0;
+    return state;
+  }
+
+  // 작업현황 v6: 첫 공정 대기풀로 카드 투입(라우트 포함)
+  function addToWorkStatusByRoute(order){
+    const route = mapProcessesToRoute(order.productSnapshot);
+    let state = wsLoad();
+    state = wsEnsurePools(state || {});
+    const firstCat = route[0];
+    const poolKey = `${firstCat}::pool`;
+
+    // 중복 방지(모든 레인)
+    const exists = Object.values(state.lanes).flat().some(c => c.id === order.id);
+    if(exists){ wsSave(state); return; }
+
+    const qty = Number(order.sheetsQty||0) + Number(order.extraSheets||0);
+    const card = {
+      id: order.id,
+      title: `${order.productName||'제품'} 작업`,
+      vendor: order.vendor || '',
+      qty,
+      netQty: Number(order.netQty || 0),
+      dueDate: order.dueDate || null,
+      status: 'wait',
+      createdAt: order.createdAt || Date.now(),
+      route,           // 전체 공정 라우트
+      currentCat: firstCat
+    };
+
+    state.lanes[poolKey].unshift(card);
+    wsSave(state);
+  }
+
+  // 인쇄배정 v2: 인쇄 공정이 있을 때만 배정 풀에 등록
+  function addToAssignPoolIfPrint(order){
+    const route = mapProcessesToRoute(order.productSnapshot);
+    if(!route.includes('print')) return; // 인쇄 없으면 스킵
+
+    let state;
+    try { state = JSON.parse(localStorage.getItem(ASSIGN_KEY) || '{}'); } catch { state = {}; }
+    if(!Array.isArray(state.pool)) state.pool = [];
+    if(!state.lanes || typeof state.lanes!=='object') state.lanes = {};
+    if(!Array.isArray(state.completed)) state.completed = [];
+    if(!Array.isArray(state.history)) state.history = [];
+
+    const exists = [
+      ...state.pool,
+      ...Object.values(state.lanes).flat(),
+      ...state.completed
+    ].some(c => c.orderId === order.id);
+    if(exists){ localStorage.setItem(ASSIGN_KEY, JSON.stringify(state)); return; }
+
+    const qty = Number(order.sheetsQty||0) + Number(order.extraSheets||0);
+    state.pool.unshift({
+      id: `card_${order.id}`,
+      orderId: order.id,
+      productName: order.productName || '미상',
+      vendor: order.vendor || '',
+      quantity: qty,
+      netQty: Number(order.netQty || 0),
+      dueDate: order.dueDate || '',
+      status: 'wait',
+      createdAt: new Date().toISOString()
+    });
+
+    localStorage.setItem(ASSIGN_KEY, JSON.stringify(state));
+  }
+
+  // 제품/주문 스토리지
+  function loadProducts(){ return products; }
+  function loadOrders(){ return orders; }
+  async function syncProducts(){
+    try { products = await window.API.getProducts(); }
+    catch { products = []; }
+    if(Array.isArray(products)){
+      products = products.map(normalizeProduct);
+    } else {
+      products = [];
+    }
+  }
+
+  async function ensureSampleProduct(){
+    const seedKey = 'sepnp_products_sample_seeded';
+    if(localStorage.getItem(seedKey)) return;
+    let list = [];
+    try{ list = await window.API.getProducts(); }catch{ list = []; }
+    if(Array.isArray(list) && list.length) return;
+
+    const nowIso = new Date().toISOString();
+    const payload = {
+      name: '샘플 박스',
+      vendor: '세팍패키지',
+      size: { l: 200, w: 120, h: 60 },
+      paper: { type: 'SC IV RIV AB', sizeW: 800, sizeH: 600, sizeText: '800×600' },
+      noLaminate: true,
+      laminate: '없음',
+      price: 120,
+      cutCount: 2,
+      knifeSize: { w: 210, h: 130 },
+      shipping: '서울시 강남구 테헤란로 123',
+      manager: '관리자',
+      phone: '010-1234-5678',
+      processes: ['인쇄','코팅','톰슨','접착'],
+      processDetails: {},
+      createdAt: nowIso,
+      createdBy: '관리자'
+    };
+
+    try{
+      await window.API.createProduct(payload);
+      localStorage.setItem(seedKey, '1');
+    }catch(e){
+      console.warn('sample product create failed', e);
+    }
+  }
+  async function syncOrders(){
+    try { orders = await window.API.getOrders(); }
+    catch { orders = []; }
+  }
+
+  const $ = s=>document.querySelector(s);
+  const NF = new Intl.NumberFormat('ko-KR');
+
+  const todayISO = ()=>{ const d=new Date(); d.setHours(0,0,0,0); return d.toISOString().slice(0,10); };
+
+  let selected = null;
+  let activeIndex = -1;
+
+  function formatSize(size){
+    if(!size) return '-';
+    if(typeof size === 'string') return size;
+    const l = size.l ?? size.length ?? size.L ?? '-';
+    const w = size.w ?? size.width ?? size.W ?? '-';
+    const h = size.h ?? size.height ?? size.H ?? '-';
+    return `${l}×${w}×${h}`;
+  }
+
+  function money(n){ if(n==null || isNaN(n)) return '-'; return NF.format(n)+'원'; }
+
+  function parseTwoSizeText(text){
+    if(!text || typeof text !== 'string') return null;
+    const m = text.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/);
+    if(!m) return null;
+    return { w: Number(m[1]), h: Number(m[2]) };
+  }
+
+  function parseNumberLike(v){
+    if(v==null) return null;
+    if(typeof v === 'number') return Number.isFinite(v) ? v : null;
+    if(typeof v !== 'string') return null;
+    const cleaned = v.replace(/[^0-9.-]/g, '');
+    if(cleaned === '' || cleaned === '-' || cleaned === '.') return null;
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function normalizeSize(size, p){
+    if(!size && p){
+      const l = p.l ?? p.length ?? null;
+      const w = p.w ?? p.width ?? null;
+      const h = p.h ?? p.height ?? null;
+      if(l!=null || w!=null || h!=null) return { l, w, h };
+    }
+    if(!size) return null;
+    if(typeof size === 'string') return size;
+    if(typeof size === 'object'){
+      const l = size.l ?? size.length ?? size.L ?? null;
+      const w = size.w ?? size.width ?? size.W ?? null;
+      const h = size.h ?? size.height ?? size.H ?? null;
+      if(l!=null || w!=null || h!=null) return { l, w, h };
+      return size;
+    }
+    return null;
+  }
+
+  function normalizePaper(paper, p){
+    if(!paper && p){
+      const type = p.paperType ?? p.paper_name ?? p.paperName ?? null;
+      const sizeText = p.paperSize ?? p.paper_size ?? null;
+      const parsed = parseTwoSizeText(sizeText || '');
+      if(type || parsed) return { type: type || null, sizeW: parsed?.w ?? null, sizeH: parsed?.h ?? null, sizeText: sizeText || null };
+      return null;
+    }
+    if(typeof paper === 'string') return { type: paper };
+    if(paper && typeof paper === 'object'){
+      const type = paper.type ?? paper.name ?? paper.paperType ?? null;
+      const sizeW = paper.sizeW ?? paper.size_w ?? paper.width ?? null;
+      const sizeH = paper.sizeH ?? paper.size_h ?? paper.height ?? null;
+      if((sizeW==null || sizeH==null) && paper.size){
+        const parsed = parseTwoSizeText(String(paper.size));
+        return { type, sizeW: sizeW ?? parsed?.w ?? null, sizeH: sizeH ?? parsed?.h ?? null, sizeText: paper.size || null };
+      }
+      return { type, sizeW, sizeH, sizeText: paper.size ?? null };
+    }
+    return null;
+  }
+
+  function normalizeProcesses(processes, processDetails){
+    if(Array.isArray(processes)){
+      return processes.map(p => typeof p === 'string' ? p : (p?.name || p?.label || '')).filter(Boolean);
+    }
+    if(typeof processes === 'string'){
+      return processes.split(/[,/]/).map(s=>s.trim()).filter(Boolean);
+    }
+    if(processDetails && typeof processDetails === 'object'){
+      return Object.keys(processDetails);
+    }
+    return [];
+  }
+
+  function normalizeProduct(p){
+    if(!p || typeof p !== 'object') return p;
+    const vendor = p.vendor ?? p.vendorName ?? p.supplier?.name ?? p.supplierName ?? p.company ?? '';
+    const name = p.name ?? p.productName ?? p.title ?? '';
+    const size = normalizeSize(p.size ?? p.dimensions ?? p.dimension ?? p.spec, p);
+    const paper = normalizePaper(p.paper ?? p.paperInfo ?? p.paperData, p);
+    const laminate = p.laminate ?? p.lamination ?? p.laminationName ?? p.laminateName ?? null;
+    const laminationSize = p.laminationSize ?? p.laminateSize ?? null;
+    const price = parseNumberLike(p.price ?? p.unitPrice ?? p.unit_price ?? p.cost ?? null);
+    const cutCount = parseNumberLike(p.cutCount ?? p.cut ?? p.cut_count ?? p.cutCnt ?? null);
+    const processes = normalizeProcesses(p.processes ?? p.processList ?? p.processSummary ?? p.process, p.processDetails);
+    return {
+      ...p,
+      id: p.id ?? p.productId ?? p.code ?? p._id ?? null,
+      name,
+      vendor,
+      size,
+      paper,
+      laminate,
+      laminationSize,
+      laminationSizeText: p.laminationSizeText ?? p.laminateSizeText ?? p.lamSizeText ?? p.lamSize ?? null,
+      price,
+      cutCount,
+      processes
+    };
+  }
+
+  // 검색 렌더
+  function renderDropdown(list){
+    const dd = $('#searchDropdown');
+    if(!list.length){ dd.innerHTML = `<div class="empty">검색 결과가 없습니다</div>`; dd.style.display='block'; return; }
+    dd.innerHTML = list.map((p,i)=>`
+      <div class="item ${i===activeIndex?'active':''}" data-i="${i}">
+        <div>
+          <div><strong>${escapeHtml(p.name||'-')}</strong></div>
+          <div class="vendor">${escapeHtml(p.vendor||'-')}</div>
+        </div>
+        <div style="margin-left:auto;color:#666;font-size:12px">${p.id?`#${p.id}`:''}</div>
+      </div>
+    `).join('');
+    dd.style.display='block';
+
+    dd.querySelectorAll('.item').forEach(el=>{
+      el.addEventListener('mouseenter',()=>{ activeIndex = Number(el.dataset.i); highlightActive(); });
+      el.addEventListener('click',()=>{ activeIndex = Number(el.dataset.i); pick(list[activeIndex]); });
+    });
+  }
+  function highlightActive(){
+    $('#searchDropdown').querySelectorAll('.item').forEach((el,i)=>{
+      el.classList.toggle('active', i===activeIndex);
+    });
+  }
+
+  function pick(p){
+    selected = p;
+    $('#searchInput').value = `${p.name} (${p.vendor||'-'})`;
+    $('#searchDropdown').style.display='none';
+
+    // 사양 표시
+    $('#specArea').style.display='block';
+    $('#orderArea').style.display='block';
+    $('#selId').textContent = p.id || '-';
+    $('#spVendor').textContent = p.vendor || '-';
+    $('#spName').textContent = p.name || '-';
+    $('#spSize').textContent = formatSize(p.size);
+    const paperType = p.paper?.type || p.paper?.name || p.paperName || '';
+    const paperSizeW = p.paper?.sizeW ?? p.paper?.size_w ?? null;
+    const paperSizeH = p.paper?.sizeH ?? p.paper?.size_h ?? null;
+    const paperSizeText = (paperSizeW || paperSizeH)
+      ? `${paperSizeW||''}×${paperSizeH||''}`.trim()
+      : (p.paper?.sizeText || p.paper?.size || '');
+    const paperText = paperType ? `${paperType} ${paperSizeText}`.trim() : (paperSizeText || '-');
+    $('#spPaper').textContent = paperText || '-';
+
+    const lamName = p.laminate || p.lamination?.name || p.lamination?.type || p.laminateName || '';
+    const lamSize = p.laminationSize || p.laminateSize || null;
+    const lamSizeText = lamSize ? `${lamSize.w||''}×${lamSize.h||''}`.trim() : (p.laminationSizeText || p.laminateSizeText || '');
+    const lamText = lamName || lamSizeText || (p.noLaminate ? '없음' : '-');
+    $('#spLam').textContent = lamText;
+    $('#spPrice').textContent = money(Number(p.price));
+    $('#spCut').textContent = p.cutCount ?? '-';
+
+    // 공정 요약
+    const procs = Array.isArray(p.processes)? p.processes : [];
+    const procWrap = $('#procWrap');
+    const procList = $('#procList');
+    if(procs.length){
+      procList.innerHTML = procs.map(x=>`<li>${escapeHtml(x)}</li>`).join('');
+      procWrap.style.display='block';
+    }else{
+      procList.innerHTML = '';
+      procWrap.style.display='none';
+    }
+
+    // 기본 입력값
+    $('#due').value = todayISO();
+
+    updateSummary();
+    renderHistory(p.id);
+  }
+
+  // 전체 이력(정렬만, 제한 없음)
+  function renderHistory(prodId){
+    const wrap = $('#histWrap');
+    const all = loadOrders().filter(o=>o.productId===prodId).sort((a,b)=>b.createdAt-a.createdAt);
+    if(all.length===0){ wrap.innerHTML = `<div class="empty">이력이 없습니다</div>`; return; }
+    wrap.innerHTML = all.map(o=>{
+      const d = new Date(o.createdAt);
+      const ds = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+      // 본수/여분
+      const mainSheets = (o.sheetsQty ?? o.qty ?? 0);
+      const extraSheets = (o.extraSheets ?? o.extraQty ?? 0);
+      const cut = o.cutCount ?? selected?.cutCount ?? 1;
+      const netQty = o.netQty ?? 0;
+      // 제품 총 수량은 본수만 반영
+      const totalProd = o.totalProducts ?? (mainSheets * cut);
+      return `
+        <div class="hist-item">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><strong>${escapeHtml(o.productName)}</strong> <span class="badge">#${o.id}</span></div>
+            <div class="muted">${ds}</div>
+          </div>
+          <div class="muted" style="margin-top:6px">장수(본수) ${NF.format(mainSheets)}장, 여분 ${NF.format(extraSheets)}장</div>
+          <div class="muted">절수 ${cut} → 제품 총 수량 ${NF.format(totalProd)}개</div>
+          <div class="muted">정미 ${NF.format(netQty)}</div>
+          <div class="muted">납기 ${o.dueDate || '-'}</div>
+          ${o.amount!=null? `<div class="muted">금액 ${money(o.amount)}</div>`:''}
+        </div>`;
+    }).join('');
+  }
+
+  // 요약 업데이트(본수만 반영)
+  function updateSummary(){
+    const qtySheets = Number($('#qty').value||0);
+    const extraSheets = Number($('#extra').value||0);
+    const netQty = Number($('#net').value||0);
+    const cut = Number(selected?.cutCount ?? 1) || 1;
+    const totalProducts = qtySheets * cut; // 여분 미반영
+    const unit = Number(selected?.price ?? NaN);
+    const amt = Number.isFinite(unit) ? unit * totalProducts : null;
+
+    $('#kpiSheets').textContent = NF.format(qtySheets);
+    $('#kpiExtra').textContent  = NF.format(extraSheets);
+    $('#kpiTotal').textContent  = NF.format(totalProducts);
+    $('#kpiNet').textContent    = NF.format(netQty);
+    $('#kpiAmt').textContent    = amt!=null ? money(amt) : '-';
+
+    return {
+      productId: selected?.id || null,
+      productName: selected?.name || null,
+      vendor: selected?.vendor || null,
+      sheetsQty: qtySheets,
+      extraSheets: extraSheets,
+      netQty: netQty,
+      cutCount: cut,
+      totalProducts: totalProducts,
+      unitPrice: Number.isFinite(unit) ? unit : null,
+      amount: amt,
+      dueDate: $('#due').value || null,
+      note: ($('#note').value||'').trim()
+    };
+  }
+
+  // 작업현황 보드 유틸
+  function wsEnsureShape(board) {
+    if(!board || typeof board!=='object') board = {};
+    if(!Array.isArray(board.pool)) board.pool = [];
+    if(!Array.isArray(board.queue)) board.queue = [];
+    if(!board.lanes || typeof board.lanes!=='object') board.lanes = {};
+    return board;
+  }
+  function wsDueMs(d){ const t=Date.parse(d); return Number.isFinite(t)?t:Infinity; }
+  function wsSortPool(board){
+    board.pool.sort((a,b)=> wsDueMs(a.dueDate)-wsDueMs(b.dueDate) || ((a.createdAt||0)-(b.createdAt||0)));
+  }
+  function wsSortQueue(board){
+    board.queue.sort((a,b)=> wsDueMs(a.dueDate)-wsDueMs(b.dueDate) || ((a.createdAt||0)-(b.createdAt||0)));
+  }
+  function wsEnforceCapacity(board){
+    wsSortPool(board);
+    while(board.pool.length>20){ board.queue.push(board.pool.pop()); }
+    wsSortQueue(board);
+  }
+
+  // 저장
+  async function saveOrder(){
+    if(!selected){ alert('제품을 먼저 검색하여 선택하세요.'); return; }
+    const q = Number($('#qty').value||0);
+    if(!q || q<1){ alert('장 수(수량)를 입력하세요.'); $('#qty').focus(); return; }
+    const due = $('#due').value;
+    if(!due){ alert('납기일을 입력하세요.'); $('#due').focus(); return; }
+
+    const sum = updateSummary();
+    const now = Date.now();
+    const order = {
+      id: 'O'+now,
+      createdAt: now,
+      productId: selected.id,
+      productName: selected.name,
+      vendor: selected.vendor,
+      // 본수/여분
+      sheetsQty: sum.sheetsQty,
+      extraSheets: sum.extraSheets,
+      netQty: sum.netQty,
+      cutCount: sum.cutCount,
+      // 제품 기준(여분 미반영)
+      totalProducts: sum.totalProducts,
+      unitPrice: sum.unitPrice,
+      amount: sum.amount,
+      dueDate: sum.dueDate,
+      note: sum.note,
+      productSnapshot: selected
+    };
+    try {
+      await window.API.createOrder(order);
+      await syncOrders();
+      try {
+        await window.API.setKV('sepnp_orders', orders);
+        localStorage.setItem('sepnp_orders', JSON.stringify(orders));
+      } catch {}
+    } catch (e) {
+      alert('오더 저장 실패');
+      return;
+    }
+
+    // 작업현황: 첫 공정 대기풀로
+    addToWorkStatusByRoute(order);
+    // 인쇄배정: 인쇄가 있을 때만 배정 풀로
+    addToAssignPoolIfPrint(order);
+
+    showToast('오더가 저장되었습니다. (작업현황/인쇄배정 반영)');
+    renderHistory(selected.id);
+  }
+
+  // 작업현황 v6: 인쇄 카테고리 대기풀에 카드 추가
+  function addToWorkStatusPrintPool(order){
+    let state;
+    try { state = JSON.parse(localStorage.getItem(WS_KEY) || '{}'); } catch { state = {}; }
+    if(!state.lanes) state.lanes = {};
+    if(!state.completed) state.completed = {};
+    const poolKey = 'print::pool';
+    if(!Array.isArray(state.lanes[poolKey])) state.lanes[poolKey] = [];
+
+    // 중복 방지(모든 레인 검색)
+    const exists = Object.values(state.lanes).flat().some(c => c.id === order.id);
+    if(exists) { localStorage.setItem(WS_KEY, JSON.stringify(state)); return; }
+
+    const card = {
+      id: order.id,
+      title: `${order.productName||'제품'} 인쇄`,
+      vendor: order.vendor || '',
+      qty: Number(order.sheetsQty || 0) + Number(order.extraSheets || 0),
+      dueDate: order.dueDate || null,
+      status: 'wait',
+      createdAt: order.createdAt || Date.now()
+    };
+
+    state.lanes[poolKey].unshift(card);
+    localStorage.setItem(WS_KEY, JSON.stringify(state));
+  }
+
+  // 인쇄배정 v2: 배정 풀(state.pool)에 카드 추가
+  function addToAssignPool(order){
+    let state;
+    try { state = JSON.parse(localStorage.getItem(ASSIGN_KEY) || '{}'); } catch { state = {}; }
+    if(!Array.isArray(state.pool)) state.pool = [];
+    if(!state.lanes || typeof state.lanes !== 'object') state.lanes = {};
+    if(!Array.isArray(state.completed)) state.completed = [];
+
+    // 중복 방지(orderId 기준)
+    const exists = [
+      ...state.pool,
+      ...Object.values(state.lanes).flat(),
+      ...state.completed
+    ].some(c => c.orderId === order.id);
+    if(exists){ localStorage.setItem(ASSIGN_KEY, JSON.stringify(state)); return; }
+
+    state.pool.unshift({
+      id: `card_${order.id}`,          // 카드 자체 ID
+      orderId: order.id,               // 오더 ID로 중복 제어
+      productName: order.productName || '미상',
+      vendor: order.vendor || '',
+      quantity: Number(order.sheetsQty || 0) + Number(order.extraSheets || 0),
+      dueDate: order.dueDate || '',
+      status: 'wait',
+      createdAt: new Date().toISOString()
+    });
+
+    localStorage.setItem(ASSIGN_KEY, JSON.stringify(state));
+  }
+
+  // 이벤트 바인딩
+  $('#qty').addEventListener('input', updateSummary);
+  $('#extra').addEventListener('input', updateSummary);
+  $('#net').addEventListener('input', updateSummary);
+  $('#due').addEventListener('change', updateSummary);
+  $('#note').addEventListener('input', updateSummary);
+  $('#btnSave').addEventListener('click', saveOrder);
+  $('#btnReset').addEventListener('click', ()=>{
+    selected = null; activeIndex=-1;
+    $('#searchInput').value=''; $('#searchDropdown').style.display='none';
+    $('#specArea').style.display='none'; $('#orderArea').style.display='none';
+    $('#histWrap').innerHTML = `<div class="empty">제품을 선택하면 수주 이력이 모두 표시됩니다.</div>`;
+  });
+
+  // 검색 로직
+  function refreshSearchResults(){
+    const q = $('#searchInput').value.trim().toLowerCase();
+    if(!q){ $('#searchDropdown').style.display='none'; activeIndex=-1; return; }
+    const list = products.filter(p=>{
+      return (p.name||'').toLowerCase().includes(q) || (p.vendor||'').toLowerCase().includes(q);
+    }).slice(0,50);
+    activeIndex = 0;
+    renderDropdown(list);
+  }
+
+  (async () => {
+    await ensureSampleProduct();
+    await syncProducts();
+    if(!products.length){
+      await ensureSampleProduct();
+      await syncProducts();
+    }
+    await syncOrders();
+    refreshSearchResults();
+    $('#searchInput').addEventListener('input', refreshSearchResults);
+  })();
+  $('#searchInput').addEventListener('keydown', (e)=>{
+    const dd = $('#searchDropdown');
+    if(dd.style.display!=='block') return;
+    const items = Array.from(dd.querySelectorAll('.item'));
+    if(e.key==='ArrowDown'){ e.preventDefault(); activeIndex = Math.min(activeIndex+1, items.length-1); highlightActive(); }
+    if(e.key==='ArrowUp'){ e.preventDefault(); activeIndex = Math.max(activeIndex-1, 0); highlightActive(); }
+    if(e.key==='Enter'){ e.preventDefault(); if(items[activeIndex]) items[activeIndex].click(); }
+    if(e.key==='Escape'){ dd.style.display='none'; }
+  });
+  document.addEventListener('click', (e)=>{
+    if(!e.target.closest('.search-wrap')) $('#searchDropdown').style.display='none';
+  });
+
+  // 기타
+  function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+  function showToast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),200); },1500); }
+
+  // 초기 납기 기본값
+  $('#due').value = todayISO();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>테이블 관리</title>
+  <link rel="stylesheet" href="../assets/nav.css">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR';padding:20px}
+    .tabs{display:flex;gap:8px;margin-bottom:12px}
+    .tabs button{padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer}
+    .tabs button.active{background:#0b74ff;color:#fff;border-color:#0b74ff}
+    .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border:1px solid #eee;text-align:left}
+    .actions button{margin-right:6px}
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,10,10,0.35);z-index:80}
+    .modal.show{display:flex}
+    .panel{background:#fff;padding:16px;border-radius:8px;min-width:420px}
+    .form-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    .form-row label{width:100px}
+    .form-row input, .form-row select, .form-row textarea{flex:1;padding:8px;border:1px solid #ddd;border-radius:6px}
+  </style>
+</head>
+<body>
+  <h2>데이터 테이블 관리</h2>
+
+  <div class="tabs" id="resourceTabs">
+    <button data-r="suppliers" class="active">거래처</button>
+    <button data-r="papers">용지</button>
+    <button data-r="materials">자재(합지원단)</button>
+    <button data-r="products">제품</button>
+    <button data-r="users">사용자</button>
+  </div>
+
+  <div class="toolbar">
+    <input id="searchInput" placeholder="검색..." style="padding:8px;border:1px solid #ddd;border-radius:6px;width:320px" />
+    <div style="flex:1"></div>
+    <button id="btnCreate" class="btn primary">새 항목</button>
+    <button id="btnRefresh" class="btn">새로고침</button>
+  </div>
+
+  <div id="listArea">
+    <table>
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- 편집/생성 모달 -->
+  <div id="editModal" class="modal" aria-hidden="true">
+    <div class="panel">
+      <h3 id="editTitle">항목 편집</h3>
+      <div id="editForm"></div>
+      <div style="text-align:right;margin-top:8px">
+        <button id="btnCancel" class="btn">취소</button>
+        <button id="btnSave" class="btn primary">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/admin-tables.js"></script>
+</body>
+</html>

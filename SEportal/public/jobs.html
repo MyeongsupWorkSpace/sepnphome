@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>작업현황 - 성은지기인쇄</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1 class="brand">성은지기인쇄</h1>
+    <nav class="main-nav">
+        <a href="print-plan.html">인쇄계획표</a>
+        <a href="jobs.html" class="active">작업현황</a>
+        <a href="inventory.html">재고현황</a>
+        <a href="assign.html">인쇄배정</a>
+        <a href="product-register.html">제품등록</a>
+    </nav>
+    <div class="hdr-actions">
+        <span id="welcome" class="mini"></span>
+        <button id="btnLogout" class="btn">로그아웃</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="dashboard" class="card">
+      <h2>작업현황</h2>
+
+      <form id="jobForm">
+        <label>기계
+          <select id="machine" required>
+            <optgroup label="인쇄"><option>인쇄 1호기</option><option>인쇄 2호기</option><option>인쇄 3호기</option></optgroup>
+            <optgroup label="톰슨"><option>톰슨 1호기</option><option>톰슨 2호기</option><option>톰슨 3호기</option><option>톰슨 4호기</option></optgroup>
+            <optgroup label="접착"><option>접착기 1호기</option><option>접착기 2호기</option><option>접착기 3호기</option><option>접착기 4호기</option><option>접착기 5호기</option><option>접착기 6호기</option></optgroup>
+            <optgroup label="코팅"><option>코팅기 1호기</option><option>코팅기 2호기</option><option>코팅기 3호기</option><option>코팅기 4호기</option></optgroup>
+            <optgroup label="특수"><option>금박기 1호기</option><option>형압기 1호기</option><option>형압기 2호기</option><option>실크기 1호기</option></optgroup>
+          </select>
+        </label>
+        <label>제품명 <input id="product" required></label>
+        <label>진행현황
+          <select id="status">
+            <option>대기</option><option>진행중</option><option>수리중</option><option>고장</option><option>완료</option>
+          </select>
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="btn primary">등록</button>
+          <button type="button" id="clearAll" class="btn">전체삭제</button>
+        </div>
+      </form>
+
+      <h3 style="margin-top:16px">작업 목록</h3>
+      <ul id="jobs" class="job-list"></ul>
+    </section>
+  </main>
+
+  <!-- 로그인 모달 -->
+  <div id="loginOverlay" class="overlay hidden" aria-hidden="true">
+    <div class="login-card" role="dialog" aria-modal="true">
+      <h2>사원 로그인</h2>
+      <form id="loginForm">
+        <label>사원번호 <input id="empNo" inputmode="numeric" autocomplete="username" required></label>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button type="submit" class="btn primary">입장</button>
+          <button type="button" id="loginCancel" class="btn">취소</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="assets/api.js"></script>
+  <script src="assets/portal-storage.js"></script>
+  <script src="assets/nav.js"></script>
+  <script>
+  PortalStore.hydrate(['sepnp_jobs']).then(() => {
+    const STORAGE_KEY = 'sepnp_jobs_v1';
+    const EMP_KEY = 'sepnp_emp_no';
+    const STATUS_OPTIONS = ['대기','진행중','수리중','고장','완료'];
+
+    // 헤더 / 로그인 UI
+    const loginOverlay = document.getElementById('loginOverlay');
+    const loginForm = document.getElementById('loginForm');
+    const empNoInput = document.getElementById('empNo');
+    const btnOpenLogin = document.getElementById('btnOpenLogin');
+    const btnLogout = document.getElementById('btnLogout');
+    const welcome = document.getElementById('welcome');
+    const loginCancel = document.getElementById('loginCancel');
+
+    function openLogin(){ loginOverlay.classList.remove('hidden'); empNoInput.focus(); }
+    function closeLogin(){ loginOverlay.classList.add('hidden'); empNoInput.value=''; }
+    function updateAuthUI(){
+      const emp = sessionStorage.getItem(EMP_KEY);
+      if(emp){ welcome.textContent = `환영합니다, 사원번호 ${emp}`; btnLogout.classList.remove('hidden'); btnOpenLogin.classList.add('hidden'); }
+      else{ welcome.textContent=''; btnLogout.classList.add('hidden'); btnOpenLogin.classList.remove('hidden'); }
+    }
+    loginForm.addEventListener('submit', e=>{ e.preventDefault(); const v = empNoInput.value.trim(); if(!/^\d{3,6}$/.test(v)){ alert('사원번호는 숫자 3~6자리로 입력하세요.'); return;} sessionStorage.setItem(EMP_KEY,v); closeLogin(); updateAuthUI();});
+    btnOpenLogin.addEventListener('click', openLogin);
+    loginCancel.addEventListener('click', closeLogin);
+    btnLogout.addEventListener('click', ()=>{ if(confirm('로그아웃하시겠습니까?')){ sessionStorage.removeItem(EMP_KEY); updateAuthUI(); }});
+
+    // 작업 로직
+    function loadJobs(){ const raw = localStorage.getItem(STORAGE_KEY); return raw? JSON.parse(raw):[]; }
+    function saveJobs(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+    const form = document.getElementById('jobForm');
+    const jobsEl = document.getElementById('jobs');
+
+    function render(){
+      const emp = sessionStorage.getItem(EMP_KEY);
+      jobsEl.innerHTML = '';
+      if(!emp){ jobsEl.innerHTML = '<li class="empty">로그인 후 작업 목록을 볼 수 있습니다.</li>'; return; }
+      const list = loadJobs();
+      if(list.length===0){ jobsEl.innerHTML = '<li class="empty">등록된 작업이 없습니다.</li>'; return; }
+      list.forEach((job, idx)=>{
+        const li = document.createElement('li'); li.className='job-item';
+        const main = document.createElement('div'); main.className='job-main';
+        const strong = document.createElement('strong'); strong.textContent = job.machine;
+        const productSpan = document.createElement('span'); productSpan.className='product'; productSpan.textContent = job.product;
+        const statusBtn = document.createElement('button'); statusBtn.type='button'; statusBtn.className='status-btn'; statusBtn.textContent = job.status; statusBtn.dataset.idx = idx;
+        main.appendChild(strong); main.appendChild(productSpan); main.appendChild(statusBtn);
+        const actions = document.createElement('div'); actions.className='job-actions';
+        const delBtn = document.createElement('button'); delBtn.className='btn small'; delBtn.textContent='삭제'; delBtn.dataset.idx = idx;
+        actions.appendChild(delBtn);
+        li.appendChild(main); li.appendChild(actions); jobsEl.appendChild(li);
+      });
+    }
+
+    function openStatusEditor(idx, btn){
+      const emp = sessionStorage.getItem(EMP_KEY);
+      if(!emp){ alert('로그인 후 상태를 변경하세요.'); return; }
+      const list = loadJobs();
+      if(!list[idx]) return;
+      const sel = document.createElement('select'); sel.className='status-edit';
+      STATUS_OPTIONS.forEach(opt=>{ const o=document.createElement('option'); o.value=opt; o.textContent=opt; sel.appendChild(o);});
+      sel.value = list[idx].status || STATUS_OPTIONS[0];
+      btn.replaceWith(sel); sel.focus();
+      function finish(save){ if(save){ list[idx].status = sel.value; saveJobs(list);} render(); }
+      sel.addEventListener('change', ()=> finish(true));
+      sel.addEventListener('blur', ()=> finish(false));
+      sel.addEventListener('keydown', e=>{ if(e.key==='Enter') finish(true); else if(e.key==='Escape') finish(false); });
+    }
+
+    form.addEventListener('submit', e=>{
+      e.preventDefault();
+      const emp = sessionStorage.getItem(EMP_KEY);
+      if(!emp){ alert('로그인 후 작업을 등록하세요.'); return; }
+      const machine = document.getElementById('machine').value;
+      const product = document.getElementById('product').value.trim();
+      const status = document.getElementById('status').value;
+      if(!product) return;
+      const list = loadJobs();
+      list.push({ machine, product, status, createdAt: new Date().toISOString(), createdBy: emp });
+      saveJobs(list);
+      form.reset();
+      render();
+    });
+
+    jobsEl.addEventListener('click', e=>{
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      if(btn.classList.contains('status-btn')){ const idx = Number(btn.dataset.idx); openStatusEditor(idx, btn); return; }
+      if(btn.textContent === '삭제'){ const idx = Number(btn.dataset.idx); const list = loadJobs(); list.splice(idx,1); saveJobs(list); render(); }
+    });
+
+    document.getElementById('clearAll').addEventListener('click', ()=>{
+      const emp = sessionStorage.getItem(EMP_KEY);
+      if(!emp){ alert('로그인 후 실행하세요.'); return; }
+      if(!confirm('전체 작업을 삭제하시겠습니까?')) return;
+      localStorage.removeItem(STORAGE_KEY); render();
+    });
+
+    updateAuthUI();
+    render();
+  });
+  </script>
+</body>
+</html>

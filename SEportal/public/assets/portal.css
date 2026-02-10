@@ -1,0 +1,43 @@
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+}
+
+body.portal-body {
+  font-family: "Pretendard Variable", "Noto Sans KR", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text, #0f172a);
+  padding-top: 0;
+}
+
+body.portal-body main.container {
+  padding-top: 24px;
+}
+
+.portal-header .portal-title {
+  font-weight: 700;
+  color: var(--text, #0f172a);
+}
+
+.portal-header .logo img {
+  height: 36px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.btn {
+  border-radius: 12px;
+}
+
+.table, table {
+  border-color: var(--border, #e2e8f0);
+}
+
+.fixed-header {
+  height: auto;
+}

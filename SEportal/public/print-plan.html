@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>인쇄계획표 - 성은지기인쇄</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="assets/nav.css">
+</head>
+<body>
+  <!-- 고정 헤더 추가 -->
+  <header class="fixed-header"></header>
+
+  <main class="container">
+    <section class="card plan-wrapper">
+      <h2 class="plan-header" id="planTitle">인쇄주간계획표</h2>
+      <p class="plan-sub" id="planSub">아래 각 기계 칸에 제품을 배치하세요. 제품등록에서 항목을 가져올 수 있습니다.</p>
+
+      <div class="plan-grid" id="planGrid">
+        <!-- JS가 여기서 렌더 -->
+      </div>
+    </section>
+  </main>
+
+  <div id="toastRoot"></div>
+
+  <script src="assets/api.js"></script>
+  <script src="assets/portal-storage.js"></script>
+  <script src="assets/nav.js"></script>
+  <script>
+  PortalStore.hydrate(['sepnp_print_slots']).then(() => {
+    // 로그인 확인 추가
+    const empNo = sessionStorage.getItem('sepnp_emp_no');
+    if (!empNo) {
+      window.location.href = 'index.html';
+    }
+
+    // 로그아웃 버튼
+    const btnLogout = document.getElementById('btnLogout');
+    if(btnLogout) {
+      btnLogout.addEventListener('click', () => {
+        sessionStorage.removeItem('sepnp_emp_no');
+        window.location.href = 'index.html';
+      });
+    }
+
+    // 설정
+    const SLOT_COUNT = 15;
+    const PLAN_KEY = 'sepnp_print_slots_v1'; // 저장 키: { "m1-1": item | null, ... }
+
+    // 날짜 헤더: 오늘 기준, 종료 = 오늘 + 7일, 연도 끝 두자리 표시
+    function fmtYMD(date){
+      const yy = String(date.getFullYear() % 100).padStart(2,'0');
+      const mm = String(date.getMonth()+1).padStart(2,'0');
+      const dd = String(date.getDate()).padStart(2,'0');
+      return `${yy}년${mm}월${dd}일`;
+    }
+    (function setDates(){
+      const today = new Date();
+      const end = new Date(); end.setDate(today.getDate()+7);
+      const title = document.getElementById('planTitle');
+      const sub = document.getElementById('planSub');
+      title.textContent = `인쇄주간계획표 (예: ${fmtYMD(today)} - ${String(end.getMonth()+1).padStart(2,'0')}월${String(end.getDate()).padStart(2,'0')}일)`;
+      // sub는 그대로 안내문 유지
+    })();
+
+    // 로컬스토리지 로드/저장
+    function loadSlots(){
+      const raw = localStorage.getItem(PLAN_KEY);
+      if(!raw){
+        // 초기 빈 구조 생성
+        const obj = {};
+        for(let m=1;m<=3;m++){
+          for(let r=1;r<=SLOT_COUNT;r++){
+            obj[`m${m}-${r}`] = null;
+          }
+        }
+        localStorage.setItem(PLAN_KEY, JSON.stringify(obj));
+        return obj;
+      }
+      return JSON.parse(raw);
+    }
+    function saveSlots(slots){ localStorage.setItem(PLAN_KEY, JSON.stringify(slots)); }
+
+    // 토스트
+    function showToast(msg){
+      const root = document.getElementById('toastRoot');
+      const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+      root.appendChild(t);
+      requestAnimationFrame(()=>t.classList.add('show'));
+      setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),300); },1800);
+    }
+
+    // 렌더링
+    function renderGrid(){
+      const slots = loadSlots();
+      const grid = document.getElementById('planGrid');
+      grid.innerHTML = '';
+      // 헤더: 번호 + 3기계
+      grid.appendChild(makeHeadCell('#','num'));
+      grid.appendChild(makeHeadCell('인쇄 1호기'));
+      grid.appendChild(makeHeadCell('인쇄 2호기'));
+      grid.appendChild(makeHeadCell('인쇄 3호기'));
+
+      for(let row=1;row<=SLOT_COUNT;row++){
+        // 행 번호 셀
+        const numCell = document.createElement('div'); numCell.className='row-num'; numCell.textContent = row;
+        grid.appendChild(numCell);
+
+        for(let m=1;m<=3;m++){
+          const key = `m${m}-${row}`;
+          const col = document.createElement('div');
+          col.className = 'slot-col';
+          // 내부에 슬롯 요소를 하나만 생성 — 고정된 프레임
+          const slotEl = document.createElement('div');
+          slotEl.className = 'slot';
+          slotEl.dataset.key = key;
+          slotEl.dataset.machine = String(m);
+          slotEl.dataset.row = String(row);
+
+          const item = slots[key];
+          if(item){
+            slotEl.classList.add('occupied');
+            slotEl.innerHTML = `<div class="slot-content"><div class="title">${escapeHtml(item.name)} ${escapeHtml(item.qty||'')}</div><div class="meta">수량: ${escapeHtml(String(item.qty||''))} | 납기: ${escapeHtml(item.due||'')}<br>공정: ${escapeHtml(item.proc||'')}</div></div>`;
+            slotEl.draggable = true;
+            // 드래그 시작: payload에 fromKey
+            const dragPayload = JSON.stringify({ type:'plan-slot', fromKey: key, item });
+            slotEl.addEventListener('dragstart', ev=>{
+              ev.dataTransfer.setData('text/plain', dragPayload);
+              slotEl.classList.add('item-dragging');
+            });
+            slotEl.addEventListener('dragend', ev=>{
+              slotEl.classList.remove('item-dragging');
+            });
+            const contentEl = slotEl.querySelector('.slot-content');
+            if(contentEl){
+              contentEl.draggable = true;
+              contentEl.addEventListener('dragstart', ev=>{
+                ev.dataTransfer.setData('text/plain', dragPayload);
+                slotEl.classList.add('item-dragging');
+              });
+            }
+          } else {
+            slotEl.classList.add('empty');
+            slotEl.innerHTML = '';
+            slotEl.draggable = false;
+          }
+
+          // 슬롯에 드래그오버/드랍 설정 (모든 슬롯은 드롭 허용)
+          slotEl.addEventListener('dragover', ev => { ev.preventDefault(); slotEl.classList.add('dragover'); });
+          slotEl.addEventListener('dragleave', ev => { slotEl.classList.remove('dragover'); });
+          slotEl.addEventListener('drop', ev => {
+            ev.preventDefault();
+            slotEl.classList.remove('dragover');
+            const raw = ev.dataTransfer.getData('text/plain');
+            if(!raw) return;
+            try{
+              const payload = JSON.parse(raw);
+              const slotsState = loadSlots();
+
+              // 1) 드래그 출처가 배정풀(assign) -> type: 'assign'
+              if(payload.type === 'assign'){
+                // payload.id 등 포함되어야 함
+                const newItem = payload.item || payload; // assign 페이지에서 드래그 시 {type:'assign', item: {...}}
+                if(!newItem || !newItem.id) { showToast('유효한 항목이 아닙니다'); return; }
+                const targetKey = slotEl.dataset.key;
+                const existing = slotsState[targetKey];
+                // place or swap (여기서는 swap: 기존이 있으면 그 기존은 그냥 assign pool에 남기지 않음 — 대신 교환)
+                slotsState[targetKey] = newItem;
+                saveSlots(slotsState);
+                // assign 풀에서 제거하려면 assign 페이지가 pool 키를 관리함. 여기선 간단 안내
+                showToast('배정이 슬롯에 등록되었습니다');
+                renderGrid();
+                return;
+              }
+
+              // 2) 내부에서 이동(plan-slot) => fromKey 이동 또는 swap
+              if(payload.type === 'plan-slot' && payload.fromKey){
+                const fromKey = payload.fromKey;
+                const toKey = slotEl.dataset.key;
+                if(fromKey === toKey) return;
+                const fromItem = slotsState[fromKey];
+                const toItem = slotsState[toKey];
+                // 스왑 처리(밀어내지 않음)
+                slotsState[toKey] = fromItem;
+                slotsState[fromKey] = toItem || null;
+                saveSlots(slotsState);
+                renderGrid();
+                showToast('위치가 변경되었습니다');
+                return;
+              }
+
+            }catch(e){
+              console.error(e);
+            }
+          });
+
+          // 우클릭(컨텍스트 메뉴)로 슬롯 항목 삭제 처리
+          slotEl.addEventListener('contextmenu', ev => {
+            ev.preventDefault();
+            const key = slotEl.dataset.key;
+            const slotsState = loadSlots();
+            if(!slotsState[key]) return; // 빈 슬롯이면 아무 동작 없음
+            if(!confirm('이 슬롯의 항목을 삭제하시겠습니까?')) return;
+            // 슬롯 비우기
+            slotsState[key] = null;
+            saveSlots(slotsState);
+            renderGrid();
+            showToast('슬롯에서 항목이 삭제되었습니다');
+          });
+
+          grid.appendChild(slotEl);
+        }
+      }
+    }
+
+    function makeHeadCell(text, cls){
+      const d = document.createElement('div');
+      d.className = 'col-head' + (cls? ' '+cls:'');
+      d.textContent = text;
+      return d;
+    }
+
+    // 간단한 HTML 이스케이프
+    function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+
+    // 초기화: slots 구조 없으면 생성
+    loadSlots();
+    renderGrid();
+
+    // 외부에서 슬롯에 항목을 추가할 때(예: assign.html에서 drop 후 plan에 반영하면)
+    // assign 페이지는 planSlots 키를 직접 수정하고 이 페이지를 새로고침하거나 renderGrid()를 호출하면 반영됩니다.
+    // 만약 동일한 창에서 동작하면 window 이벤트로 갱신 호출 가능:
+    window.addEventListener('storage', (e)=>{
+      if(e.key === PLAN_KEY) renderGrid();
+    });
+  });
+  </script>
+</body>
+</html>

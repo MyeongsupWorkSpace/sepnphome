@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>인쇄 배정</title>
+  <link rel="stylesheet" href="assets/nav.css">
+  <style>
+    :root{--primary:#2563eb;--border:#e5e7eb;--bg:#f9fafb;--text:#111;--muted:#6b7280}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text);padding-top:60px}
+    .container{max-width:1600px;margin:20px auto;padding:0 16px}
+    h2{font-size:20px;margin-bottom:16px}
+    .board{display:grid;grid-template-columns:280px 1fr;gap:20px}
+    .pool-section,.lanes-section{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px}
+    .pool-section h3,.lanes-section h3{font-size:16px;margin-bottom:12px;color:var(--muted)}
+    .pool-cards{display:flex;flex-direction:column;gap:10px;min-height:400px}
+    .pool-card{padding:12px;background:#fef3c7;border:1px solid #fde047;border-radius:8px}
+    .card-title{font-weight:600;margin-bottom:6px}
+    .card-meta{font-size:13px;color:#666}
+    .card-meta div{margin-top:4px}
+    .lanes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+    .lane{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;min-height:300px}
+    .lane h4{font-size:14px;margin-bottom:10px;color:var(--muted)}
+    .lane-cards{display:flex;flex-direction:column;gap:8px}
+    .lane-card{padding:10px;background:#fff;border:1px solid var(--border);border-radius:6px}
+    .lane-card.assigned{background:#dbeafe;border-color:#93c5fd}
+    .lane-card.done{background:#d1fae5;border-color:#86efac}
+  </style>
+</head>
+<body>
+  <header class="fixed-header"></header>
+
+  <main class="container">
+    <h2>인쇄 배정</h2>
+    <div class="board">
+      <div class="pool-section">
+        <h3>배정 풀 (<span id="poolCount">0</span>)</h3>
+        <div class="pool-cards" id="assignPool"></div>
+      </div>
+      <div class="lanes-section">
+        <h3>인쇄기 현황</h3>
+        <div class="lanes-grid" id="lanesGrid"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/nav.js"></script>
+  <script>
+    const NF = new Intl.NumberFormat('ko-KR');
+    const esc = s => (s==null?'':String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[c]));
+
+    const PRESSES = ['1호기','2호기','3호기'];
+    const PLAN_KEY = 'sepnp_print_slots_v1';
+    const PLAN_SLOTS = 15;
+    let state = { pool: [], lanes: {}, completed: [], history: [] };
+
+    function saveState() {
+      localStorage.setItem('sepnp_assign_v2', JSON.stringify(state));
+    }
+
+    function loadState() {
+      const saved = localStorage.getItem('sepnp_assign_v2');
+      if (saved) {
+        try {
+          state = JSON.parse(saved);
+          if (!state.pool) state.pool = [];
+          if (!state.lanes) state.lanes = {};
+          if (!state.completed) state.completed = [];
+          if (!state.history) state.history = [];
+        } catch (e) {
+          console.error('assign state parse error', e);
+          state = { pool: [], lanes: {}, completed: [], history: [] };
+        }
+      } else {
+        state = { pool: [], lanes: {}, completed: [], history: [] };
+      }
+
+      PRESSES.forEach(p => {
+        if (!Array.isArray(state.lanes[p])) state.lanes[p] = [];
+      });
+
+      const orders = JSON.parse(localStorage.getItem('sepnp_orders_v1') || '[]');
+      orders.forEach(o => {
+        if (!o.id) return;
+        const hasPrint = Array.isArray(o?.productSnapshot?.processes) &&
+                         o.productSnapshot.processes.some(x => /인쇄|print/i.test(String(x)));
+        if (!hasPrint) return;
+
+        const exists = [
+          ...state.pool,
+          ...Object.values(state.lanes).flat(),
+          ...state.completed
+        ].some(c => c.orderId === o.id);
+        if (!exists) {
+          const qty = Number(o.sheetsQty || o.qty || 0) + Number(o.extraSheets || o.extraQty || 0);
+          state.pool.push({
+            id: `card_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+            orderId: o.id,
+            productName: o.productName || '미상',
+            vendor: o.vendor || '',
+            quantity: qty,
+            dueDate: o.dueDate || '',
+            status: 'wait',
+            createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString()
+          });
+        }
+      });
+
+      saveState();
+    }
+
+    function renderPool() {
+      const container = document.getElementById('assignPool');
+      if (!container) return;
+      if (state.pool.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#999;padding:40px">미배정 작업이 없습니다</div>';
+        return;
+      }
+      container.innerHTML = '';
+      state.pool.forEach(card => {
+        const div = document.createElement('div');
+        div.className = 'pool-card';
+        div.draggable = true;
+        div.dataset.id = card.id;
+        div.innerHTML = `
+          <div class="card-title">${esc(card.productName)}</div>
+          <div class="card-meta">
+            <div>거래처: ${esc(card.vendor)}</div>
+            <div>수량: ${NF.format(card.quantity)}개</div>
+            ${card.netQty ? `<div>정미: ${NF.format(card.netQty)}개</div>` : ''}
+            ${card.dueDate ? `<div>납기: ${card.dueDate}</div>` : ''}
+          </div>
+        `;
+        div.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'assign', id: card.id }));
+          setTimeout(() => div.classList.add('dragging'), 0);
+        });
+        div.addEventListener('dragend', () => div.classList.remove('dragging'));
+        container.appendChild(div);
+      });
+      document.getElementById('poolCount').textContent = state.pool.length;
+    }
+
+    function loadPlanSlots(){
+      const raw = localStorage.getItem(PLAN_KEY);
+      if(!raw){
+        const obj = {};
+        for(let m=1;m<=3;m++){
+          for(let r=1;r<=PLAN_SLOTS;r++){
+            obj[`m${m}-${r}`] = null;
+          }
+        }
+        localStorage.setItem(PLAN_KEY, JSON.stringify(obj));
+        return obj;
+      }
+      try{ return JSON.parse(raw); }catch{ return {}; }
+    }
+
+    function savePlanSlots(slots){
+      localStorage.setItem(PLAN_KEY, JSON.stringify(slots));
+    }
+
+    function addToPrintPlan(pressIndex, card){
+      const slots = loadPlanSlots();
+      for(let row=1; row<=PLAN_SLOTS; row++){
+        const key = `m${pressIndex}-${row}`;
+        if(!slots[key]){
+          slots[key] = {
+            id: card.orderId || card.id,
+            name: card.productName || '미상',
+            qty: card.quantity || 0,
+            due: card.dueDate || '',
+            proc: '인쇄'
+          };
+          savePlanSlots(slots);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function assignToPress(cardId, pressIndex){
+      const idx = state.pool.findIndex(c => c.id === cardId);
+      if(idx < 0) return;
+      const [card] = state.pool.splice(idx, 1);
+      card.status = 'assigned';
+      if(!Array.isArray(state.lanes[PRESSES[pressIndex-1]])){
+        state.lanes[PRESSES[pressIndex-1]] = [];
+      }
+      state.lanes[PRESSES[pressIndex-1]].push(card);
+      saveState();
+
+      const ok = addToPrintPlan(pressIndex, card);
+      if(!ok){
+        alert(`인쇄 ${pressIndex}호기 계획표가 가득 찼습니다.`);
+      }
+      renderPool();
+      renderLanes();
+    }
+
+    function renderLanes() {
+      const grid = document.getElementById('lanesGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      PRESSES.forEach(p => {
+        const lane = document.createElement('div');
+        lane.className = 'lane';
+        lane.innerHTML = `<h4>${p} (${(state.lanes[p] || []).length})</h4><div class="lane-cards" data-press="${p}"></div>`;
+        const cards = lane.querySelector('.lane-cards');
+        cards.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          cards.classList.add('dragover');
+        });
+        cards.addEventListener('dragleave', () => cards.classList.remove('dragover'));
+        cards.addEventListener('drop', (e) => {
+          e.preventDefault();
+          cards.classList.remove('dragover');
+          const raw = e.dataTransfer.getData('text/plain');
+          if(!raw) return;
+          try{
+            const payload = JSON.parse(raw);
+            if(payload.type !== 'assign' || !payload.id) return;
+            const pressIndex = PRESSES.indexOf(p) + 1;
+            if(pressIndex < 1) return;
+            assignToPress(payload.id, pressIndex);
+          }catch{}
+        });
+        (state.lanes[p] || []).forEach(card => {
+          const div = document.createElement('div');
+          div.className = `lane-card ${card.status || 'assigned'}`;
+          div.innerHTML = `
+            <div class="card-title">${esc(card.productName)}</div>
+            <div class="card-meta">
+              <div>${esc(card.vendor)} / ${NF.format(card.quantity)}개</div>
+              ${card.netQty ? `<div>정미: ${NF.format(card.netQty)}개</div>` : ''}
+              ${card.dueDate ? `<div>납기: ${card.dueDate}</div>` : ''}
+            </div>
+          `;
+          cards.appendChild(div);
+        });
+        grid.appendChild(lane);
+      });
+    }
+
+    loadState();
+    renderPool();
+    renderLanes();
+  </script>
+</body>
+</html>
