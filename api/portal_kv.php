@@ -1,6 +1,8 @@
 <?php
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 header('Content-Type: application/json; charset=utf-8');
+if (session_status() === PHP_SESSION_ACTIVE) { @session_write_close(); }
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $raw = file_get_contents('php://input');
@@ -8,42 +10,6 @@ $in = $raw ? json_decode($raw, true) : $_REQUEST;
 if (!is_array($in)) { $in = []; }
 $key = trim((string)($_GET['key'] ?? $in['key'] ?? ''));
 if ($key === '') { json_out(['ok'=>false,'error'=>'missing_key'], 400); return; }
-
-if (use_json_fallback()) {
-  $rows = json_portal_all('kv');
-  if ($method === 'GET') {
-    foreach ($rows as $r) {
-      if (($r['key'] ?? '') === $key) {
-        json_out(['ok'=>true,'data'=>$r['data'] ?? null]);
-        return;
-      }
-    }
-    json_out(['ok'=>true,'data'=>null]);
-    return;
-  }
-  if ($method === 'POST') {
-    $updated = false;
-    foreach ($rows as &$r) {
-      if (($r['key'] ?? '') === $key) {
-        $r['data'] = $in['data'] ?? null;
-        $r['updated_at'] = time();
-        $updated = true;
-        break;
-      }
-    }
-    if (!$updated) {
-      $rows[] = [
-        'id' => json_portal_next_id($rows),
-        'key' => $key,
-        'data' => $in['data'] ?? null,
-        'updated_at' => time(),
-      ];
-    }
-    json_portal_save('kv', $rows);
-    json_out(['ok'=>true]);
-    return;
-  }
-}
 
 $pdo = get_db();
 try {

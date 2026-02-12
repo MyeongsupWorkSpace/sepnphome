@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
 
 const isProd = process.env.RAILWAY_ENVIRONMENT === 'production' || process.env.NODE_ENV === 'production';
 if (!isProd && fs.existsSync(path.join(__dirname, '.env.local'))) {
@@ -14,8 +15,64 @@ if (!isProd && fs.existsSync(path.join(__dirname, '.env.local'))) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const logDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+const LOG_RETENTION_DAYS = 30;
+let currentLogDate = '';
+let currentLogStream = null;
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function getLocalDateKey(d = new Date()) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function openLogStream(dateKey) {
+  if (currentLogStream) {
+    currentLogStream.end();
+  }
+  currentLogDate = dateKey;
+  const filePath = path.join(logDir, `access-${dateKey}.log`);
+  currentLogStream = fs.createWriteStream(filePath, { flags: 'a' });
+}
+
+function cleanupOldLogs() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - LOG_RETENTION_DAYS);
+  const files = fs.readdirSync(logDir);
+  files.forEach((file) => {
+    const match = /^access-(\d{4})-(\d{2})-(\d{2})\.log$/.exec(file);
+    if (!match) return;
+    const logDate = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00`);
+    if (Number.isNaN(logDate.getTime())) return;
+    if (logDate < cutoff) {
+      try {
+        fs.unlinkSync(path.join(logDir, file));
+      } catch (e) {
+        console.warn('⚠️ 로그 삭제 실패:', file, e.message);
+      }
+    }
+  });
+}
+
+const accessLogStream = {
+  write: (message) => {
+    const dateKey = getLocalDateKey();
+    if (!currentLogStream || dateKey !== currentLogDate) {
+      openLogStream(dateKey);
+      cleanupOldLogs();
+    }
+    currentLogStream.write(message);
+  }
+};
+
 // CORS: 외부 PC에서 API 호출 허용 (필요시 origin 제한)
 app.use(cors());
+app.use(morgan('combined', { stream: accessLogStream }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -236,8 +236,41 @@
       localStorage.setItem(key, JSON.stringify(list));
     }
 
+    const LIMITS = { qty: 1000000, dim: 100000 };
+
+    const normalizeText = (val) => (val || '').toString().trim().toLowerCase();
+
+    function isDuplicateItem(list, item, type){
+      const nameKey = normalizeText(item.name);
+      const vendorKey = normalizeText(item.vendor);
+      return list.some((x) => {
+        if (normalizeText(x.name) !== nameKey) return false;
+        if (vendorKey && normalizeText(x.vendor) !== vendorKey) return false;
+        if (type === 'product') {
+          return Number(x.length) === item.length && Number(x.width) === item.width && Number(x.height) === item.height;
+        }
+        return Number(x.width) === item.width && Number(x.height) === item.height && normalizeText(x.grain) === normalizeText(item.grain);
+      });
+    }
+
+    function validateItem(item, type, list, mode){
+      if (!item.name) return '품목명을 입력하세요.';
+      if (type === 'product') {
+        if (item.length <= 0 || item.width <= 0 || item.height <= 0) return '규격(장/폭/고)을 입력하세요.';
+        if (item.length > LIMITS.dim || item.width > LIMITS.dim || item.height > LIMITS.dim) return `규격은 최대 ${LIMITS.dim}mm까지 입력할 수 있습니다.`;
+      } else {
+        if (item.width <= 0 || item.height <= 0) return '원단 크기(가로/세로)를 입력하세요.';
+        if (item.width > LIMITS.dim || item.height > LIMITS.dim) return `원단 크기는 최대 ${LIMITS.dim}mm까지 입력할 수 있습니다.`;
+      }
+      if (item.qty < 0 || item.safety < 0) return '현재고/안전재고는 0 이상이어야 합니다.';
+      if (item.qty > LIMITS.qty || item.safety > LIMITS.qty) return `재고 값은 최대 ${LIMITS.qty.toLocaleString()}까지 입력할 수 있습니다.`;
+      if (mode === 'create' && isDuplicateItem(list, item, type)) return '이미 등록된 품목입니다.';
+      return '';
+    }
+
     let editingItem = null;
     let editingType = null;
+    let editingMode = 'edit';
 
     function forceCloseModal(){
       const modal = document.getElementById('editModal');
@@ -250,6 +283,7 @@
     forceCloseModal();
 
     window.openEditModal = function(id, type){
+      editingMode = 'edit';
       editingType = type;
       const key = type === 'product' ? KEY_PRODUCTS : KEY_PAPERS;
       const list = load(key, type === 'product' ? SAMPLE_PRODUCTS : SAMPLE_PAPERS);
@@ -259,6 +293,7 @@
       editingItem = item;
 
       $('#modalTitle').textContent = type === 'product' ? '제품 재고 수정' : '용지 재고 수정';
+      $('#btnDelete').style.display = '';
 
       if(type === 'product'){
         $('#productForm').style.display = '';
@@ -289,6 +324,46 @@
       modal.style.display = 'flex';
     };
 
+    function openCreateModal(type){
+      editingMode = 'create';
+      editingType = type;
+      const key = type === 'product' ? KEY_PRODUCTS : KEY_PAPERS;
+      load(key, type === 'product' ? SAMPLE_PRODUCTS : SAMPLE_PAPERS);
+      const newId = `inv_${type}_${Date.now()}`;
+      editingItem = { id: newId };
+
+      $('#modalTitle').textContent = type === 'product' ? '제품 재고 등록' : '용지 재고 등록';
+      $('#btnDelete').style.display = 'none';
+
+      if(type === 'product'){
+        $('#productForm').style.display = '';
+        $('#paperForm').style.display = 'none';
+        $('#editProductName').value = '';
+        $('#editLength').value = 0;
+        $('#editWidth').value = 0;
+        $('#editHeight').value = 0;
+        $('#editProductUnit').value = '개';
+      } else {
+        $('#productForm').style.display = 'none';
+        $('#paperForm').style.display = '';
+        $('#editPaperName').value = '';
+        $('#editPaperWidth').value = 0;
+        $('#editPaperHeight').value = 0;
+        $('#editGrain').value = '';
+        $('#editPaperUnit').value = '매';
+      }
+
+      $('#editVendor').value = '';
+      $('#editQty').value = 0;
+      $('#editSafety').value = 0;
+      $('#editLastIn').value = new Date().toISOString().slice(0, 10);
+
+      const modal = $('#editModal');
+      modal.setAttribute('data-open', 'true');
+      modal.classList.add('show');
+      modal.style.display = 'flex';
+    }
+
     function closeEditModal(){
       const modal = $('#editModal');
       modal.setAttribute('data-open', 'false');
@@ -296,6 +371,7 @@
       modal.style.display = 'none';
       editingItem = null;
       editingType = null;
+      editingMode = 'edit';
     }
 
     window.closeEditModal = closeEditModal;
@@ -325,6 +401,16 @@
       editingItem.qty = parseFloat($('#editQty').value) || 0;
       editingItem.safety = parseFloat($('#editSafety').value) || 0;
       editingItem.lastIn = $('#editLastIn').value;
+
+      const err = validateItem(editingItem, editingType, list, editingMode);
+      if (err) {
+        alert(err);
+        return;
+      }
+
+      if(editingMode === 'create'){
+        list.push(editingItem);
+      }
 
       save(key, list);
       closeEditModal();
@@ -414,7 +500,6 @@
     function render(){
       const t = tab();
       $('#grain').style.display = (t==='paper') ? '' : 'none';
-      $('#btnRegister').onclick = ()=> location.href = `inventory-register.html?type=${t}`;
 
       renderHead();
 
@@ -460,6 +545,7 @@
         });
       });
       document.getElementById('btnSearch').addEventListener('click', render);
+      document.getElementById('btnRegister').addEventListener('click', () => openCreateModal(tab()));
       document.getElementById('btnExport').addEventListener('click', ()=>{
         const t = tab();
         const rows = t==='product' ? load(KEY_PRODUCTS,SAMPLE_PRODUCTS) : load(KEY_PAPERS,SAMPLE_PAPERS);

@@ -1,6 +1,8 @@
 <?php
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 header('Content-Type: application/json; charset=utf-8');
+if (session_status() === PHP_SESSION_ACTIVE) { @session_write_close(); }
 
 $raw = file_get_contents('php://input');
 $in = $raw ? json_decode($raw, true) : $_REQUEST;

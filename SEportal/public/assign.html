@@ -45,8 +45,14 @@
     </div>
   </main>
 
+  <script src="assets/api.js"></script>
+  <script src="assets/perm.js"></script>
   <script src="assets/nav.js"></script>
   <script>
+    if (!sessionStorage.getItem('sepnp_emp_no')) {
+      alert('로그인이 필요합니다.');
+      location.href = 'index.html';
+    }
     const NF = new Intl.NumberFormat('ko-KR');
     const esc = s => (s==null?'':String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[c]));
 

@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 header('Content-Type: application/json; charset=utf-8');
 $path = __DIR__ . '/../data/board.json';

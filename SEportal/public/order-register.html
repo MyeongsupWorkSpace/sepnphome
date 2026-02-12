@@ -107,6 +107,20 @@
           </label>
         </div>
 
+        <div class="row" style="gap:12px;margin-top:8px">
+          <label style="flex:1">배송지
+            <input id="shipAddr" type="text" class="input w100" placeholder="배송지 주소">
+          </label>
+        </div>
+        <div class="row" style="gap:12px">
+          <label>담당자
+            <input id="shipContact" type="text" class="input w120" placeholder="담당자명">
+          </label>
+          <label>연락처
+            <input id="shipPhone" type="text" class="input" style="width:180px" placeholder="010-0000-0000">
+          </label>
+        </div>
+
         <div class="kpi">
           <div class="box"><label>장수(본수)</label><div class="val" id="kpiSheets">0</div></div>
           <div class="box"><label>여분(장)</label><div class="val" id="kpiExtra">0</div></div>
@@ -289,9 +303,6 @@ PortalStore.hydrate(['sepnp_workstatus','sepnp_assign','sepnp_orders']).then(() 
       price: 120,
       cutCount: 2,
       knifeSize: { w: 210, h: 130 },
-      shipping: '서울시 강남구 테헤란로 123',
-      manager: '관리자',
-      phone: '010-1234-5678',
       processes: ['인쇄','코팅','톰슨','접착'],
       processDetails: {},
       createdAt: nowIso,
@@ -559,7 +570,10 @@ PortalStore.hydrate(['sepnp_workstatus','sepnp_assign','sepnp_orders']).then(() 
       unitPrice: Number.isFinite(unit) ? unit : null,
       amount: amt,
       dueDate: $('#due').value || null,
-      note: ($('#note').value||'').trim()
+      note: ($('#note').value||'').trim(),
+      shipping: ($('#shipAddr').value||'').trim(),
+      manager: ($('#shipContact').value||'').trim(),
+      phone: ($('#shipPhone').value||'').trim()
     };
   }
 
@@ -591,6 +605,10 @@ PortalStore.hydrate(['sepnp_workstatus','sepnp_assign','sepnp_orders']).then(() 
     if(!q || q<1){ alert('장 수(수량)를 입력하세요.'); $('#qty').focus(); return; }
     const due = $('#due').value;
     if(!due){ alert('납기일을 입력하세요.'); $('#due').focus(); return; }
+    const shipAddr = ($('#shipAddr').value||'').trim();
+    const shipPhone = ($('#shipPhone').value||'').trim();
+    if(!shipAddr){ alert('배송지를 입력하세요.'); $('#shipAddr').focus(); return; }
+    if(!shipPhone){ alert('연락처를 입력하세요.'); $('#shipPhone').focus(); return; }
 
     const sum = updateSummary();
     const now = Date.now();
@@ -611,6 +629,9 @@ PortalStore.hydrate(['sepnp_workstatus','sepnp_assign','sepnp_orders']).then(() 
       amount: sum.amount,
       dueDate: sum.dueDate,
       note: sum.note,
+      shipping: sum.shipping,
+      manager: sum.manager,
+      phone: sum.phone,
       productSnapshot: selected
     };
     try {
@@ -703,6 +724,9 @@ PortalStore.hydrate(['sepnp_workstatus','sepnp_assign','sepnp_orders']).then(() 
     $('#searchInput').value=''; $('#searchDropdown').style.display='none';
     $('#specArea').style.display='none'; $('#orderArea').style.display='none';
     $('#histWrap').innerHTML = `<div class="empty">제품을 선택하면 수주 이력이 모두 표시됩니다.</div>`;
+    $('#shipAddr').value = '';
+    $('#shipContact').value = '';
+    $('#shipPhone').value = '';
   });
 
   // 검색 로직

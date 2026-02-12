@@ -1,4 +1,5 @@
 <?php
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 // Server-Sent Events providing the quotes list. Supports JSON fallback or DB.
 // Cloudflare/Nginx 친화적 헤더 (프록시 버퍼링/변환 방지)

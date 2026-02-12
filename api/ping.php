@@ -1,4 +1,5 @@
 <?php
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 header('Content-Type: application/json; charset=utf-8');
 $pdo = null;

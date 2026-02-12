@@ -40,9 +40,7 @@ applySiteSettingsUI();
 // Footer policy links
 function applyFooterPolicyLinks() {
   try {
-    const isFile = location.protocol === 'file:';
-    const inPages = location.pathname.includes('/pages/');
-    const prefix = isFile ? (inPages ? '.' : 'pages') : '/pages';
+    const prefix = '/pages';
     const links = document.querySelectorAll('.footer-links .footer-link');
     if (!links.length) return;
     links.forEach((a) => {
@@ -60,57 +58,13 @@ function applyFooterPolicyLinks() {
 }
 applyFooterPolicyLinks();
 
-// API base (supports Go Live / Netlify / custom backends)
-// 우선순위: window.API_BASE → localStorage('sepn_api_base') → 로컬 개발(127.0.0.1:8000) → 동일 출처
-let API_BASE = '';
-try {
-  const preset = (typeof window !== 'undefined' && typeof window.API_BASE === 'string') ? window.API_BASE : '';
-  const fromStorage = (typeof localStorage !== 'undefined') ? (localStorage.getItem('sepn_api_base') || '') : '';
-  if (preset) {
-    API_BASE = preset;
-  } else if (fromStorage) {
-    API_BASE = fromStorage;
-  } else {
-    const isLocalHost = ['127.0.0.1','localhost'].includes(location.hostname);
-    API_BASE = isLocalHost ? 'http://127.0.0.1:8000' : '';
-  }
-  // 배포 환경에서 로컬 API_BASE가 남아 있으면 무효화
-  try {
-    const isLocalHost = ['127.0.0.1','localhost'].includes(location.hostname);
-    if (!isLocalHost && /127\.0\.0\.1|localhost/.test(API_BASE)) {
-      API_BASE = '';
-      localStorage.removeItem('sepn_api_base');
-    }
-  } catch {}
-} catch { API_BASE = ''; }
-// URL 쿼리로 API 베이스를 즉시 지정하거나 초기화 (?api=https://host 또는 ?api=clear)
-try {
-  const u = new URL(location.href);
-  const q = u.searchParams.get('api');
-  if (q) {
-    if (q === 'clear') {
-      try { localStorage.removeItem('sepn_api_base'); } catch {}
-      API_BASE = '';
-    } else {
-      try { localStorage.setItem('sepn_api_base', q); } catch {}
-      API_BASE = q;
-    }
-    u.searchParams.delete('api');
-    history.replaceState(null, '', u.toString());
-  }
-} catch {}
+// API base: always use same-origin paths
+const API_BASE = '';
 window.API_BASE = API_BASE;
-const API = (p) => `${API_BASE}${p}`;
+const API = (p) => `${p}`;
 
 function getPortalUrl() {
-  try {
-    const isFile = location.protocol === 'file:';
-    const inPages = location.pathname.includes('/pages/');
-    const prefix = isFile ? (inPages ? '..' : '.') : '';
-    return `${prefix}/SEportal/public/index.html`;
-  } catch {
-    return '/SEportal/public/index.html';
-  }
+  return '/SEportal/public/index.html';
 }
 
 function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
@@ -257,9 +211,7 @@ let productsSwiper = null;
 function initProductShowcaseSlides() {
   const wrapper = document.querySelector('.products-swiper .swiper-wrapper');
   if (!wrapper) return;
-  const isFile = location.protocol === 'file:';
-  const inPages = location.pathname.includes('/pages/');
-  const prefix = isFile ? (inPages ? '..' : '.') : '';
+  const prefix = '';
   const slides = [
     { title: '빼빼로 (롯데)', img: `${prefix}/assets/img/%EB%A1%AF%EB%8D%B0/%EB%B9%BC%EB%B9%BC%EB%A1%9C.png`, link: `${prefix}/pages/vendor-products.html?brand=lotte` },
     { title: '가나 마일드 (롯데)', img: `${prefix}/assets/img/%EB%A1%AF%EB%8D%B0/%EA%B0%80%EB%82%98%20%EB%A7%88%EC%9D%BC%EB%93%9C.png`, link: `${prefix}/pages/vendor-products.html?brand=lotte` },
@@ -568,9 +520,9 @@ function initQuotesPolling() {
 }
 
 if (listEl) {
-  // 초기 상태를 즉시 가져오고, 이후 SSE로 실시간 갱신
+  // 초기 상태를 즉시 가져오고, 이후 폴링으로 갱신 (SSE 비활성화)
   try { pollOnce(); } catch {}
-  initQuotesStream();
+  initQuotesPolling();
 }
 
 // Auth area (login/logout and rank badge)
@@ -655,22 +607,6 @@ function createLoginModal() {
       if (rememberEl?.checked) localStorage.setItem('sepn_login_id', username);
       else localStorage.removeItem('sepn_login_id');
     } catch {}
-    // 정적 환경용: sepnp/0536은 서버 없이 로그인 허용
-    if ((username || '').toLowerCase() === 'sepnp' && password === '0536') {
-      const u = {
-        id: 1,
-        username: 'sepnp',
-        nickname: '관리자',
-        rank: 'Master',
-        role: 'admin',
-        status: '승인완료'
-      };
-      localStorage.setItem('sepn_user', JSON.stringify(u));
-      closeAuthModals();
-      renderAuth();
-      renderNav();
-      return;
-    }
     try {
       const res = await fetchWithTimeout(API('/api/auth_login.php'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -838,10 +774,7 @@ function renderNav() {
   let user = null;
   try { user = raw ? JSON.parse(raw) : null; } catch {}
   // 모든 페이지에서 동일한 네비게이션(Company/Products/견적문의/문의 게시판)으로 통일
-  // Compute link prefix: use absolute paths on http(s), relative on file://
-  const isFile = location.protocol === 'file:';
-  const inPages = location.pathname.includes('/pages/');
-  const prefix = isFile ? (inPages ? '..' : '.') : '';
+  const prefix = '';
   const roleLower = (user?.role || '').toLowerCase();
   const isAdmin = !!(user && roleLower==='admin');
   const isEmployee = isAdmin || ['employee','staff'].includes(roleLower);
@@ -877,9 +810,7 @@ try {
   if (!user && needsLogin) {
     alert('로그인이 필요합니다. 상단 로그인 버튼을 사용하세요.');
     try { if (typeof createLoginModal === 'function') createLoginModal(); } catch {}
-    const isFile = location.protocol === 'file:';
-    const inPages = location.pathname.includes('/pages/');
-    const loginPath = isFile ? (inPages ? 'login.html' : 'pages/login.html') : '/pages/login.html';
+    const loginPath = '/pages/login.html';
     const ret = encodeURIComponent(location.pathname + location.search);
     location.replace(`${loginPath}?return=${ret}`);
   }
@@ -993,10 +924,7 @@ function initAdminMega(){
 
 // 페이지마다 존재하지 않을 수 있는 드롭다운 메뉴를 동적으로 생성
 function ensureDropdownMenus(prefixHint, isAdmin){
-  // prefix 재계산(파일/페이지 상대 경로 대응)
-  const isFile = location.protocol === 'file:';
-  const inPages = location.pathname.includes('/pages/');
-  const prefix = typeof prefixHint === 'string' ? prefixHint : (isFile ? (inPages ? '..' : '.') : '');
+  const prefix = typeof prefixHint === 'string' ? prefixHint : '';
   const container = document.querySelector('.site-header .header-bottom') || document.body;
 
   if (!document.getElementById('companyMega')){
@@ -1250,8 +1178,6 @@ async function initAdminApprovalsPage() {
   const tbody = table.querySelector('tbody');
   let rows = [];
   try {
-    // 페이지 로드시 자동 일괄 승인 실행
-    try { await fetch(API('/api/admin_approve_all.php'), { method: 'POST', credentials: 'include' }); } catch {}
     const res = await fetch(API('/api/admin_users_pending.php'), { credentials: 'include' });
     rows = await res.json();
   } catch {}

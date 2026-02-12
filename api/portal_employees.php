@@ -1,6 +1,8 @@
 <?php
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 header('Content-Type: application/json; charset=utf-8');
+if (session_status() === PHP_SESSION_ACTIVE) { @session_write_close(); }
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $raw = file_get_contents('php://input');
@@ -36,66 +38,6 @@ function normalize_emp(array $r): array {
   ];
 }
 
-if (use_json_fallback()) {
-  $rows = json_portal_all('employees');
-  if ($method === 'GET') {
-    if ($status !== '') {
-      $rows = array_values(array_filter($rows, fn($r) => ($r['status'] ?? '') === $status));
-    }
-    json_out(array_map('normalize_emp', $rows));
-    return;
-  }
-  if ($method === 'POST') {
-    $password = (string)($in['password'] ?? '');
-    $passwordHash = (string)($in['passwordHash'] ?? '');
-    $hash = $password ? password_hash($password, PASSWORD_DEFAULT) : ($passwordHash ?: password_hash('1234', PASSWORD_DEFAULT));
-    $row = [
-      'id' => json_portal_next_id($rows),
-      'empNo' => $in['empNo'] ?? '',
-      'username' => $in['username'] ?? '',
-      'password_hash' => $hash,
-      'name' => $in['name'] ?? '',
-      'dept' => $in['dept'] ?? '',
-      'position' => $in['position'] ?? '',
-      'phone' => $in['phone'] ?? '',
-      'email' => $in['email'] ?? '',
-      'joinDate' => $in['joinDate'] ?? '',
-      'status' => $in['status'] ?? 'active',
-      'role' => $in['role'] ?? 'viewer',
-      'perms' => $in['perms'] ?? [],
-      'created_at' => time(),
-      'updated_at' => time(),
-    ];
-    $rows[] = $row;
-    json_portal_save('employees', $rows);
-    json_out(['ok'=>true,'id'=>$row['id']]);
-    return;
-  }
-  if ($method === 'PUT') {
-    $updated = false;
-    foreach ($rows as &$r) {
-      if ((int)($r['id'] ?? 0) !== $id) continue;
-      foreach (['empNo','username','name','dept','position','phone','email','joinDate','status','role'] as $k) {
-        if (isset($in[$k])) { $r[$k] = $in[$k]; }
-      }
-      if (isset($in['perms'])) { $r['perms'] = $in['perms']; }
-      if (!empty($in['password'])) { $r['password_hash'] = password_hash($in['password'], PASSWORD_DEFAULT); }
-      $r['updated_at'] = time();
-      $updated = true;
-      break;
-    }
-    if ($updated) json_portal_save('employees', $rows);
-    json_out(['ok'=>$updated]);
-    return;
-  }
-  if ($method === 'DELETE') {
-    $rows = array_values(array_filter($rows, fn($r) => (int)($r['id'] ?? 0) !== $id));
-    json_portal_save('employees', $rows);
-    json_out(['ok'=>true]);
-    return;
-  }
-}
-
 $pdo = get_db();
 try {
   if ($method === 'GET') {
@@ -113,11 +55,18 @@ try {
     $password = (string)($in['password'] ?? '');
     $passwordHash = (string)($in['passwordHash'] ?? '');
     $hash = $password ? password_hash($password, PASSWORD_DEFAULT) : ($passwordHash ?: password_hash('1234', PASSWORD_DEFAULT));
+    $empNo = trim((string)($in['empNo'] ?? ''));
+    $username = trim((string)($in['username'] ?? ''));
+    if ($empNo !== '' || $username !== '') {
+      $stmt = $pdo->prepare('SELECT `id` FROM `portal_employees` WHERE (`emp_no` = :emp_no AND :emp_no != "") OR (`username` = :username AND :username != "") LIMIT 1');
+      $stmt->execute([':emp_no' => $empNo, ':username' => $username]);
+      if ($stmt->fetchColumn()) { json_out(['ok'=>false,'error'=>'duplicate_employee'], 409); return; }
+    }
     $now = time();
     $stmt = $pdo->prepare('INSERT INTO `portal_employees`(`emp_no`,`username`,`password_hash`,`name`,`dept`,`position`,`phone`,`email`,`join_date`,`status`,`role`,`perms_json`,`created_at`,`updated_at`) VALUES(:emp_no,:username,:ph,:name,:dept,:pos,:phone,:email,:join_date,:status,:role,:perms,:ts,:ts)');
     $stmt->execute([
-      ':emp_no' => $in['empNo'] ?? '',
-      ':username' => $in['username'] ?? '',
+      ':emp_no' => $empNo,
+      ':username' => $username,
       ':ph' => $hash,
       ':name' => $in['name'] ?? '',
       ':dept' => $in['dept'] ?? '',

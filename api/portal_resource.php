@@ -1,6 +1,8 @@
 <?php
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 header('Content-Type: application/json; charset=utf-8');
+if (session_status() === PHP_SESSION_ACTIVE) { @session_write_close(); }
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $raw = file_get_contents('php://input');
@@ -35,60 +37,6 @@ function normalize_rows(array $rows, string $resource): array {
     $out[] = $data;
   }
   return $out;
-}
-
-if (use_json_fallback()) {
-  $rows = json_portal_all($resource);
-  if ($method === 'GET') {
-    if ($resource === 'assignments' && $dateKey !== '') {
-      $rows = array_values(array_filter($rows, fn($r) => ($r['date_key'] ?? '') === $dateKey));
-    }
-    $out = normalize_rows($rows, $resource);
-    if ($q !== '') {
-      $ql = mb_strtolower($q);
-      $out = array_values(array_filter($out, function($row) use ($ql) {
-        $flat = mb_strtolower(json_encode($row, JSON_UNESCAPED_UNICODE));
-        return strpos($flat, $ql) !== false;
-      }));
-    }
-    json_out($out);
-    return;
-  }
-  if ($method === 'POST') {
-    $record = [
-      'id' => json_portal_next_id($rows),
-      'data' => $in,
-      'created_at' => time(),
-      'updated_at' => time(),
-    ];
-    if ($resource === 'assignments') {
-      $record['date_key'] = $dateKey ?: (string)($in['date'] ?? '');
-    }
-    $rows[] = $record;
-    json_portal_save($resource, $rows);
-    json_out(['ok'=>true,'id'=>$record['id']]);
-    return;
-  }
-  if ($method === 'PUT') {
-    $updated = false;
-    foreach ($rows as &$r) {
-      if ((int)($r['id'] ?? 0) !== $id) continue;
-      $r['data'] = array_merge((array)($r['data'] ?? []), $in);
-      if ($resource === 'assignments' && $dateKey !== '') { $r['date_key'] = $dateKey; }
-      $r['updated_at'] = time();
-      $updated = true;
-      break;
-    }
-    if ($updated) json_portal_save($resource, $rows);
-    json_out(['ok'=>$updated]);
-    return;
-  }
-  if ($method === 'DELETE') {
-    $rows = array_values(array_filter($rows, fn($r) => (int)($r['id'] ?? 0) !== $id));
-    json_portal_save($resource, $rows);
-    json_out(['ok'=>true]);
-    return;
-  }
 }
 
 $pdo = get_db();

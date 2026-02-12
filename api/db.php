@@ -1,5 +1,67 @@
 <?php
-session_start();
+// Fail fast to avoid socket pile-ups on slow or stuck requests.
+@ini_set('default_socket_timeout', '5');
+@ini_set('max_execution_time', '10');
+@set_time_limit(10);
+
+if (!defined('SEPNP_NO_SESSION') || SEPNP_NO_SESSION !== true) {
+  session_start();
+  // Release session lock ASAP to prevent request queueing.
+  register_shutdown_function(function () {
+    if (session_status() === PHP_SESSION_ACTIVE) {
+      @session_write_close();
+    }
+  });
+}
+
+// Allow local dev frontends (e.g., 127.0.0.1:5501) to call PHP APIs.
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+  http_response_code(204);
+  exit;
+}
+
+function sepnp_log_access(): void {
+  if (php_sapi_name() === 'cli') {
+    return;
+  }
+  $base = dirname(__DIR__);
+  $logDir = $base . DIRECTORY_SEPARATOR . 'logs';
+  if (!is_dir($logDir)) {
+    @mkdir($logDir, 0777, true);
+  }
+
+  $dateKey = date('Y-m-d');
+  $logFile = $logDir . DIRECTORY_SEPARATOR . 'access-' . $dateKey . '.log';
+  $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+  $method = $_SERVER['REQUEST_METHOD'] ?? '';
+  $uri = $_SERVER['REQUEST_URI'] ?? '';
+  $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+  $line = date('c') . "\t" . $ip . "\t" . $method . "\t" . $uri . "\t" . $ua . "\n";
+  @file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+
+  static $lastCleanup = '';
+  if ($lastCleanup !== $dateKey) {
+    $lastCleanup = $dateKey;
+    $cutoff = strtotime('-30 days');
+    foreach (glob($logDir . DIRECTORY_SEPARATOR . 'access-*.log') as $file) {
+      if (!preg_match('/access-(\d{4}-\d{2}-\d{2})\.log$/', $file, $m)) {
+        continue;
+      }
+      $ts = strtotime($m[1]);
+      if ($ts !== false && $ts < $cutoff) {
+        @unlink($file);
+      }
+    }
+  }
+}
+
+if (!defined('SEPNP_ACCESS_LOGGED')) {
+  define('SEPNP_ACCESS_LOGGED', true);
+  sepnp_log_access();
+}
 
 function db_config(): array {
   $cfg = [
@@ -21,26 +83,11 @@ function db_config(): array {
 }
 
 function use_json_fallback_config(): bool {
-  // 환경변수로 폴백 강제
-  $force = getenv('APP_USE_JSON');
-  if ($force === '1' || $force === 'true') { return true; }
-  // MySQL PDO 확장/드라이버 확인
-  $hasExt = extension_loaded('pdo_mysql');
-  $drivers = class_exists('PDO') ? PDO::getAvailableDrivers() : [];
-  $hasDriver = in_array('mysql', $drivers, true);
-  if (!$hasExt || !$hasDriver) return true;
-  // DB 설정 누락 시 폴백
-  $cfg = db_config();
-  if (($cfg['db'] ?? '') === '' || ($cfg['user'] ?? '') === '' || ($cfg['pass'] ?? '') === '') {
-    return true;
-  }
   return false;
 }
 
 function use_json_fallback(): bool {
-  if (use_json_fallback_config()) return true;
-  $pdo = get_db();
-  return !($pdo instanceof PDO);
+  return false;
 }
 
 function db_path(): string {
@@ -52,32 +99,81 @@ function db_path(): string {
 
 function get_db(): PDO {
   static $pdo = null;
-  static $failed = false;
   if ($pdo instanceof PDO) return $pdo;
-  if ($failed) return $pdo;
-  // 드라이버가 없으면 즉시 폴백 경로 사용
-  if (use_json_fallback_config()) {
-    return $pdo; // null 반환
-  }
   $cfg = db_config();
+  $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s', $cfg['host'], $cfg['port'], $cfg['db'], $cfg['charset']);
   try {
-    $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s', $cfg['host'], $cfg['port'], $cfg['db'], $cfg['charset']);
     $pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], [
       PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
       PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
       PDO::ATTR_TIMEOUT => 3,
+      PDO::MYSQL_ATTR_INIT_COMMAND => 'SET SESSION MAX_EXECUTION_TIME=3000',
     ]);
+    try { $pdo->query('SET SESSION innodb_lock_wait_timeout=3'); } catch (Throwable $e) { /* ignore */ }
+    bootstrap_db($pdo);
+    return $pdo;
   } catch (Throwable $e) {
-    // JSON 폴백 사용
-    $failed = true;
-    return $pdo; // null 유지로 호출부에서 폴백 경로로 처리
+    log_db_error($e, $cfg, $dsn);
+    throw $e;
   }
+}
+
+function bootstrap_db(PDO $pdo): void {
+  $base = dirname(__DIR__);
+  $dataDir = $base . DIRECTORY_SEPARATOR . 'data';
+  if (!is_dir($dataDir)) { @mkdir($dataDir, 0777, true); }
+  $flag = $dataDir . DIRECTORY_SEPARATOR . '.db_bootstrap';
+  $lock = $flag . '.lock';
+  $ttl = 300;
+  $now = time();
+  $mtime = is_file($flag) ? @filemtime($flag) : 0;
+  if ($mtime && ($now - $mtime) < $ttl) return;
+
+  $fp = @fopen($lock, 'c');
+  if ($fp) {
+    if (@flock($fp, LOCK_EX | LOCK_NB)) {
+      @file_put_contents($flag, (string)$now);
+      migrate($pdo);
+      seed_coupons($pdo);
+      seed_admin($pdo);
+      seed_portal_admin($pdo);
+      seed_sample_data($pdo);
+      @flock($fp, LOCK_UN);
+    }
+    @fclose($fp);
+    return;
+  }
+
   migrate($pdo);
   seed_coupons($pdo);
   seed_admin($pdo);
   seed_portal_admin($pdo);
   seed_sample_data($pdo);
-  return $pdo;
+  @file_put_contents($flag, (string)$now);
+}
+
+function log_db_error(Throwable $e, array $cfg, string $dsn): void {
+  try {
+    $base = dirname(__DIR__);
+    $logDir = $base . DIRECTORY_SEPARATOR . 'logs';
+    if (!is_dir($logDir)) {
+      @mkdir($logDir, 0777, true);
+    }
+    $logFile = $logDir . DIRECTORY_SEPARATOR . 'db-error.log';
+    $line = implode(' | ', [
+      date('c'),
+      'db_connect_error',
+      'host=' . ($cfg['host'] ?? ''),
+      'port=' . ($cfg['port'] ?? ''),
+      'db=' . ($cfg['db'] ?? ''),
+      'user=' . ($cfg['user'] ?? ''),
+      'dsn=' . $dsn,
+      'msg=' . $e->getMessage(),
+    ]) . "\n";
+    @file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+  } catch (Throwable $ignore) {
+    // ignore logging failures
+  }
 }
 
 function migrate(PDO $pdo): void {
@@ -671,13 +767,16 @@ function current_user(PDO $pdo): ?array {
   $stmt = $pdo->prepare('SELECT `id`, `username`, `nickname`, `rank`, `role`, `status` FROM `users` WHERE `id` = :id');
   $stmt->execute([':id' => $_SESSION['user_id']]);
   $u = $stmt->fetch(PDO::FETCH_ASSOC);
+  if (session_status() === PHP_SESSION_ACTIVE) { @session_write_close(); }
   return $u ?: null;
 }
 
 function current_user_json(): ?array {
   $name = $_SESSION['user_name'] ?? null;
   if (!$name) return null;
-  return json_user_find((string)$name);
+  $u = json_user_find((string)$name);
+  if (session_status() === PHP_SESSION_ACTIVE) { @session_write_close(); }
+  return $u;
 }
 
 function require_admin(PDO $pdo): ?array {

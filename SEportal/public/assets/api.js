@@ -1,8 +1,6 @@
 (function(){
   // SEPNPHP API 사용
-  const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
-  const API_BASE = isLocal ? 'http://127.0.0.1:8000' : '';
-  const API = (p) => `${API_BASE}/api/${p}`;
+  const API = (p) => `/api/${p}`;
 
   async function request(path, options = {}) {
     const res = await fetch(API(path), {
@@ -16,29 +14,10 @@
     return data;
   }
 
-  async function loginWithFallback(loginId, password) {
-    try {
-      return await request('portal_login.php', {
-        method: 'POST', body: JSON.stringify({ loginId, password })
-      });
-    } catch (e) {
-      // 정적 환경 폴백: sepnp/0536 관리자 로그인 허용
-      if ((loginId || '').toLowerCase() === 'sepnp' && password === '0536') {
-        return {
-          ok: true,
-          emp: {
-            empNo: 'ADMIN',
-            name: '관리자',
-            role: 'admin',
-            username: 'sepnp',
-            dept: '관리부',
-            position: '관리자',
-            perms: ['*']
-          }
-        };
-      }
-      throw e;
-    }
+  async function login(loginId, password) {
+    return await request('portal_login.php', {
+      method: 'POST', body: JSON.stringify({ loginId, password })
+    });
   }
 
   const resource = (r) => ({
@@ -53,13 +32,21 @@
 
   window.API = {
     // auth
-    login: (loginId, password) => loginWithFallback(loginId, password),
+    login: (loginId, password) => login(loginId, password),
 
     // employees
     getEmployees: (params={}) => request(`portal_employees.php?${new URLSearchParams(params).toString()}`, { method: 'GET' }),
     createEmployee: (data) => request('portal_employees.php', { method: 'POST', body: JSON.stringify(data) }),
     updateEmployee: (id, data) => request(`portal_employees.php?id=${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteEmployee: (id) => request(`portal_employees.php?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    registerEmployee: (data = {}) => request('portal_employees.php', {
+      method: 'POST',
+      body: JSON.stringify({
+        status: 'pending',
+        role: 'viewer',
+        ...data
+      })
+    }),
 
     // resources
     getProducts: () => resource('products').list(),
@@ -98,4 +85,21 @@
     getKV: (key) => request(`portal_kv.php?key=${encodeURIComponent(key)}`, { method: 'GET' }).then(r => r.data),
     setKV: (key, data) => request('portal_kv.php', { method: 'POST', body: JSON.stringify({ key, data }) })
   };
+
+  function trackPageView(){
+    if (window.__SEPNP_PAGE_TRACKED) return;
+    window.__SEPNP_PAGE_TRACKED = true;
+    try {
+      const page = location.pathname + location.search;
+      const ref = document.referrer || '';
+      const qs = new URLSearchParams({ page, ref }).toString();
+      fetch(API(`ping.php?${qs}`), { method: 'GET', keepalive: true }).catch(() => {});
+    } catch (e) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', trackPageView);
+  } else {
+    trackPageView();
+  }
 })();

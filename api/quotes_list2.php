@@ -1,5 +1,6 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 if (use_json_fallback()) {
   $rows = json_quotes_all();

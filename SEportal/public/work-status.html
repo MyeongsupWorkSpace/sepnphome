@@ -93,8 +93,14 @@
   </main>
 
 
+  <script src="assets/api.js"></script>
+  <script src="assets/perm.js"></script>
   <script src="assets/nav.js"></script>
   <script>
+    if (!sessionStorage.getItem('sepnp_emp_no')) {
+      alert('로그인이 필요합니다.');
+      location.href = 'index.html';
+    }
   ;(()=>{
     const $=s=>document.querySelector(s);
     const $$=s=>Array.from(document.querySelectorAll(s));
@@ -125,6 +131,8 @@
     const KEY='sepnp_workstatus_v6';
     const state = load() || bootstrap();
     let currentCat = CATS[0].id;
+    // 최종/공정 수량 입력 모달 제어
+    let pendingFinalCard = null; // { card, catId, isFinal }
 
     function bootstrap(){
       const lanes={};
@@ -216,6 +224,106 @@
 
       localStorage.setItem(KEY_PRODUCTS, JSON.stringify(products));
     }
+
+    // 최종 수량 모달 열기
+    window.showQtyModal = function(card, catId, isFinal){
+      pendingFinalCard = { card, catId, isFinal };
+      $('#qtyModalTitle').textContent = isFinal ? '최종 생산 수량 입력' : '공정 생산 수량 입력';
+      $('#finalProductName').textContent = card.title || '제품';
+      $('#finalOrderQty').textContent = `${card.qty || 0}개`;
+      $('#producedInput').value = card.lastProduced ?? (card.qty || 0);
+      $('#defectiveInput').value = card.lastDefective ?? 0;
+      $('#qtyModalInfo').textContent = isFinal ? '입력한 양이 재고로 등록됩니다.' : '입력한 수량에서 불량을 제외한 양이 다음 공정 수량으로 전달됩니다.';
+      $('#finalQtyModal').classList.add('show');
+      $('#producedInput').focus();
+    };
+
+    window.closeFinalQtyModal = function(){
+      $('#finalQtyModal').classList.remove('show');
+      pendingFinalCard = null;
+    };
+
+    async function handleConfirmQty(){
+      if(!pendingFinalCard) return closeFinalQtyModal();
+      const { card, catId, isFinal } = pendingFinalCard;
+      const produced = parseInt($('#producedInput').value || '0', 10);
+      const defective = parseInt($('#defectiveInput').value || '0', 10);
+
+      if(isNaN(produced) || produced < 0){ alert('생산 수량을 올바르게 입력하세요.'); return; }
+      if(isNaN(defective) || defective < 0){ alert('불량 수량을 올바르게 입력하세요.'); return; }
+      if(defective > produced){ alert('불량 수량이 생산 수량보다 클 수 없습니다.'); return; }
+
+      const goodQty = produced - defective;
+
+      // 기록
+      card.lastProduced = produced;
+      card.lastDefective = defective;
+      if(!card.processHistory) card.processHistory = [];
+      card.processHistory.unshift({
+        cat: catId,
+        produced,
+        defective,
+        goodQty,
+        time: Date.now(),
+        user: currentUserName
+      });
+
+      // 완료 처리 공통
+      card.completedAt = Date.now();
+      card.completedBy = currentUserName;
+      if(!card.startedAt){
+        card.startedAt = Date.now();
+        card.startedBy = currentUserName;
+      }
+
+      const loc = findCardLocation(card.id);
+      if(loc){
+        const [removed] = state.lanes[loc.key].splice(loc.index, 1);
+        if(!state.completed[catId]) state.completed[catId] = [];
+        // store the removed but enriched card
+        removed.produced = produced;
+        removed.defective = defective;
+        removed.goodQty = goodQty;
+        state.completed[catId].unshift(removed);
+
+        // 마지막 공정이면 재고로 등록 (기존 동작 유지)
+        if(isFinal){
+          addToInventory(removed.title, goodQty, '개', {});
+        } else {
+          // 다음 공정으로 전달: 수량을 양품수량으로 설정
+          const nextCat = getNextCatId(removed, catId);
+          if(nextCat){
+            const poolKey = `${nextCat}::pool`;
+            if(!Array.isArray(state.lanes[poolKey])) state.lanes[poolKey] = [];
+            const nextCard = {
+              ...removed,
+              qty: goodQty,
+              status: 'wait',
+              startedAt: null,
+              completedAt: null,
+              startedBy: null,
+              completedBy: null,
+              currentCat: nextCat
+            };
+            state.lanes[poolKey].unshift(nextCard);
+            refreshLane(poolKey, nextCat);
+          }
+        }
+
+        // UI 업데이트
+        refreshLane(loc.key, loc.key.split('::')[0]);
+        renderTodayCompleted(catId);
+        save();
+      }
+
+      closeFinalQtyModal();
+      alert(isFinal ? `생산 완료! 재고에 ${goodQty}개가 등록되었습니다.` : `공정 완료: 생산 ${produced}개, 불량 ${defective}개. 다음 공정에 ${goodQty}개 전달됨.`);
+    }
+
+    // 모달 확인 버튼 이벤트 바인딩
+    document.addEventListener('click', function(e){
+      if(e.target && e.target.id === 'confirmQtyBtn') handleConfirmQty();
+    });
 
     function renderTodayCompleted(catId){
       currentCat = catId;
@@ -476,7 +584,6 @@
           <span>${card.vendor||''}</span>
           <span>·</span>
           <span>수량 ${card.qty??0}</span>
-          ${card.netQty ? `<span>·</span><span>정미 ${card.netQty}</span>` : ''}
         </div>
         <div class="status-sel">
           <button data-status="wait" class="${card.status==='wait'?'on':''}">대기</button>

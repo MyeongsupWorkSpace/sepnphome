@@ -24,6 +24,7 @@ if (use_json_fallback()) {
     json_out(['ok'=>false,'error'=>'pending_approval'], 403); exit;
   }
   $_SESSION['user_name'] = (string)$user['username'];
+  if (session_status() === PHP_SESSION_ACTIVE) { @session_write_close(); }
   json_out(['ok'=>true,'user'=>$user]);
 } else {
   $stmt = $pdo->prepare('SELECT `id`, `username`, `password_hash`, `nickname`, `rank`, `role`, `status` FROM `users` WHERE `username` = :u LIMIT 1');
@@ -41,6 +42,7 @@ if (use_json_fallback()) {
     json_out(['ok'=>false,'error'=>'pending_approval'], 403); exit;
   }
   $_SESSION['user_id'] = (int)$user['id'];
+  if (session_status() === PHP_SESSION_ACTIVE) { @session_write_close(); }
   json_out(['ok'=>true,'user'=>[
     'id' => (int)$user['id'],
     'username' => $user['username'],

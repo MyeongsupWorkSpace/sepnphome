@@ -309,9 +309,6 @@
     $('prodCut').value = product.cutCount ?? '';
     $('knifeW').value = product.knifeSize?.w ?? '';
     $('knifeH').value = product.knifeSize?.h ?? '';
-    $('prodShipping').value = product.shipping ?? '';
-    $('prodManager').value = product.manager ?? '';
-    $('prodPhone').value = product.phone ?? product.managerPhone ?? '';
 
     if(typeof window.setProcessPayload === 'function'){
       window.setProcessPayload({
@@ -392,9 +389,6 @@
       price: 120,
       cutCount: 2,
       knifeSize: { w: 210, h: 130 },
-      shipping: '서울시 강남구 테헤란로 123',
-      manager: '관리자',
-      phone: '010-1234-5678',
       processes: ['인쇄','코팅','톰슨','접착'],
       processDetails: {},
       createdAt: nowIso,
@@ -515,9 +509,6 @@ async function submitProductForm(evt) {
     price,
     cutCount,
     knifeSize: (knifeW != null || knifeH != null) ? { w: knifeW, h: knifeH } : null,
-    shipping: getText('#prodShipping') || null,
-    manager: getText('#prodManager') || null,
-    phone: getText('#prodPhone') || null,
     processes: processPayload.processes || [],
     processDetails: processPayload.processDetails || {}
   };

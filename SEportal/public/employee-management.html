@@ -276,12 +276,13 @@
     let detailTarget = null; // 수정 대상 사원
 
     async function loadAll(){
-      try {
-        employees = await window.API.getEmployees();
-        pending = await window.API.getEmployees({ status: 'pending' });
-      } catch (e) {
+      if (!window.API?.getEmployees) {
+        alert('API를 사용할 수 없습니다.');
         employees = [];
         pending = [];
+      } else {
+        employees = await window.API.getEmployees();
+        pending = await window.API.getEmployees({ status: 'pending' });
       }
       renderEmployees();
       renderPending();
@@ -341,8 +342,12 @@
       if(!empNo){ alert('사원번호를 입력하세요.'); return; }
       if(employees.some(e=>e.empNo===empNo)){ alert('이미 존재하는 사원번호입니다.'); return; }
 
+      const newEmpId = String(approveTarget.id || '').startsWith('pend_')
+        ? `emp_${Date.now()}`
+        : (approveTarget.id || `emp_${Date.now()}`);
+
       const emp = {
-        id: 'emp_'+Date.now(),
+        id: newEmpId,
         empNo,
         username: approveTarget.username,
         passwordHash: approveTarget.passwordHash,
@@ -359,6 +364,9 @@
       };
 
       try {
+        if (!window.API?.updateEmployee) {
+          throw new Error('api_unavailable');
+        }
         await window.API.updateEmployee(approveTarget.id, emp);
       } catch (e) {
         alert('승인 처리 실패');
@@ -373,6 +381,9 @@
       if(!Permissions.has('employee.manage')){ alert('권한이 없습니다.'); return; }
       if(!confirm('이 가입신청을 반려하시겠습니까?')) return;
       try {
+        if (!window.API?.deleteEmployee) {
+          throw new Error('api_unavailable');
+        }
         await window.API.deleteEmployee(id);
       } catch (e) {
         alert('반려 처리 실패');
@@ -406,6 +417,9 @@
       if(!empNo || !name || !dept || !position || !joinDate){ alert('필수 항목을 입력하세요.'); return; }
       if(employees.find(e=>e.empNo===empNo)){ alert('이미 등록된 사번입니다.'); return; }
       try {
+        if (!window.API?.createEmployee) {
+          throw new Error('api_unavailable');
+        }
         await window.API.createEmployee({ empNo, name, dept, position, phone, email, joinDate, status, role, perms, password });
       } catch (e) {
         alert('사원 등록 실패');
@@ -437,15 +451,12 @@
         const statusBadge = e.status==='active'?'active':(e.status==='leave'?'leave':'inactive');
         const statusText = e.status==='active'?'재직':(e.status==='leave'?'휴직':'퇴사');
         return `
-        <tr>
-          <td>${e.empNo}</td>
-          <td class="align-left"><strong>${e.name}</strong></td>
-          <td>${e.username||'-'}</td>
-          <td>${e.dept||'-'}</td>
-          <td>${e.position||'-'}</td>
-          <td>${e.phone||'-'}</td>
-          <td class="align-left">${e.email||'-'}</td>
-          <td>${e.joinDate||'-'}</td>
+        try {
+          if (!window.API?.updateEmployee) {
+            throw new Error('api_unavailable');
+          }
+          await window.API.updateEmployee(detailTarget.id, detailTarget);
+        } catch (e) {
           <td><span class="badge ${statusBadge}">${statusText}</span></td>
           <td><button class="btn primary" onclick="openDetail('${e.id}')">상세</button></td>
         </tr>`;
@@ -526,6 +537,9 @@
       detailTarget.perms = getCheckedPerms('detailPerm');
 
       try {
+        if (!window.API?.updateEmployee) {
+          throw new Error('api_unavailable');
+        }
         await window.API.updateEmployee(detailTarget.id, detailTarget);
       } catch (e) {
         alert('사원 정보 수정 실패');
@@ -541,6 +555,9 @@
       if(!detailTarget) return;
       if(!confirm(`${detailTarget.name} 사원을 삭제하시겠습니까?`)) return;
       try {
+        if (!window.API?.deleteEmployee) {
+          throw new Error('api_unavailable');
+        }
         await window.API.deleteEmployee(detailTarget.id);
       } catch (e) {
         alert('사원 삭제 실패');
