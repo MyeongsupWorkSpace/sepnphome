@@ -101,8 +101,9 @@ function get_db(): PDO {
   static $pdo = null;
   if ($pdo instanceof PDO) return $pdo;
   $cfg = db_config();
-  $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s', $cfg['host'], $cfg['port'], $cfg['db'], $cfg['charset']);
+  $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s;connect_timeout=3', $cfg['host'], $cfg['port'], $cfg['db'], $cfg['charset']);
   try {
+    @ini_set('mysql.connect_timeout', '3');
     $pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], [
       PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
       PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -191,6 +192,8 @@ function migrate(PDO $pdo): void {
   $pdo->exec('CREATE TABLE IF NOT EXISTS `quotes` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(191) NULL,
+    `company` VARCHAR(191) NULL,
+    `position` VARCHAR(191) NULL,
     `product` VARCHAR(191) NULL,
     `message` TEXT NULL,
     `email` VARCHAR(191) NULL,
@@ -326,7 +329,14 @@ function migrate(PDO $pdo): void {
     $stmt = $pdo->query('SHOW COLUMNS FROM `quotes`');
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) { $cols[] = $r['Field']; }
     $need = [
-      'qty INT', 'length VARCHAR(32)', 'width VARCHAR(32)', 'height VARCHAR(32)', 'finishing TEXT', 'finishing_detail TEXT'
+      'company VARCHAR(191)',
+      'position VARCHAR(191)',
+      'qty INT',
+      'length VARCHAR(32)',
+      'width VARCHAR(32)',
+      'height VARCHAR(32)',
+      'finishing TEXT',
+      'finishing_detail TEXT'
     ];
     foreach ($need as $def) {
       $name = explode(' ', $def)[0];
@@ -462,51 +472,6 @@ function seed_sample_data(PDO $pdo): void {
     }
   }
 
-  function requireAdmin() {
-      if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'admin') {
-          http_response_code(403);
-          echo json_encode(["error" => "admin only"]);
-          exit;
-      }
-  }
-
-  function grantCouponToUser($user_id, $coupon_id) {
-      $pdo = get_db();
-      if (!($pdo instanceof PDO)) return ["error" => "DB unavailable"];
-      $sql = "SELECT id FROM user_coupons WHERE user_id=? AND coupon_id=? AND qty > 0";
-      $stmt = $pdo->prepare($sql);
-      $stmt->execute([$user_id, $coupon_id]);
-      if ($stmt->fetch()) {
-          return ["error" => "already granted"];
-      }
-      $now = time();
-      $sql = "INSERT INTO user_coupons (user_id, coupon_id, qty, created_at, updated_at) VALUES (?, ?, 1, ?, ?) ON DUPLICATE KEY UPDATE qty = qty + 1, updated_at = VALUES(updated_at)";
-      $stmt = $pdo->prepare($sql);
-      $stmt->execute([$user_id, $coupon_id, $now, $now]);
-      return ["success" => true];
-  }
-
-  function revokeUserCoupon($user_coupon_id) {
-      $pdo = get_db();
-      if (!($pdo instanceof PDO)) return ["error" => "DB unavailable"];
-      $sql = "UPDATE user_coupons SET qty = qty - 1, updated_at = ? WHERE id = ? AND qty > 0";
-      $stmt = $pdo->prepare($sql);
-      $stmt->execute([time(), $user_coupon_id]);
-      if ($stmt->rowCount() > 0) {
-          return ["success" => true];
-      }
-      return ["error" => "not found or already revoked"];
-  }
-
-  function getUserCoupons($user_id) {
-      $pdo = get_db();
-      if (!($pdo instanceof PDO)) return [];
-      $sql = "SELECT uc.id as user_coupon_id, c.id as coupon_id, c.code as coupon_code, c.title as coupon_name, uc.qty, uc.created_at, uc.updated_at FROM user_coupons uc JOIN coupons c ON uc.coupon_id = c.id WHERE uc.user_id=? ORDER BY uc.created_at DESC";
-      $stmt = $pdo->prepare($sql);
-      $stmt->execute([$user_id]);
-      return $stmt->fetchAll(PDO::FETCH_ASSOC);
-  }
-
   try {
     $quoteCount = (int)$pdo->query('SELECT COUNT(*) FROM `quotes`')->fetchColumn();
   } catch (Throwable $e) {
@@ -573,6 +538,51 @@ function seed_sample_data(PDO $pdo): void {
       ]);
     }
   }
+}
+
+function requireAdmin() {
+  if (!isset($_SESSION['user']) || $_SESSION['user']['role'] !== 'admin') {
+    http_response_code(403);
+    echo json_encode(["error" => "admin only"]);
+    exit;
+  }
+}
+
+function grantCouponToUser($user_id, $coupon_id) {
+  $pdo = get_db();
+  if (!($pdo instanceof PDO)) return ["error" => "DB unavailable"];
+  $sql = "SELECT id FROM user_coupons WHERE user_id=? AND coupon_id=? AND qty > 0";
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute([$user_id, $coupon_id]);
+  if ($stmt->fetch()) {
+    return ["error" => "already granted"];
+  }
+  $now = time();
+  $sql = "INSERT INTO user_coupons (user_id, coupon_id, qty, created_at, updated_at) VALUES (?, ?, 1, ?, ?) ON DUPLICATE KEY UPDATE qty = qty + 1, updated_at = VALUES(updated_at)";
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute([$user_id, $coupon_id, $now, $now]);
+  return ["success" => true];
+}
+
+function revokeUserCoupon($user_coupon_id) {
+  $pdo = get_db();
+  if (!($pdo instanceof PDO)) return ["error" => "DB unavailable"];
+  $sql = "UPDATE user_coupons SET qty = qty - 1, updated_at = ? WHERE id = ? AND qty > 0";
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute([time(), $user_coupon_id]);
+  if ($stmt->rowCount() > 0) {
+    return ["success" => true];
+  }
+  return ["error" => "not found or already revoked"];
+}
+
+function getUserCoupons($user_id) {
+  $pdo = get_db();
+  if (!($pdo instanceof PDO)) return [];
+  $sql = "SELECT uc.id as user_coupon_id, c.id as coupon_id, c.code as coupon_code, c.title as coupon_name, uc.qty, uc.created_at, uc.updated_at FROM user_coupons uc JOIN coupons c ON uc.coupon_id = c.id WHERE uc.user_id=? ORDER BY uc.created_at DESC";
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute([$user_id]);
+  return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 function json_out($data, int $code = 200): void {
@@ -742,6 +752,28 @@ function json_user_update_rank_by_id(int $id, string $rank): bool {
   $updated = false;
   foreach ($users as &$u) {
     if ((int)($u['id'] ?? 0) === $id) { $u['rank'] = $rank; $updated = true; break; }
+  }
+  unset($u);
+  if ($updated) json_save(json_users_path(), $users);
+  return $updated;
+}
+
+function json_user_update_nickname_by_id(int $id, string $nickname): bool {
+  $users = json_users_all();
+  $updated = false;
+  foreach ($users as &$u) {
+    if ((int)($u['id'] ?? 0) === $id) { $u['nickname'] = $nickname; $updated = true; break; }
+  }
+  unset($u);
+  if ($updated) json_save(json_users_path(), $users);
+  return $updated;
+}
+
+function json_user_update_password_by_id(int $id, string $password_hash): bool {
+  $users = json_users_all();
+  $updated = false;
+  foreach ($users as &$u) {
+    if ((int)($u['id'] ?? 0) === $id) { $u['password_hash'] = $password_hash; $updated = true; break; }
   }
   unset($u);
   if ($updated) json_save(json_users_path(), $users);

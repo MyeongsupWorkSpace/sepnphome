@@ -7,12 +7,11 @@
     btnVendorComplete: 'btnVendorClose',
     prodPaperType: 'prodPaper',
     prodLaminateType: 'prodLaminate',
-    paperModal: null,
-    paperTypeInput: null,
-    paperSpecInput: null,
-    paperCreateType: null,
-    btnPaperCancel: null,
-    btnPaperSave: null,
+    paperModal: 'paperModal',
+    paperTypeInput: 'paperTypeInput',
+    paperWeightInput: 'paperWeightInput',
+    btnPaperCancel: 'btnPaperCancel',
+    btnPaperSave: 'btnPaperSave',
     btnVendorUpdate: null,
     btnVendorDelete: null
   };
@@ -172,9 +171,14 @@
     const selP = $('prodPaperType');
     const selL = $('prodLaminateType');
     const makeOpt = (p) => {
+      const weight = p.weight ?? p.grammage ?? p.gsm ?? p.basisWeight ?? null;
       const o = document.createElement('option');
       o.value = p.id ?? (`local:${p.name}`);
-      o.textContent = p.name + (p.size ? ` (${p.size})` : '');
+      if (weight) {
+        o.textContent = `${p.name} (${weight}g)`;
+      } else {
+        o.textContent = p.name + (p.size ? ` (${p.size})` : '');
+      }
       return o;
     };
     // 기본 초기화
@@ -190,34 +194,28 @@
     if (!modal) return;
     modal.classList.add('show');
     if ($('paperTypeInput')) $('paperTypeInput').value = '';
-    if ($('paperSpecInput')) $('paperSpecInput').value = '';
+    if ($('paperWeightInput')) $('paperWeightInput').value = '';
     $('paperTypeInput')?.focus();
   }
   function closePaperModal(){ $('paperModal')?.classList.remove('show'); }
 
-  // 저장: 타입 레지스트리도 생성(선택시) + 규격 포함한 복합 레코드 생성
+  // 저장: 용지 + 평량
   async function savePaperEntries(){
-    const type = $('paperTypeInput').value.trim();
-    const spec = $('paperSpecInput').value.trim();
-    const createType = $('paperCreateType').checked;
+    const rawType = ($('paperTypeInput')?.value || '').trim();
+    const type = rawType.toUpperCase().replace(/[^A-Z\s]/g, '').replace(/\s+/g, ' ').trim();
+    const weightRaw = ($('paperWeightInput')?.value || '').trim();
+    const weight = weightRaw.replace(/[^0-9.]/g, '');
 
-    if(!type && !spec){ alert('타입 또는 규격 중 하나를 입력하세요.'); return; }
+    if(!type){ alert('용지를 입력하세요.'); return; }
+    if(!weight){ alert('평량을 입력하세요.'); return; }
 
     try{
-      // 1) 타입 레지스트리(선택시)
-      if(createType && type){
-        // create minimal paper row for type (name=type)
-        try { await window.API?.postPaper?.({ name: type }); } catch {}
-      }
-
-      // 2) 복합 규격 레코드: name = `${type} ${spec}` , size = spec
-      const combinedName = (type && spec) ? `${type} ${spec}` : (type || spec);
       let createdId = null;
       try{
-        const created = await window.API?.postPaper?.({ name: combinedName, size: spec || null });
+        const created = await window.API?.postPaper?.({ name: type, weight: weight });
         createdId = created?.id || null;
       }catch(e){
-        console.warn('create combined paper failed', e);
+        console.warn('create paper failed', e);
       }
 
       // 3) reload select list and select created item if possible
@@ -233,13 +231,13 @@
         // fallback: select option by matching text
         ['prodPaperType','prodLaminateType'].forEach(sid=>{
           const s = $(sid);
-          const targetText = combinedName + (spec ? ` (${spec})` : '');
+          const targetText = `${type} (${weight}g)`;
           const opt = Array.from(s.options).find(o => o.textContent === targetText);
           if(opt) s.value = opt.value;
         });
       }
 
-      alert('용지(합지) 등록 완료');
+      alert('용지 등록 완료');
       closePaperModal();
     }catch(e){
       console.error(e);
@@ -336,8 +334,18 @@
       });
     }
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeVendorModal();
+      if (e.key === 'Escape') {
+        closeVendorModal();
+        closePaperModal();
+      }
     });
+
+    const paperModalEl = $('paperModal');
+    if (paperModalEl) {
+      paperModalEl.addEventListener('click', (e) => {
+        if (e.target === paperModalEl) closePaperModal();
+      });
+    }
 
     // vendor modal open
     $('btnVendorManage')?.addEventListener('click', () => {
@@ -361,8 +369,18 @@
 
     // paper modal open
     $('btnAddPaper')?.addEventListener('click', openPaperModal);
+    $('btnAddLaminate')?.addEventListener('click', openPaperModal);
     $('btnPaperCancel')?.addEventListener('click', closePaperModal);
     $('btnPaperSave')?.addEventListener('click', savePaperEntries);
+
+    $('paperTypeInput')?.addEventListener('input', (e) => {
+      const val = e.target.value || '';
+      e.target.value = val.toUpperCase().replace(/[^A-Z\s]/g, '').replace(/\s+/g, ' ');
+    });
+    $('paperWeightInput')?.addEventListener('input', (e) => {
+      const val = e.target.value || '';
+      e.target.value = val.replace(/[^0-9.]/g, '');
+    });
 
     // load initial lists
     await loadPapers();
@@ -467,13 +485,17 @@ async function submitProductForm(evt) {
   const paperW = getNum('#paperW');
   const paperH = getNum('#paperH');
   const paperSizeText = paperSplit.sizeText || '';
-  const paper = (paperType || paperW != null || paperH != null) ? {
+  const paperWeightNum = paperSizeText ? Number(paperSizeText.replace(/[^0-9.]/g, '')) : null;
+  const paperWeight = Number.isFinite(paperWeightNum) ? paperWeightNum : null;
+  const paper = (paperType || paperW != null || paperH != null || paperWeight != null) ? {
     id: paperId,
     type: paperType || null,
     sizeW: paperW,
     sizeH: paperH,
     sizeText: paperSizeText || null,
-    size: paperSizeText || null
+    size: paperSizeText || null,
+    weight: paperWeight,
+    weightText: paperSizeText || null
   } : null;
 
   const noLaminate = document.querySelector('#noLaminate')?.checked;

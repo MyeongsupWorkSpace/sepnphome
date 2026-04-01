@@ -90,90 +90,6 @@
       box-shadow: 0 30px 80px rgba(2, 6, 23, 0.35);
       padding: 44px 40px 36px;
       backdrop-filter: blur(8px);
-      animation: rise 0.55s ease-out;
-      color: var(--ink);
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    @keyframes rise {
-      from { opacity: 0; transform: translateY(22px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .login-header {
-      display: grid;
-      gap: 8px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-    }
-
-    .login-body {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .logo {
-      text-align: left;
-      margin-bottom: 0;
-      color: var(--ink);
-    }
-
-    .logo-text {
-      font-size: 32px;
-      font-weight: 700;
-      font-family: "Noto Serif KR", serif;
-      letter-spacing: 0.04em;
-      line-height: 1.15;
-      color: var(--ink);
-    }
-
-    .logo-subtitle {
-      color: #475569;
-      font-size: 13px;
-      margin-top: 8px;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-    
-    .form-group {
-      margin-bottom: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      animation: fadeIn 0.5s ease-out both;
-    }
-
-    .form-group + .form-group {
-      margin-top: 14px;
-    }
-
-    .form-group:nth-of-type(1) { animation-delay: 0.1s; }
-    .form-group:nth-of-type(2) { animation-delay: 0.2s; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .form-label {
-      display: block;
-      font-weight: 600;
-      font-size: 13px;
-      color: #334155;
-      margin-bottom: 0;
-      letter-spacing: 0.02em;
-    }
-    
-    .form-control {
-      width: 100%;
-      height: 48px;
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      border-radius: 12px;
-      padding: 0 16px;
-      font-size: 15px;
       transition: all 0.2s;
       background: rgba(248, 250, 252, 0.98);
       color: var(--slate);
@@ -224,68 +140,6 @@
       font-size: 14px;
       margin-bottom: 20px;
       display: none;
-      animation: drop 0.35s ease-out;
-      line-height: 1.5;
-    }
-
-    @keyframes drop {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .alert.show {
-      display: block;
-    }
-    
-    .alert-error {
-      background: rgba(239, 68, 68, 0.12);
-      color: #fecaca;
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-
-    .alert-success {
-      background: rgba(16, 185, 129, 0.12);
-      color: #bbf7d0;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    
-    .links {
-      text-align: center;
-      margin-top: 0;
-      padding-top: 10px;
-      border-top: 1px solid rgba(226, 232, 240, 0.15);
-    }
-
-    .links a {
-      color: var(--accent-3);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-    }
-
-    .links a:hover {
-      text-decoration: underline;
-    }
-    
-    .test-accounts {
-      margin-top: 18px;
-      padding: 16px;
-      background: #0b1b3a;
-      border-radius: 14px;
-      font-size: 12px;
-      color: rgba(226, 232, 240, 0.8);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      line-height: 1.7;
-      width: 100%;
-      box-shadow: 0 16px 30px rgba(2, 6, 23, 0.35);
-    }
-
-    .test-accounts h4 {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #f8fafc;
       letter-spacing: 0.02em;
     }
 
@@ -374,6 +228,9 @@
 
         <div class="links">
           <a href="register.html">회원가입</a>
+          <div>
+            <a class="home-link" href="http://sepnp0536.dothome.co.kr/index.html">홈으로</a>
+          </div>
         </div>
 
         
@@ -384,89 +241,6 @@
   <!-- API 모듈 먼저 로드 -->
   <script src="assets/api.js"></script>
   <script src="assets/auth.js"></script>
-  
-  <script>
-    const loginForm = document.getElementById('loginForm');
-    const loginBtn = document.getElementById('loginBtn');
-    const loginAlert = document.getElementById('loginAlert');
-    const loginIdInput = document.getElementById('loginId');
-    const loginPasswordInput = document.getElementById('loginPassword');
-
-    function showAlert(message, type = 'error') {
-      loginAlert.textContent = message;
-      loginAlert.className = `alert alert-${type} show`;
-      
-      setTimeout(() => {
-        loginAlert.classList.remove('show');
-      }, 4000);
-    }
-
-    // 서버 로그인
-    async function loginWithServer(loginId, password) {
-      try {
-        const result = await API.login(loginId, password);
-        if (result.ok) {
-          sessionStorage.setItem('sepnp_emp_no', result.emp.empNo);
-          sessionStorage.setItem('sepnp_emp_name', result.emp.name);
-          sessionStorage.setItem('sepnp_emp_role', result.emp.role);
-          sessionStorage.setItem('sepnp_emp_username', result.emp.username);
-          if (result.emp.perms) {
-            sessionStorage.setItem('sepnp_emp_perms', JSON.stringify(result.emp.perms));
-          }
-          showAlert('로그인 성공!', 'success');
-          setTimeout(() => {
-            window.location.href = 'employee.html';
-          }, 500);
-          return true;
-        }
-      } catch (error) {
-        console.error('로그인 오류:', error);
-        showAlert(error?.message || '로그인 실패', 'error');
-        return false;
-      }
-    }
-
-    // 로그인 폼 제출
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const loginId = loginIdInput.value.trim();
-      const password = loginPasswordInput.value;
-      
-      if (!loginId || !password) {
-        showAlert('ID와 비밀번호를 입력하세요.', 'error');
-        return;
-      }
-
-      loginBtn.disabled = true;
-      loginBtn.textContent = '로그인 중...';
-      const success = await loginWithServer(loginId, password);
-
-      if (!success) {
-        loginBtn.disabled = false;
-        loginBtn.textContent = '로그인';
-      }
-    });
-
-    // Enter 키 처리
-    loginForm.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        loginBtn.click();
-      }
-    });
-
-    // 페이지 로드 시
-    window.addEventListener('DOMContentLoaded', () => {
-      loginIdInput.focus();
-      
-      // 이미 로그인되어 있으면 리디렉션
-      const empNo = sessionStorage.getItem('sepnp_emp_no');
-      if (empNo) {
-        window.location.href = 'employee.html';
-      }
-
-    });
-  </script>
+  <script src="assets/employee.page.js"></script>
 </body>
 </html>

@@ -18,6 +18,8 @@ function s($v) {
 }
 
 $name = s($data['name'] ?? '');
+$company = s($data['company'] ?? '');
+$position = s($data['position'] ?? '');
 $email = s($data['email'] ?? '');
 $phone = s($data['phone'] ?? '');
 $product = s($data['product'] ?? '');
@@ -45,6 +47,8 @@ if (!$name || !$product) { json_out(['ok'=>false,'error'=>'missing_fields']); ex
 if (use_json_fallback()) {
   $entry = json_quote_add([
     'name' => $name,
+    'company' => $company,
+    'position' => $position,
     'email' => $email,
     'phone' => $phone,
     'product' => $product,
@@ -66,13 +70,14 @@ if (use_json_fallback()) {
   $pdo = get_db();
   // DB에는 새 컬럼이 존재할 수도 있고 없을 수도 있으므로 동적으로 처리
   try {
-    $stmt = $pdo->prepare('INSERT INTO `quotes`(`name`,`email`,`phone`,`product`,`message`,`qty`,`length`,`width`,`height`,`finishing`,`finishing_detail`,`status`,`timestamp`) VALUES(:name,:email,:phone,:product,:message,:qty,:length,:width,:height,:finishing,:finishing_detail,:status,:ts)');
+    $stmt = $pdo->prepare('INSERT INTO `quotes`(`name`,`company`,`position`,`email`,`phone`,`product`,`message`,`qty`,`length`,`width`,`height`,`finishing`,`finishing_detail`,`status`,`timestamp`) VALUES(:name,:company,:position,:email,:phone,:product,:message,:qty,:length,:width,:height,:finishing,:finishing_detail,:status,:ts)');
   } catch (Throwable $e) {
-    // 구버전 스키마: message에 요약을 덧붙여 저장
-    $stmt = $pdo->prepare('INSERT INTO `quotes`(`name`,`email`,`phone`,`product`,`message`,`status`,`timestamp`) VALUES(:name,:email,:phone,:product,:message,:status,:ts)');
-    $summary = "수량:$qty, 장:$length, 폭:$width, 고:$height, 후가공:$finishing_csv";
-    if ($finishing_detail) { $summary .= " | " . $finishing_detail; }
-    $message = trim($message) !== '' ? ($message . "\n" . $summary) : $summary;
+    try {
+      $stmt = $pdo->prepare('INSERT INTO `quotes`(`name`,`email`,`phone`,`product`,`message`,`qty`,`length`,`width`,`height`,`finishing`,`finishing_detail`,`status`,`timestamp`) VALUES(:name,:email,:phone,:product,:message,:qty,:length,:width,:height,:finishing,:finishing_detail,:status,:ts)');
+    } catch (Throwable $e2) {
+      // 구버전 스키마: message에 요약을 덧붙여 저장
+      $stmt = $pdo->prepare('INSERT INTO `quotes`(`name`,`email`,`phone`,`product`,`message`,`status`,`timestamp`) VALUES(:name,:email,:phone,:product,:message,:status,:ts)');
+    }
   }
   $ts = time();
   $params = [
@@ -84,6 +89,9 @@ if (use_json_fallback()) {
     ':status' => '문의중',
     ':ts' => $ts,
   ];
+  $summary_parts = [];
+  if (strpos($stmt->queryString, 'company') === false && $company) { $summary_parts[] = "회사명:$company"; }
+  if (strpos($stmt->queryString, 'position') === false && $position) { $summary_parts[] = "직급:$position"; }
   if (strpos($stmt->queryString, 'qty') !== false) {
     $params[':qty'] = $qty;
     $params[':length'] = $length;
@@ -93,11 +101,24 @@ if (use_json_fallback()) {
     if (strpos($stmt->queryString, 'finishing_detail') !== false) {
       $params[':finishing_detail'] = $finishing_detail;
     }
+  } else {
+    $summary = "수량:$qty, 장:$length, 폭:$width, 고:$height, 후가공:$finishing_csv";
+    if ($finishing_detail) { $summary .= " | " . $finishing_detail; }
+    $summary_parts[] = $summary;
   }
+  if ($summary_parts) {
+    $summary_text = implode(' | ', $summary_parts);
+    $message = trim($message) !== '' ? ($message . "\n" . $summary_text) : $summary_text;
+    $params[':message'] = $message;
+  }
+  if (strpos($stmt->queryString, 'company') !== false) { $params[':company'] = $company; }
+  if (strpos($stmt->queryString, 'position') !== false) { $params[':position'] = $position; }
   $stmt->execute($params);
   $entry = [
     'id' => (int)$pdo->lastInsertId(),
     'name' => $name,
+    'company' => $company,
+    'position' => $position,
     'email' => $email,
     'phone' => $phone,
     'product' => $product,

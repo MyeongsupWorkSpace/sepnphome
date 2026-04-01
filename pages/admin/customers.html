@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>고객 관리 — SEPNP Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/styles.css" />
+    <style>
+      .admin-wrap { padding: 24px 0; }
+      .admin-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+      .admin-toolbar .field { display: inline-flex; align-items: center; gap: 6px; }
+      .admin-toolbar input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; }
+      .admin-users-table { width: 100%; table-layout: fixed; border-collapse: collapse; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
+      .admin-users-table th, .admin-users-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .admin-users-table thead th { background: var(--bg-muted); text-align: left; color: var(--muted); }
+      .admin-users-table tbody tr:hover { background: var(--bg-muted); }
+      .admin-users-table .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+      #userPager { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+      #userPager button { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; }
+      #userPager button:disabled { opacity: 0.5; cursor: not-allowed; }
+      #userPager .page-info { color: var(--muted); font-size: 13px; }
+      .row-saved { background: rgba(22,163,74,0.12) !important; }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="../../index.html" class="logo" aria-label="홈으로 이동">
+          <img src="../../assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요"><ul></ul></nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+
+    <main class="container admin-wrap">
+      <div class="section-header stack">
+        <h1 class="page-title section-title">고객 관리</h1>
+        <p class="section-desc">아이디, 비밀번호, 등급, 상태를 한 화면에서 관리합니다.</p>
+      </div>
+      <div class="admin-toolbar">
+        <div class="field"><label for="customerSearch">검색</label><input id="customerSearch" placeholder="아이디 또는 닉네임" /></div>
+      </div>
+      <table class="admin-users-table" id="customersTable" aria-label="고객 관리 테이블">
+        <thead>
+          <tr>
+            <th>아이디</th>
+            <th>닉네임</th>
+            <th>등급</th>
+            <th>상태</th>
+            <th>가입일</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5" class="quotes-empty-inline">데이터를 불러오는 중…</td></tr>
+        </tbody>
+      </table>
+      <div id="customerPager" aria-label="페이지 이동"></div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-divider"></div>
+      <div class="container footer-bottom">
+        <div class="footer-bottom-inner">
+          <div class="footer-meta">
+            <div class="footer-links" aria-label="정책 링크">
+              <a href="#" class="footer-link">개인정보처리방침</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">이용약관</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">문의하기</a>
+            </div>
+          </div>
+          <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+        </div>
+      </div>
+    </footer>
+    <script src="../../assets/js/main.js"></script>
+  </body>
+</html>

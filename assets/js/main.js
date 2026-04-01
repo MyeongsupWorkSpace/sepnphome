@@ -51,7 +51,7 @@ function applyFooterPolicyLinks() {
       } else if (label.includes('이용약관')) {
         if (!href || href === '#') a.setAttribute('href', `${prefix}/terms.html`);
       } else if (label.includes('문의하기')) {
-        if (!href || href === '#') a.setAttribute('href', `${prefix}/contact.html`);
+        if (!href || href === '#') a.setAttribute('href', `${prefix}/quote.html`);
       }
     });
   } catch {}
@@ -289,7 +289,7 @@ function renderQuotes(quotes) {
         <thead>
           <tr>
             <th>등록 날짜</th>
-            <th>이름</th>
+            <th>성명</th>
             <th>제목</th>
             <th>처리상태</th>
           </tr>
@@ -337,7 +337,7 @@ function renderQuotes(quotes) {
       <thead>
         <tr>
           <th>등록 날짜</th>
-          <th>이름</th>
+          <th>성명</th>
           <th>제목</th>
           <th>처리상태</th>
         </tr>
@@ -524,6 +524,540 @@ if (listEl) {
   try { pollOnce(); } catch {}
   initQuotesPolling();
 }
+
+function initSimpleTabs() {
+  const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
+  const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
+  if (!tabButtons.length || !tabPanels.length) return;
+  function activateTab(nextId) {
+    tabButtons.forEach(btn => {
+      const isActive = btn.getAttribute('aria-controls') === nextId;
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    tabPanels.forEach(panel => {
+      panel.classList.toggle('is-active', panel.id === nextId);
+    });
+  }
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('aria-controls');
+      if (targetId) activateTab(targetId);
+    });
+  });
+}
+
+function initMapBannerClose() {
+  const btn = document.querySelector('.map-banner-close');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const banner = document.querySelector('.map-banner');
+    if (banner) banner.style.display = 'none';
+  });
+}
+
+function initLoginPageModal() {
+  const path = (location.pathname || '').toLowerCase();
+  if (!path.endsWith('/pages/login.html') && !path.endsWith('login.html')) return;
+  window.addEventListener('DOMContentLoaded', () => {
+    const actions = document.querySelector('.nav-actions');
+    if (!actions) return;
+    if (!actions.querySelector('#openLogin')) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn login-compact';
+      btn.id = 'openLogin';
+      btn.textContent = '로그인';
+      btn.addEventListener('click', () => { if (typeof createLoginModal === 'function') createLoginModal(); });
+      actions.appendChild(btn);
+    }
+    if (typeof createLoginModal === 'function') createLoginModal();
+  });
+}
+
+function initQuoteRegisterPage() {
+  const form = document.getElementById('quoteForm');
+  const statusEl = document.getElementById('status');
+  if (!form || !statusEl) return;
+
+  const finCoating = document.getElementById('finCoating');
+  const coatingRow = document.getElementById('coatingOptions');
+  function updateCoatingVisibility(){
+    const show = !!(finCoating && finCoating.checked);
+    if (coatingRow){
+      coatingRow.classList.toggle('is-hidden', !show);
+      if (!show){
+        coatingRow.querySelectorAll('input[name="coating[]"]').forEach(cb => { cb.checked = false; });
+      }
+    }
+  }
+  finCoating && finCoating.addEventListener('change', updateCoatingVisibility);
+  updateCoatingVisibility();
+  const baseCoatingValues = new Set(['무광CR', '유광CR', '무광라미', '유광라미', '오버코팅']);
+  function enforceSingleBaseCoating(target){
+    if (!target || !baseCoatingValues.has(target.value) || !target.checked) return;
+    coatingRow?.querySelectorAll('input[name="coating[]"]').forEach(cb => {
+      if (cb !== target && baseCoatingValues.has(cb.value)) cb.checked = false;
+    });
+  }
+  let coatingWarned = false;
+  function checkCoatingConflict(){
+    if (!coatingRow || coatingRow.classList.contains('is-hidden')) {
+      coatingWarned = false;
+      return;
+    }
+    const glossySelected = Array.from(coatingRow.querySelectorAll('input[name="coating[]"]'))
+      .some(cb => cb.checked && (cb.value === '유광CR' || cb.value === '유광라미'));
+    const partialSelected = Array.from(coatingRow.querySelectorAll('input[name="coating[]"]'))
+      .some(cb => cb.checked && cb.value === '부분유광코팅(실크)');
+    if (glossySelected && partialSelected && !coatingWarned) {
+      coatingWarned = true;
+      alert('부분유광코팅은 무광코팅을 선택해야 부분유광코팅이 돋보입니다.');
+    }
+    if (!glossySelected || !partialSelected) {
+      coatingWarned = false;
+    }
+  }
+  coatingRow?.querySelectorAll('input[name="coating[]"]').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      enforceSingleBaseCoating(e.currentTarget);
+      checkCoatingConflict();
+    });
+  });
+
+  const finFoil = document.getElementById('finFoil');
+  const foilRow = document.getElementById('foilOptions');
+  function updateFoilVisibility(){
+    const show = !!(finFoil && finFoil.checked);
+    if (foilRow){
+      foilRow.classList.toggle('is-hidden', !show);
+      if (!show){
+        const fw = document.getElementById('foil_w');
+        const fh = document.getElementById('foil_h');
+        if (fw) fw.value = '';
+        if (fh) fh.value = '';
+      }
+    }
+  }
+  finFoil && finFoil.addEventListener('change', updateFoilVisibility);
+  updateFoilVisibility();
+
+  const finEmboss = document.getElementById('finEmboss');
+  const embossRow = document.getElementById('embossOptions');
+  function updateEmbossVisibility(){
+    const show = !!(finEmboss && finEmboss.checked);
+    if (embossRow){
+      embossRow.classList.toggle('is-hidden', !show);
+      if (!show){
+        const ew = document.getElementById('emboss_w');
+        const eh = document.getElementById('emboss_h');
+        if (ew) ew.value = '';
+        if (eh) eh.value = '';
+      }
+    }
+  }
+  finEmboss && finEmboss.addEventListener('change', updateEmbossVisibility);
+  updateEmbossVisibility();
+
+  const phone1 = document.getElementById('phone1');
+  const phone2 = document.getElementById('phone2');
+  const phone3 = document.getElementById('phone3');
+  function onlyDigits(el){ if (!el) return; el.value = el.value.replace(/\D+/g, ''); }
+  phone1?.addEventListener('input', () => {
+    onlyDigits(phone1);
+    if (phone1.value.length >= 3) phone2?.focus();
+  });
+  phone2?.addEventListener('input', () => {
+    onlyDigits(phone2);
+    if (phone2.value.length >= 4) phone3?.focus();
+  });
+  phone3?.addEventListener('input', () => { onlyDigits(phone3); });
+
+  const emailDomainSelect = document.getElementById('emailDomainSelect');
+  const emailDomainCustom = document.getElementById('emailDomainCustom');
+  function updateEmailDomainUI(){
+    const direct = emailDomainSelect?.value === 'direct';
+    if (emailDomainCustom){
+      emailDomainCustom.classList.toggle('is-hidden', !direct);
+      if (!direct) emailDomainCustom.value = '';
+    }
+  }
+  emailDomainSelect?.addEventListener('change', updateEmailDomainUI);
+  updateEmailDomainUI();
+
+  const previewImg = document.getElementById('boxTypePreview');
+  const previewLabel = document.getElementById('boxTypePreviewLabel');
+  function updateBoxPreview(){
+    const selected = document.querySelector('input[name="box_type"]:checked');
+    if (!selected || !previewImg || !previewLabel) return;
+    const src = selected.getAttribute('data-preview') || '../assets/img/PD_3.jpg';
+    const label = selected.value || '박스타입 미리보기';
+    previewImg.src = src;
+    previewImg.alt = label + ' 미리보기';
+    previewLabel.textContent = label + ' 미리보기';
+  }
+  document.querySelectorAll('input[name="box_type"]').forEach(radio => {
+    radio.addEventListener('change', updateBoxPreview);
+  });
+  updateBoxPreview();
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.textContent = '등록 중…';
+    const fd = new FormData(form);
+    const emailId = (fd.get('email_id') || '').toString().trim();
+    const domainSelect = (fd.get('email_domain_select') || '').toString().trim();
+    const domainCustom = (fd.get('email_domain_custom') || '').toString().trim();
+    const domain = domainSelect === 'direct' ? domainCustom : domainSelect;
+    if (emailId && domain) {
+      fd.set('email', `${emailId}@${domain}`);
+    }
+    fd.delete('email_id');
+    fd.delete('email_domain_select');
+    fd.delete('email_domain_custom');
+    const p1 = (fd.get('phone1') || '').toString().trim();
+    const p2 = (fd.get('phone2') || '').toString().trim();
+    const p3 = (fd.get('phone3') || '').toString().trim();
+    if (p1 || p2 || p3) {
+      const joined = [p1, p2, p3].filter(Boolean).join('-');
+      fd.set('phone', joined);
+    }
+    fd.delete('phone1');
+    fd.delete('phone2');
+    fd.delete('phone3');
+    const finishings = fd.getAll('finishing[]'); fd.delete('finishing[]');
+    const coatings = fd.getAll('coating[]'); fd.delete('coating[]');
+    const data = Object.fromEntries(fd.entries());
+    if (finishings.length) data.finishing = finishings;
+    if (coatings.length) data.coating = coatings;
+    const parts = [];
+    if (coatings.length) parts.push('코팅:' + coatings.join(', '));
+    const fw = data.foil_w||''; const fh = data.foil_h||'';
+    if (finishings.includes('금박') && (fw || fh)) parts.push(`금박:${fw||0}x${fh||0}mm`);
+    const ew = data.emboss_w||''; const eh = data.emboss_h||'';
+    if (finishings.includes('형압') && (ew || eh)) parts.push(`형압:${ew||0}x${eh||0}mm`);
+    if (parts.length) data.finishing_detail = parts.join(' | ');
+    try {
+      const res = await fetch(API('/api/submit_quote.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error('서버 오류');
+      const j = await res.json();
+      if (j && j.ok) {
+        statusEl.textContent = '등록되었습니다. 홈페이지에서 실시간으로 확인 가능합니다.';
+        statusEl.className = 'note success';
+        form.reset();
+      } else {
+        throw new Error(j?.error || '등록 실패');
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        statusEl.textContent = '서버 응답이 없습니다. 네트워크 상태를 확인해 주세요.';
+      } else {
+        statusEl.textContent = '오류: ' + (err?.message || '등록에 실패했습니다');
+      }
+      statusEl.className = 'note error';
+    }
+  });
+}
+
+function initProductsPageTabs() {
+  const path = (location.pathname || '').toLowerCase();
+  if (!path.endsWith('/pages/products.html') && !path.endsWith('products.html')) return;
+  const tabBars = document.querySelectorAll('.tab-bar[data-tab-group]');
+  if (!tabBars.length) return;
+  const resizeIframe = (frame) => {
+    if (!frame) return;
+    try {
+      const doc = frame.contentDocument || frame.contentWindow?.document;
+      if (!doc) return;
+      const height = Math.max(
+        doc.body?.scrollHeight || 0,
+        doc.documentElement?.scrollHeight || 0
+      );
+      if (height) frame.style.height = `${height}px`;
+    } catch {}
+  };
+  document.querySelectorAll('.product-iframe').forEach((frame) => {
+    frame.addEventListener('load', () => resizeIframe(frame));
+  });
+  tabBars.forEach((bar) => {
+    const group = bar.dataset.tabGroup;
+    const tabs = bar.querySelectorAll('.tab-btn[data-tab-target]');
+    const panels = document.querySelectorAll(`.tab-panel[data-tab-group="${group}"]`);
+    const applyTab = (target, activeTab) => {
+      tabs.forEach((btn) => {
+        const isActive = btn === activeTab;
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      panels.forEach((panel) => {
+        const isAll = target === 'all';
+        const isMatch = panel.dataset.tabPanel === target;
+        panel.classList.toggle('is-active', isAll || isMatch);
+      });
+      if (group === 'type') {
+        const activePanel = document.querySelector(`.tab-panel.is-active[data-tab-group="${group}"]`);
+        const frame = activePanel?.querySelector('.product-iframe');
+        if (frame) {
+          setTimeout(() => resizeIframe(frame), 50);
+        }
+      }
+    };
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        applyTab(tab.dataset.tabTarget, tab);
+      });
+    });
+    const defaultTab = bar.querySelector('.tab-btn.is-active') || tabs[0];
+    if (defaultTab) {
+      applyTab(defaultTab.dataset.tabTarget, defaultTab);
+    }
+  });
+}
+
+function initVendorProductsTabs() {
+  const path = (location.pathname || '').toLowerCase();
+  if (!path.endsWith('/pages/vendor-products.html') && !path.endsWith('vendor-products.html')) return;
+  const tabs = document.querySelectorAll('.tab-btn');
+  const panels = document.querySelectorAll('.tab-panel');
+  if (!tabs.length || !panels.length) return;
+  const applyTab = (target, activeTab) => {
+    tabs.forEach((btn) => {
+      const isActive = btn === activeTab;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    panels.forEach((panel) => {
+      panel.classList.toggle('is-active', panel.dataset.tabPanel === target);
+    });
+  };
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      applyTab(tab.dataset.tabTarget, tab);
+    });
+  });
+  let defaultTab = document.querySelector('.tab-btn.is-active') || tabs[0];
+  try {
+    const url = new URL(location.href);
+    const brand = (url.searchParams.get('brand') || '').trim().toLowerCase();
+    if (brand) {
+      const byBrand = Array.from(tabs).find(t => (t.dataset.tabTarget || '').toLowerCase() === brand);
+      if (byBrand) defaultTab = byBrand;
+    }
+  } catch {}
+  if (defaultTab) {
+    applyTab(defaultTab.dataset.tabTarget, defaultTab);
+  }
+}
+
+function initAdminQuotesPage() {
+  const wrap = document.getElementById('quotesAdminTableWrap');
+  if (!wrap) return;
+  const state = { all: [], filtered: [], page: 1, pageSize: 15, q: '', status: '' };
+  const pager = document.getElementById('quotesPager');
+  const qSearch = document.getElementById('qSearch');
+  const qStatus = document.getElementById('qStatus');
+  const qCount = document.getElementById('qCount');
+
+  async function loadQuotes(){
+    wrap.setAttribute('aria-busy','true');
+    try {
+      const res = await fetch(API('/api/quotes_list.php'), { credentials: 'include' });
+      state.all = res.ok ? await res.json() : [];
+      state.page = 1;
+      applyFilters();
+    } catch { wrap.innerHTML = '<div class="error">불러오기에 실패했습니다.</div>'; }
+    wrap.setAttribute('aria-busy','false');
+  }
+  function applyFilters(){
+    const q = (qSearch?.value||'').trim().toLowerCase();
+    const status = qStatus?.value || '';
+    state.q = q; state.status = status;
+    state.filtered = (state.all||[]).filter(r => {
+      const matchQ = !q || [r.company, r.position, r.name, r.email, r.product, r.message, r.finishing_detail]
+        .some(v => (v||'').toLowerCase().includes(q));
+      const matchS = !status || (r.status||'') === status;
+      return matchQ && matchS;
+    }).sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+    if (qCount) qCount.textContent = `${state.filtered.length}건`;
+    renderTable();
+    renderPager();
+  }
+  function renderTable(){
+    const start = (state.page - 1) * state.pageSize;
+    const rows = state.filtered.slice(start, start + state.pageSize);
+    const htmlRows = (rows||[]).map(q => `
+      <tr data-id="${q.id}">
+        <td>${q.timestamp ? new Date(q.timestamp*1000).toLocaleString() : ''}</td>
+        <td>${q.company||''}</td>
+        <td>${q.position||''}</td>
+        <td>${q.name||''}</td>
+        <td>${q.phone||''}</td>
+        <td>
+          <div class="status-toggle" data-id="${q.id}">
+            <button type="button" class="status-btn status-pending ${((q.status||'')==='문의중')?'is-active':''}" data-status="문의중">문의중</button>
+            <button type="button" class="status-btn status-done ${((q.status||'')==='답변완료')?'is-active':''}" data-status="답변완료">답변완료</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    const table = `
+      <table class="quotes-admin-table" aria-label="견적 접수 목록">
+        <thead>
+          <tr>
+            <th>등록일</th>
+            <th>회사명</th>
+            <th>직급</th>
+            <th>성명</th>
+            <th>연락처</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody>${htmlRows}</tbody>
+      </table>
+    `;
+    wrap.innerHTML = table;
+    wrap.querySelectorAll('.status-toggle')?.forEach(group => {
+      group.querySelectorAll('.status-btn')?.forEach(btn => btn.addEventListener('click', async (e) => {
+        const g = e.currentTarget.closest('.status-toggle');
+        if (!g) return;
+        const id = parseInt(g.getAttribute('data-id'), 10);
+        const status = e.currentTarget.getAttribute('data-status') || '';
+        const current = state.all.find(x=>x.id===id)?.status || '문의중';
+        if (!status || status === current) return;
+        g.classList.add('is-busy');
+        try {
+          const res = await fetch(API('/api/quotes_status.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, status }) });
+          const j = await res.json(); if (!j.ok) throw new Error('failed');
+          const idx = state.all.findIndex(x=>x.id===id);
+          if (idx>=0) state.all[idx].status = status;
+          applyFilters();
+        } catch {
+          applyFilters();
+        }
+      }));
+    });
+    wrap.querySelectorAll('tbody tr')?.forEach(tr => tr.addEventListener('click', (e) => {
+      const interactive = e.target.closest('select, button, a, input, textarea, label');
+      if (interactive) return;
+      const idAttr = tr.getAttribute('data-id');
+      const id = idAttr ? parseInt(idAttr,10) : 0;
+      const item = state.all.find(x=>x.id===id);
+      if (item) openDetail(item);
+    }));
+  }
+  function renderPager(){
+    if (!pager) return;
+    const total = state.filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+    if (state.page > totalPages) state.page = totalPages;
+    if (state.page < 1) state.page = 1;
+    const makeBtn = (label, p, active=false) => `<button class="page-btn${active?' active':''}" data-page="${p}">${label}</button>`;
+    let html = '';
+    html += makeBtn('이전', Math.max(1, state.page-1));
+    for (let i=1;i<=totalPages;i++) { html += makeBtn(String(i), i, i===state.page); }
+    html += makeBtn('다음', Math.min(totalPages, state.page+1));
+    pager.innerHTML = html;
+    pager.querySelectorAll('.page-btn').forEach(btn => btn.addEventListener('click', (e) => {
+      const p = parseInt(e.currentTarget.getAttribute('data-page'), 10);
+      if (!isNaN(p)) { state.page = p; renderTable(); renderPager(); }
+    }));
+  }
+  function exportCSV(){
+    const cols = ['회사명','직급','성명','이메일','연락처','제품명','수량','장(mm)','폭(mm)','고(mm)','후가공','후가공 상세','요청사항','상태','등록일'];
+    const lines = [cols.join(',')];
+    state.filtered.forEach(q => {
+      const vals = [q.company,q.position,q.name,q.email,q.phone,q.product,q.qty,q.length,q.width,q.height,(Array.isArray(q.finishing)?q.finishing.join(' / '):q.finishing||''),q.finishing_detail,q.message,q.status,(q.timestamp?new Date(q.timestamp*1000).toLocaleString():'')];
+      const esc = (s) => {
+        const t = (s==null? '': String(s));
+        return '"' + t.replace(/"/g,'""') + '"';
+      };
+      lines.push(vals.map(esc).join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `quotes_${Date.now()}.csv`; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+  }
+  function openDetail(item){
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="quoteDetailTitle">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title" id="quoteDetailTitle">견적 상세</div>
+          <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-meta">등록일: ${item.timestamp?new Date(item.timestamp*1000).toLocaleString():''} · 상태: ${item.status||''}</div>
+          <label>회사명</label><input value="${item.company||''}" disabled>
+          <label>직급</label><input value="${item.position||''}" disabled>
+          <label>성명</label><input value="${item.name||''}" disabled>
+          <label>이메일</label><input value="${item.email||''}" disabled>
+          <label>연락처</label><input value="${item.phone||''}" disabled>
+          <label>제품명</label><input value="${item.product||''}" disabled>
+          <label>수량</label><input value="${item.qty||''}" disabled>
+          <div class="detail-grid">
+            <div><label>장(mm)</label><input value="${item.length||''}" disabled></div>
+            <div><label>폭(mm)</label><input value="${item.width||''}" disabled></div>
+            <div><label>고(mm)</label><input value="${item.height||''}" disabled></div>
+          </div>
+          <label>후가공</label><input value="${Array.isArray(item.finishing)? item.finishing.join(', ') : (item.finishing||'')}" disabled>
+          <label>후가공 상세</label><input value="${item.finishing_detail||''}" disabled>
+          <label>요청사항</label><textarea disabled>${item.message||''}</textarea>
+          <div class="modal-actions">
+            <div class="status-toggle detail-status" data-status="${item.status||'문의중'}">
+              <button type="button" class="status-btn status-pending ${(item.status==='문의중' || !item.status)?'is-active':''}" data-status="문의중">문의중</button>
+              <button type="button" class="status-btn status-done ${(item.status==='답변완료')?'is-active':''}" data-status="답변완료">답변완료</button>
+            </div>
+            <button class="btn btn-accent ml-8" id="detailApply">적용</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(wrap);
+    const closeAll = () => { wrap.remove(); };
+    wrap.querySelectorAll('[data-modal-close]')?.forEach(el => el.addEventListener('click', closeAll));
+    const detailToggle = wrap.querySelector('.detail-status');
+    let selectedStatus = item.status || '문의중';
+    detailToggle?.querySelectorAll('.status-btn')?.forEach(btn => btn.addEventListener('click', (e) => {
+      const next = e.currentTarget.getAttribute('data-status') || '문의중';
+      selectedStatus = next;
+      detailToggle.querySelectorAll('.status-btn').forEach(b => {
+        b.classList.toggle('is-active', b.getAttribute('data-status') === selectedStatus);
+      });
+    }));
+    wrap.querySelector('#detailApply')?.addEventListener('click', async ()=>{
+      const status = selectedStatus || item.status || '문의중';
+      try {
+        const res = await fetch(API('/api/quotes_status.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id:item.id, status }) });
+        const j = await res.json(); if (!j.ok) throw new Error('failed');
+        const idx = state.all.findIndex(x=>x.id===item.id);
+        if (idx>=0) state.all[idx].status = status;
+        applyFilters(); closeAll();
+      } catch {}
+    });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); }, { once: true });
+  }
+
+  qSearch?.addEventListener('input', () => { state.page = 1; applyFilters(); });
+  qStatus?.addEventListener('change', () => { state.page = 1; applyFilters(); });
+  document.getElementById('qRefresh')?.addEventListener('click', () => loadQuotes());
+  document.getElementById('qExport')?.addEventListener('click', () => exportCSV());
+  loadQuotes();
+}
+
+initSimpleTabs();
+initMapBannerClose();
+initLoginPageModal();
+initQuoteRegisterPage();
+initAdminQuotesPage();
+initProductsPageTabs();
+initVendorProductsTabs();
 
 // Auth area (login/logout and rank badge)
 function closeAuthModals() {
@@ -781,9 +1315,9 @@ function renderNav() {
   siteNavList.innerHTML = [
     isEmployee ? `<li><a href="${getPortalUrl()}" data-menu="portal">SE포털</a></li>` : '',
     `<li><a href="#" data-menu="company">회사소개</a></li>`,
+    `<li><a href="${prefix}/pages/facility.html">시설 및 공정</a></li>`,
     `<li><a href="#" data-menu="products">제품소개</a></li>`,
     `<li><a href="${prefix}/pages/quote.html">견적문의</a></li>`,
-    `<li><a href="${prefix}/pages/contact.html">문의 게시판</a></li>`,
     isAdmin ? `<li><a href="${prefix}/pages/admin/index.html" data-menu="admin">관리</a></li>` : ''
   ].filter(Boolean).join('');
   // When using mobile nav, close menu on link click
@@ -801,12 +1335,17 @@ function renderNav() {
 
 renderNav();
 
-// Require login for quote pages (견적문의)
+// Require login for selected pages
 try {
   const user = getLocalUser();
   const path = (location.pathname || '').toLowerCase();
-  const needsLogin = ['/pages/quote.html', '/pages/quote-register.html', '/pages/quote-history.html']
-    .some(p => path.endsWith(p));
+  const guarded = [
+    '/pages/quote.html',
+    '/pages/quote-register.html',
+    '/pages/quote-history.html',
+    '/pages/contact.html',
+  ];
+  const needsLogin = guarded.some(p => path.endsWith(p));
   if (!user && needsLogin) {
     alert('로그인이 필요합니다. 상단 로그인 버튼을 사용하세요.');
     try { if (typeof createLoginModal === 'function') createLoginModal(); } catch {}
@@ -830,44 +1369,9 @@ try {
   });
 } catch {}
 
-// COMPANY 메가 메뉴 동작
-function initCompanyMega(){
-  const companyLink = document.querySelector('.site-nav a[data-menu="company"]');
-  const mega = document.getElementById('companyMega');
-  if (!companyLink || !mega) return;
-  const position = () => {
-    const rect = companyLink.getBoundingClientRect();
-    const isFixed = getComputedStyle(mega).position === 'fixed';
-    const top = (isFixed ? rect.bottom + 6 : rect.bottom + window.scrollY + 6);
-    const left = (isFixed ? rect.left : rect.left + window.scrollX);
-    mega.style.top = `${top}px`;
-    mega.style.left = `${left}px`;
-  };
-  const open = () => { position(); mega.hidden = false; };
-  const close = () => { mega.hidden = true; };
-  const toggle = () => { mega.hidden ? open() : close(); };
-  companyLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    toggle();
-  });
-  // 바깥 클릭 시 닫기
-  document.addEventListener('click', (e) => {
-    if (mega.hidden) return;
-    const isInside = e.target.closest('#companyMega') || e.target.closest('.site-nav a[data-menu="company"]');
-    if (!isInside) close();
-  });
-  // ESC로 닫기
-  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-  // 창 크기/스크롤 변경 시 위치 갱신
-  window.addEventListener('resize', () => { if (!mega.hidden) position(); });
-  window.addEventListener('scroll', () => { if (!mega.hidden) position(); }, { passive: true });
-  // 메뉴 내 링크 클릭 시 닫기
-  mega.querySelectorAll('a').forEach(a => a.addEventListener('click', () => close()));
-}
-
-function initProductsMega(){
-  const link = document.querySelector('.site-nav a[data-menu="products"]');
-  const panel = document.getElementById('productsMega');
+function initMegaMenu({ linkSelector, panelId, openOnClick = false, openOnHover = false }) {
+  const link = document.querySelector(linkSelector);
+  const panel = document.getElementById(panelId);
   if (!link || !panel) return;
   const position = () => {
     const rect = link.getBoundingClientRect();
@@ -880,46 +1384,42 @@ function initProductsMega(){
   const open = () => { position(); panel.hidden = false; };
   const close = () => { panel.hidden = true; };
   const toggle = () => { panel.hidden ? open() : close(); };
-  link.addEventListener('click', (e) => { e.preventDefault(); toggle(); });
+
+  if (openOnClick) {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggle();
+    });
+  }
+  if (openOnHover) {
+    link.addEventListener('mouseenter', () => { open(); });
+    link.addEventListener('focus', () => { open(); });
+  }
+
   document.addEventListener('click', (e) => {
     if (panel.hidden) return;
-    const inside = e.target.closest('#productsMega') || e.target.closest('.site-nav a[data-menu="products"]');
+    const inside = e.target.closest(`#${panelId}`) || e.target.closest(linkSelector);
     if (!inside) close();
   });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
   window.addEventListener('resize', () => { if (!panel.hidden) position(); });
   window.addEventListener('scroll', () => { if (!panel.hidden) position(); }, { passive: true });
   panel.querySelectorAll('a').forEach(a => a.addEventListener('click', () => close()));
+}
+
+// COMPANY 메가 메뉴 동작
+function initCompanyMega(){
+  initMegaMenu({ linkSelector: '.site-nav a[data-menu="company"]', panelId: 'companyMega', openOnClick: true });
+}
+
+function initProductsMega(){
+  initMegaMenu({ linkSelector: '.site-nav a[data-menu="products"]', panelId: 'productsMega', openOnClick: true });
 }
 
 // ADMIN 메가 메뉴 동작
 function initAdminMega(){
-  const link = document.querySelector('.site-nav a[data-menu="admin"]');
-  const panel = document.getElementById('adminMega');
-  if (!link || !panel) return;
-  const position = () => {
-    const rect = link.getBoundingClientRect();
-    const isFixed = getComputedStyle(panel).position === 'fixed';
-    const top = (isFixed ? rect.bottom + 6 : rect.bottom + window.scrollY + 6);
-    const left = (isFixed ? rect.left : rect.left + window.scrollX);
-    panel.style.top = `${top}px`;
-    panel.style.left = `${left}px`;
-  };
-  const open = () => { position(); panel.hidden = false; };
-  const close = () => { panel.hidden = true; };
-  const toggle = () => { panel.hidden ? open() : close(); };
   // 클릭은 본래 링크(견적접수)로 이동, 호버/포커스 시 팝오버 노출
-  link.addEventListener('mouseenter', () => { open(); });
-  link.addEventListener('focus', () => { open(); });
-  document.addEventListener('click', (e) => {
-    if (panel.hidden) return;
-    const inside = e.target.closest('#adminMega') || e.target.closest('.site-nav a[data-menu="admin"]');
-    if (!inside) close();
-  });
-  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-  window.addEventListener('resize', () => { if (!panel.hidden) position(); });
-  window.addEventListener('scroll', () => { if (!panel.hidden) position(); }, { passive: true });
-  panel.querySelectorAll('a').forEach(a => a.addEventListener('click', () => close()));
+  initMegaMenu({ linkSelector: '.site-nav a[data-menu="admin"]', panelId: 'adminMega', openOnHover: true });
 }
 
 // 페이지마다 존재하지 않을 수 있는 드롭다운 메뉴를 동적으로 생성
@@ -950,7 +1450,7 @@ function ensureDropdownMenus(prefixHint, isAdmin){
     wrap2.innerHTML = `
       <ul class="menu-list" aria-label="Products 카테고리">
         <li><a href="${prefix}/pages/vendor-products.html">업체별 제품</a></li>
-        <li><a href="${prefix}/pages/products.html#type-view">타입별 제품</a></li>
+        <li class="is-hidden"><a href="${prefix}/pages/products.html#type-view">타입별 제품</a></li>
       </ul>`;
     container.appendChild(wrap2);
   }
@@ -963,46 +1463,12 @@ function ensureDropdownMenus(prefixHint, isAdmin){
     wrap3.innerHTML = `
       <ul class="menu-list" aria-label="Admin 관리">
         <li><a href="${prefix}/pages/admin/approvals.html">승인 관리</a></li>
-        <li><a href="${prefix}/pages/admin/users.html?tab=employee">직원 관리</a></li>
-        <li><a href="${prefix}/pages/admin/users.html?tab=customer">고객 관리</a></li>
-        <li><a href="${prefix}/pages/admin/users.html">사용자 상태</a></li>
-        <li><a href="${prefix}/pages/admin/ranks.html">등급 관리</a></li>
-        <li><a href="${prefix}/pages/admin/quotes.html">견적 접수</a></li>
-        <li><a href="${prefix}/pages/admin/settings.html">사이트 설정</a></li>
+        <li><a href="${prefix}/pages/admin/customers.html">고객 관리</a></li>
+        <li><a href="${prefix}/pages/admin/quotes.html">견적 관리</a></li>
       </ul>`;
     container.appendChild(wrap3);
   }
 }
-
-// Admin settings page wiring
-function initSettingsPage() {
-  const form = document.querySelector('form.settings');
-  if (!form) return;
-  const companyEl = document.getElementById('company');
-  const phoneEl = document.getElementById('phone');
-  const addressEl = document.getElementById('address');
-  const btn = form.querySelector('button[type="button"]');
-  // Prefill
-  const s = getSiteSettings();
-  if (companyEl) companyEl.value = s.company || '';
-  if (phoneEl) phoneEl.value = s.phone || '';
-  if (addressEl) addressEl.value = s.address || '';
-  // Save
-  btn?.addEventListener('click', () => {
-    const next = setSiteSettings({
-      company: companyEl?.value?.trim() || '',
-      phone: phoneEl?.value?.trim() || '',
-      address: addressEl?.value?.trim() || '',
-    });
-    applySiteSettingsUI();
-    if (btn) {
-      const original = btn.textContent;
-      btn.textContent = '저장됨';
-      setTimeout(() => { btn.textContent = original; }, 1500);
-    }
-  });
-}
-initSettingsPage();
 
 // Register modal
 function createRegisterModal() {
@@ -1216,7 +1682,7 @@ async function initAdminRanksPage() {
     const res = await fetch(API('/api/admin_users_all.php'), { credentials: 'include' });
     rows = await res.json();
   } catch {}
-  const ranks = ['Normal','Bronze','Silver','Gold','Platinum','VIP'];
+  const ranks = ['Normal','Bronze','Silver','Gold','Platinum','VIP','Manager'];
   const dataRows = (rows || []).map(u => {
     const opts = ranks.map(r => `<option ${u.rank===r?'selected':''}>${r}</option>`).join('');
     return `
@@ -1249,77 +1715,115 @@ async function initAdminUsersPage() {
   if (!table) return;
   const tbody = table.querySelector('tbody');
   const searchEl = document.getElementById('userSearch');
-  const tabWrap = document.querySelector('.admin-user-tabs');
-  const tabButtons = tabWrap?.querySelectorAll('[data-user-tab]') || [];
+  const tabWrap = null;
+  const tabButtons = [];
+  const pagerEl = document.getElementById('userPager');
+  const pageSize = 15;
+  window.__adminUsersPageState = window.__adminUsersPageState || { page: 1, lastQuery: '' };
   let rows = [];
+  let loadError = '';
   try {
     const res = await fetch(API('/api/admin_users_all.php'), { credentials: 'include' });
-    rows = await res.json();
-  } catch {}
-  const employeeRoles = ['employee','staff'];
-  const getActiveTab = () => {
-    const active = tabWrap?.querySelector('[data-user-tab].active');
-    return (active?.getAttribute('data-user-tab') || 'all');
-  };
-  if (tabWrap && !tabWrap.dataset.bound) {
-    tabWrap.dataset.bound = '1';
-    try {
-      const urlTab = new URLSearchParams(location.search).get('tab');
-      if (urlTab && ['all','customer','employee'].includes(urlTab)) {
-        tabButtons.forEach(btn => {
-          const isActive = btn.getAttribute('data-user-tab') === urlTab;
-          btn.classList.toggle('active', isActive);
-          btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        });
-      }
-    } catch {}
-    tabButtons.forEach(btn => btn.addEventListener('click', () => {
-      tabButtons.forEach(b => {
-        const isActive = b === btn;
-        b.classList.toggle('active', isActive);
-        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
-      });
-      initAdminUsersPage();
-    }));
+    if (!res.ok) {
+      loadError = res.status === 403 ? '관리자 로그인 상태가 필요합니다.' : '데이터를 불러올 수 없습니다.';
+    } else {
+      rows = await res.json();
+    }
+  } catch {
+    loadError = 'DB 연결 또는 네트워크 오류입니다.';
+  }
+  if (loadError) {
+    tbody.innerHTML = `<tr><td colspan="7" class="quotes-empty-inline">${loadError}</td></tr>`;
+    if (pagerEl) pagerEl.innerHTML = '';
+    return;
   }
   const q = (searchEl?.value || '').trim().toLowerCase();
-  const roleFiltered = (rows || []).filter(u => {
-    const role = (u.role || '').toString().toLowerCase();
-    const isEmployee = employeeRoles.includes(role);
-    const tab = getActiveTab();
-    if (tab === 'employee') return isEmployee;
-    if (tab === 'customer') return !isEmployee && role !== 'admin';
-    return true;
-  });
-  const filtered = (roleFiltered || []).filter(u => {
+  const pageState = window.__adminUsersPageState;
+  if (pageState.lastQuery !== q) {
+    pageState.page = 1;
+    pageState.lastQuery = q;
+  }
+  const filtered = (rows || []).filter(u => {
     if (!q) return true;
     const username = (u.username || '').toString().toLowerCase();
     const nickname = (u.nickname || '').toString().toLowerCase();
-    const status = (u.status || '').toString().toLowerCase();
-    return username.includes(q) || nickname.includes(q) || status.includes(q);
+    return username.includes(q) || nickname.includes(q);
   });
   if (searchEl && !searchEl.dataset.bound) {
     searchEl.dataset.bound = '1';
     searchEl.addEventListener('input', () => initAdminUsersPage());
   }
-  const dataRows = (filtered || []).map(u => `
+  const fmtDate = (ts) => {
+    if (!ts) return '-';
+    const raw = Number(ts);
+    const ms = raw < 1000000000000 ? raw * 1000 : raw;
+    return new Date(ms).toLocaleString();
+  };
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+  const ranks = ['Normal','Bronze','Silver','Gold','Platinum','VIP','Manager'];
+  const applyPagination = !!q;
+  const total = filtered.length;
+  const totalPages = applyPagination ? Math.max(1, Math.ceil(total / pageSize)) : 1;
+  const currentPage = Math.min(pageState.page, totalPages);
+  pageState.page = currentPage;
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageItems = applyPagination ? filtered.slice(pageStart, pageStart + pageSize) : filtered;
+
+  const dataRows = (pageItems || []).map(u => {
+    const rankOptions = ranks.map(r => `<option ${u.rank===r?'selected':''}>${r}</option>`).join('');
+    return `
     <tr>
-      <td>${u.username}</td>
-      <td>${u.nickname || '-'}</td>
-      <td>${u.status || '-'}</td>
+      <td>${esc(u.username)}</td>
+      <td><input class="admin-nick" data-nick-id="${u.id}" value="${esc(u.nickname || '')}" placeholder="닉네임"></td>
+      <td><select class="admin-rank" data-rank-id="${u.id}">${rankOptions}</select></td>
+      <td>${esc(u.role || '-')}</td>
+      <td>${fmtDate(u.created_at)}</td>
+      <td>${esc(u.status || '-')}</td>
       <td class="actions">
         <button class="btn" data-status="정상" data-id="${u.id}">정상</button>
         <button class="btn" data-status="일시정지" data-id="${u.id}">일시정지</button>
         <button class="btn btn-accent" data-status="정지" data-id="${u.id}">정지</button>
+        <button class="btn" data-save-rank="${u.id}">등급저장</button>
+        <button class="btn" data-save-nick="${u.id}">닉네임저장</button>
+        <button class="btn" data-reset="${u.id}">초기화</button>
+        <button class="btn" data-setpw="${u.id}">비번변경</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   if (!dataRows) {
-    tbody.innerHTML = `<tr><td colspan="4" class="quotes-empty-inline">검색 결과가 없습니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="quotes-empty-inline">검색 결과가 없습니다.</td></tr>`;
   } else {
-    const placeholders = Array.from({length: Math.max(0, 15 - ((filtered||[]).length))})
-      .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
+    const placeholders = Array.from({length: Math.max(0, pageSize - ((pageItems||[]).length))})
+      .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
       .join('');
     tbody.innerHTML = dataRows + placeholders;
+  }
+
+  function renderPager(){
+    if (!pagerEl) return;
+    if (!applyPagination) { pagerEl.innerHTML = ''; return; }
+    pagerEl.innerHTML = `
+      <button type="button" data-page="prev" ${currentPage <= 1 ? 'disabled' : ''}>이전</button>
+      <div class="page-info">${currentPage} / ${totalPages} (총 ${total})</div>
+      <button type="button" data-page="next" ${currentPage >= totalPages ? 'disabled' : ''}>다음</button>
+    `;
+    pagerEl.querySelectorAll('button[data-page]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dir = btn.getAttribute('data-page');
+        if (dir === 'prev' && pageState.page > 1) pageState.page -= 1;
+        if (dir === 'next' && pageState.page < totalPages) pageState.page += 1;
+        initAdminUsersPage();
+      });
+    });
+  }
+  renderPager();
+
+  function flashRow(el){
+    if (!el) return;
+    el.classList.add('row-saved');
+    setTimeout(() => el.classList.remove('row-saved'), 800);
   }
   tbody.querySelectorAll('[data-status]')?.forEach(btn => btn.addEventListener('click', async (e) => {
     const id = parseInt(e.currentTarget.getAttribute('data-id'), 10);
@@ -1331,8 +1835,248 @@ async function initAdminUsersPage() {
       initAdminUsersPage();
     } catch { alert('네트워크 오류'); }
   }));
+
+  tbody.querySelectorAll('[data-save-nick]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+    const id = parseInt(e.currentTarget.getAttribute('data-save-nick'), 10);
+    const input = tbody.querySelector(`[data-nick-id="${id}"]`);
+    const nickname = (input?.value || '').trim();
+    try {
+      const res = await fetch(API('/api/admin_update_nickname.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, nickname }) });
+      const j = await res.json();
+      if (!j.ok) { alert(j.error ? `오류: ${j.error}` : '닉네임 변경 실패'); return; }
+      flashRow(input?.closest('tr'));
+      alert('닉네임이 변경되었습니다.');
+    } catch { alert('네트워크 오류'); }
+  }));
+
+  tbody.querySelectorAll('[data-save-rank]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+    const id = parseInt(e.currentTarget.getAttribute('data-save-rank'), 10);
+    const sel = tbody.querySelector(`[data-rank-id="${id}"]`);
+    const rank = sel?.value || 'Normal';
+    try {
+      const res = await fetch(API('/api/admin_update_rank.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, rank }) });
+      const j = await res.json();
+      if (!j.ok) { alert(j.error ? `오류: ${j.error}` : '등급 변경 실패'); return; }
+      flashRow(sel?.closest('tr'));
+      alert('등급이 변경되었습니다.');
+    } catch { alert('네트워크 오류'); }
+  }));
+
+  tbody.querySelectorAll('[data-nick-id]')?.forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const id = input.getAttribute('data-nick-id');
+      const btn = tbody.querySelector(`[data-save-nick="${id}"]`);
+      btn?.click();
+    });
+  });
+
+  tbody.querySelectorAll('[data-reset]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+    const id = parseInt(e.currentTarget.getAttribute('data-reset'), 10);
+    if (!confirm('비밀번호를 초기화하시겠습니까?')) return;
+    try {
+      const res = await fetch(API('/api/admin_reset_password.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id }) });
+      const j = await res.json();
+      if (!j.ok) { alert(j.error ? `오류: ${j.error}` : '초기화 실패'); return; }
+      alert(`임시 비밀번호: ${j.temp_password}`);
+    } catch { alert('네트워크 오류'); }
+  }));
+
+  tbody.querySelectorAll('[data-setpw]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+    const id = parseInt(e.currentTarget.getAttribute('data-setpw'), 10);
+    const pw = prompt('새 비밀번호를 입력하세요.');
+    if (!pw) return;
+    try {
+      const res = await fetch(API('/api/admin_update_password.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, password: pw }) });
+      const j = await res.json();
+      if (!j.ok) { alert(j.error ? `오류: ${j.error}` : '변경 실패'); return; }
+      alert('비밀번호가 변경되었습니다.');
+    } catch { alert('네트워크 오류'); }
+  }));
 }
 initAdminUsersPage();
+
+// Admin customers page wiring
+async function initAdminCustomersPage() {
+  const table = document.getElementById('customersTable');
+  if (!table) return;
+  const tbody = table.querySelector('tbody');
+  const searchEl = document.getElementById('customerSearch');
+  const pagerEl = document.getElementById('customerPager');
+  const pageSize = 15;
+  window.__adminCustomersPageState = window.__adminCustomersPageState || { page: 1, lastQuery: '' };
+  let rows = [];
+  let loadError = '';
+  let needsLogin = false;
+  try {
+    const res = await fetch(API('/api/admin_users_all.php'), { credentials: 'include' });
+    if (!res.ok) {
+      if (res.status === 403) {
+        loadError = '관리자 로그인 상태가 필요합니다.';
+        needsLogin = true;
+      } else {
+        loadError = '데이터를 불러올 수 없습니다.';
+      }
+    } else {
+      rows = await res.json();
+    }
+  } catch {
+    loadError = 'DB 연결 또는 네트워크 오류입니다.';
+  }
+  if (loadError) {
+    tbody.innerHTML = `<tr><td colspan="5" class="quotes-empty-inline">${loadError}</td></tr>`;
+    if (pagerEl) pagerEl.innerHTML = '';
+    if (needsLogin && typeof createLoginModal === 'function') {
+      createLoginModal();
+    }
+    return;
+  }
+  const q = (searchEl?.value || '').trim().toLowerCase();
+  const pageState = window.__adminCustomersPageState;
+  if (pageState.lastQuery !== q) {
+    pageState.page = 1;
+    pageState.lastQuery = q;
+  }
+  const filtered = (rows || []).filter(u => {
+    if (!q) return true;
+    const username = (u.username || '').toString().toLowerCase();
+    const nickname = (u.nickname || '').toString().toLowerCase();
+    return username.includes(q) || nickname.includes(q);
+  });
+  if (searchEl && !searchEl.dataset.bound) {
+    searchEl.dataset.bound = '1';
+    searchEl.addEventListener('input', () => initAdminCustomersPage());
+  }
+  const fmtDate = (ts) => {
+    if (!ts) return '-';
+    const raw = Number(ts);
+    const ms = raw < 1000000000000 ? raw * 1000 : raw;
+    return new Date(ms).toLocaleString();
+  };
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'
+  })[c]);
+  const ranks = ['Normal','Bronze','Silver','Gold','Platinum','VIP','Manager'];
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(pageState.page, totalPages);
+  pageState.page = currentPage;
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageItems = filtered.slice(pageStart, pageStart + pageSize);
+
+  const dataRows = (pageItems || []).map(u => `
+    <tr data-id="${u.id}">
+      <td>${esc(u.username)}</td>
+      <td>${esc(u.nickname || '-')}</td>
+      <td>${esc(u.rank || '-')}</td>
+      <td>${esc(u.status || '-')}</td>
+      <td>${fmtDate(u.created_at)}</td>
+    </tr>`
+  ).join('');
+  if (!dataRows) {
+    tbody.innerHTML = `<tr><td colspan="5" class="quotes-empty-inline">검색 결과가 없습니다.</td></tr>`;
+  } else {
+    const placeholders = Array.from({length: Math.max(0, pageSize - ((pageItems||[]).length))})
+      .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
+      .join('');
+    tbody.innerHTML = dataRows + placeholders;
+  }
+
+  function renderPager(){
+    if (!pagerEl) return;
+    pagerEl.innerHTML = `
+      <button type="button" data-page="prev" ${currentPage <= 1 ? 'disabled' : ''}>이전</button>
+      <div class="page-info">${currentPage} / ${totalPages} (총 ${total})</div>
+      <button type="button" data-page="next" ${currentPage >= totalPages ? 'disabled' : ''}>다음</button>
+    `;
+    pagerEl.querySelectorAll('button[data-page]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dir = btn.getAttribute('data-page');
+        if (dir === 'prev' && pageState.page > 1) pageState.page -= 1;
+        if (dir === 'next' && pageState.page < totalPages) pageState.page += 1;
+        initAdminCustomersPage();
+      });
+    });
+  }
+  renderPager();
+
+  function openCustomerDetail(item){
+    const wrap = document.createElement('div');
+    const rankOptions = ranks.map(r => `<option ${item.rank===r?'selected':''}>${r}</option>`).join('');
+    wrap.innerHTML = `
+      <div class="modal-backdrop" data-modal-close></div>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="customerDetailTitle">
+        <div class="modal-card modal-lg">
+          <div class="modal-header">
+            <div class="modal-title" id="customerDetailTitle">고객 상세</div>
+            <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+          </div>
+          <div class="modal-body">
+            <div class="detail-meta">가입일: ${fmtDate(item.created_at)} · 권한: ${esc(item.role || '-')}</div>
+            <label>아이디</label><input value="${esc(item.username)}" disabled>
+            <label>닉네임</label><input id="custNickname" value="${esc(item.nickname || '')}">
+            <label>등급</label><select id="custRank">${rankOptions}</select>
+            <label>상태</label>
+            <select id="custStatus">
+              <option value="정상" ${(item.status==='정상')?'selected':''}>정상</option>
+              <option value="일시정지" ${(item.status==='일시정지')?'selected':''}>일시정지</option>
+              <option value="정지" ${(item.status==='정지')?'selected':''}>정지</option>
+            </select>
+            <label>비밀번호 변경</label><input id="custPassword" type="password" placeholder="새 비밀번호 입력" />
+            <div class="modal-actions">
+              <button class="btn" id="custResetPw">비밀번호 초기화</button>
+              <button class="btn btn-accent ml-8" id="custApply">적용</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+    const closeAll = () => { wrap.remove(); };
+    wrap.querySelectorAll('[data-modal-close]')?.forEach(el => el.addEventListener('click', closeAll));
+    wrap.querySelector('#custResetPw')?.addEventListener('click', async () => {
+      if (!confirm('비밀번호를 초기화하시겠습니까?')) return;
+      try {
+        const res = await fetch(API('/api/admin_reset_password.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id: item.id }) });
+        const j = await res.json();
+        if (!j.ok) { alert(j.error ? `오류: ${j.error}` : '초기화 실패'); return; }
+        alert(`임시 비밀번호: ${j.temp_password}`);
+      } catch { alert('네트워크 오류'); }
+    });
+    wrap.querySelector('#custApply')?.addEventListener('click', async () => {
+      const nickname = (wrap.querySelector('#custNickname')?.value || '').trim();
+      const rank = wrap.querySelector('#custRank')?.value || item.rank || 'Normal';
+      const status = wrap.querySelector('#custStatus')?.value || item.status || '정상';
+      const password = wrap.querySelector('#custPassword')?.value || '';
+      try {
+        if (nickname !== (item.nickname || '')) {
+          await fetch(API('/api/admin_update_nickname.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id: item.id, nickname }) });
+        }
+        if (rank !== (item.rank || '')) {
+          await fetch(API('/api/admin_update_rank.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id: item.id, rank }) });
+        }
+        if (status !== (item.status || '')) {
+          await fetch(API('/api/admin_update_status.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id: item.id, status }) });
+        }
+        if (password) {
+          await fetch(API('/api/admin_update_password.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id: item.id, password }) });
+        }
+        initAdminCustomersPage();
+        closeAll();
+      } catch {
+        alert('저장에 실패했습니다.');
+      }
+    });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); }, { once: true });
+  }
+
+  tbody.querySelectorAll('tr[data-id]')?.forEach(tr => tr.addEventListener('click', () => {
+    const id = parseInt(tr.getAttribute('data-id'), 10);
+    const item = (rows || []).find(x => x.id === id);
+    if (item) openCustomerDetail(item);
+  }));
+}
+initAdminCustomersPage();
 
 // Admin coupons page wiring
 function initAdminCouponsPage() {
@@ -1341,12 +2085,13 @@ function initAdminCouponsPage() {
   const grantBtn = document.getElementById('adminCouponGrantBtn');
   const revokeBtn = document.getElementById('adminCouponRevokeBtn');
   const tableWrap = document.getElementById('adminCouponsTableWrap');
+  if (!userSearch || !couponSelect || !grantBtn || !revokeBtn || !tableWrap) return;
   let selectedUserId = null;
   let selectedCouponId = null;
   let selectedUserCouponId = null;
 
   // 쿠폰 목록 불러오기
-  fetch('api/coupons_my.php')
+  fetch(API('/api/coupons_my.php'), { credentials: 'include' })
     .then(r => r.json())
     .then(list => {
       couponSelect.innerHTML = list.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
@@ -1356,7 +2101,7 @@ function initAdminCouponsPage() {
   userSearch.addEventListener('change', () => {
     const q = userSearch.value.trim();
     if (!q) return;
-    fetch(`api/admin_coupons_list.php?user_id=${encodeURIComponent(q)}`)
+    fetch(API(`/api/admin_coupons_list.php?user_id=${encodeURIComponent(q)}`), { credentials: 'include' })
       .then(r => r.json())
       .then(rows => {
         selectedUserId = q;
@@ -1381,8 +2126,9 @@ function initAdminCouponsPage() {
 
   grantBtn.addEventListener('click', () => {
     if (!selectedUserId || !couponSelect.value) return alert('사용자와 쿠폰을 선택하세요');
-    fetch('api/admin_coupon_grant.php', {
+    fetch(API('/api/admin_coupon_grant.php'), {
       method: 'POST',
+      credentials: 'include',
       body: new URLSearchParams({ user_id: selectedUserId, coupon_id: couponSelect.value })
     }).then(r => r.json()).then(res => {
       if (res.success) {
@@ -1396,8 +2142,9 @@ function initAdminCouponsPage() {
 
   revokeBtn.addEventListener('click', () => {
     if (!selectedUserCouponId) return alert('회수할 쿠폰을 선택하세요');
-    fetch('api/admin_coupon_revoke.php', {
+    fetch(API('/api/admin_coupon_revoke.php'), {
       method: 'POST',
+      credentials: 'include',
       body: new URLSearchParams({ user_coupon_id: selectedUserCouponId })
     }).then(r => r.json()).then(res => {
       if (res.success) {
@@ -1411,222 +2158,12 @@ function initAdminCouponsPage() {
 }
 
 initAdminApprovalsPage();
-initAdminRanksPage();
 initAdminUsersPage();
 initAdminCouponsPage();
 // (중복 제거) 인덱스 페이지의 견적 목록은 상단부의 SSE+폴링 로직을 사용합니다.
 
-// Board (문의 게시판)
-(function initBoard(){
-  const listWrap = document.getElementById('boardList');
-  const writeBtn = document.getElementById('boardWriteBtn');
-  if (!listWrap || !writeBtn) return;
-  let page = 1;
-  const pageSize = 15;
-  let lastItems = [];
-  const getUser = () => {
-    try { return JSON.parse(localStorage.getItem('sepn_user')||'null')||null; } catch { return null; }
-  };
-  const isAdmin = (u) => !!(u && u.role === 'admin');
-  const canView = (u, item) => !item.secret || isAdmin(u) || ((u?.username||'').toLowerCase() === (item.author_username||'').toLowerCase());
-
-  async function load(){
-    listWrap.setAttribute('aria-busy','true');
-    try {
-      const res = await fetch(API('/api/board_list.php'));
-      const items = res.ok ? await res.json() : [];
-      lastItems = Array.isArray(items) ? items : [];
-      render(lastItems);
-    } catch { render([]); }
-    listWrap.setAttribute('aria-busy','false');
-  }
-
-  function fmtDate(ts){
-    if (!ts) return '';
-    const d = new Date(ts);
-    const yy = String(d.getFullYear()%100).padStart(2,'0');
-    const mm = String(d.getMonth()+1).padStart(2,'0');
-    const dd = String(d.getDate()).padStart(2,'0');
-    return `${yy}.${mm}.${dd}`;
-  }
-  function maskName(name){
-    const s = (name||'').trim();
-    if (s.length <= 1) return s + '*';
-    return s.slice(0, -1) + '*';
-  }
-
-  function render(items){
-    if (!Array.isArray(items) || items.length === 0){
-      // 빈 테이블: 15행 유지, 8번째 행에 중앙 안내문 배치
-      const emptyRows = Array.from({length: pageSize}).map((_, i) => (
-        i === 7
-          ? `<tr><td colspan="5" class="empty-inline">등록한 글이 없습니다</td></tr>`
-          : `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`
-      )).join('');
-      listWrap.innerHTML = `
-        <table class="board-table"><thead><tr><th>번호</th><th>제목</th><th>작성자</th><th>작성일</th><th>처리</th></tr></thead><tbody>${emptyRows}</tbody></table>
-        <div class="board-pager"></div>
-      `;
-      renderPager(1);
-      return;
-    }
-    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-    if (page > totalPages) page = totalPages;
-    if (page < 1) page = 1;
-    const start = (page - 1) * pageSize;
-    const pageItems = items.slice(start, start + pageSize);
-    const rows = pageItems.map((it, idx) => {
-      const dateStr = fmtDate(it.timestamp);
-      const lock = it.secret ? '<span class="board-lock">비밀글</span>' : '';
-      const nameMasked = maskName(it.name || it.author || '-');
-      const number = start + idx + 1; // 페이지 기준 번호
-      const statusRaw = (it.status || '답변 대기');
-      const isDone = statusRaw === '답변완료';
-      const statusClass = isDone ? 'status-done' : 'status-pending';
-      const statusLabel = isDone ? '답변완료' : '문의중';
-      return `<tr data-id="${it.id}"><td>${number}</td><td>${it.title}${lock}</td><td>${nameMasked}</td><td>${dateStr}</td><td><span class="status-badge ${statusClass}">${statusLabel}</span></td></tr>`;
-    }).join('');
-    const placeholders = Array.from({length: Math.max(0, pageSize - pageItems.length)})
-      .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`).join('');
-    listWrap.innerHTML = `
-      <table class="board-table"><thead><tr><th>번호</th><th>제목</th><th>작성자</th><th>작성일</th><th>처리</th></tr></thead><tbody>${rows}${placeholders}</tbody></table>
-      <div class="board-pager"></div>
-    `;
-    listWrap.querySelectorAll('tbody tr').forEach(tr => {
-      tr.addEventListener('click', () => {
-        const id = Number(tr.getAttribute('data-id'))||0;
-        const it = items.find(x=>x.id===id);
-        openView(it);
-      });
-    });
-    renderPager(totalPages);
-  }
-
-  function renderPager(totalPages){
-    const pager = listWrap.querySelector('.board-pager');
-    if (!pager) return;
-    const makeBtn = (label, p, active=false) => `<button class="page-btn${active?' active':''}" data-page="${p}">${label}</button>`;
-    let html = '';
-    html += makeBtn('이전', Math.max(1, page-1));
-    for (let i=1;i<=totalPages;i++) { html += makeBtn(String(i), i, i===page); }
-    html += makeBtn('다음', Math.min(totalPages, page+1));
-    pager.innerHTML = html;
-    pager.querySelectorAll('.page-btn').forEach(btn => btn.addEventListener('click', (e) => {
-      const p = parseInt(e.currentTarget.getAttribute('data-page'), 10);
-      if (!isNaN(p)) { page = p; render(lastItems); }
-    }));
-  }
-
-  function openWrite(){
-    const modal = document.getElementById('boardWriteModal');
-    if (!modal) return;
-    modal.hidden = false;
-    modal.querySelectorAll('[data-modal-close]').forEach(el=>el.addEventListener('click', closeWrite, { once: true }));
-    const submit = document.getElementById('wSubmit');
-    submit.onclick = async () => {
-      const user = getUser();
-      if (!user){ alert('로그인이 필요합니다. 상단 로그인 버튼을 사용하세요.'); return; }
-      const title = (document.getElementById('wTitle')?.value||'').trim();
-      const category = (document.getElementById('wCategory')?.value||'기타문의').trim();
-      const content = (document.getElementById('wContent')?.value||'').trim();
-      const secret = !!document.getElementById('wSecret')?.checked;
-      const name = (document.getElementById('wName')?.value||'').trim() || (user.nickname||user.username);
-      const p1 = (document.getElementById('wPhone1')?.value||'').trim();
-      const p2 = (document.getElementById('wPhone2')?.value||'').trim();
-      const p3 = (document.getElementById('wPhone3')?.value||'').trim();
-      const phone = [p1,p2,p3].filter(Boolean).join('-');
-      const password = (document.getElementById('wPassword')?.value||'').trim();
-      // 파일 업로드 처리
-      let attachments = [];
-      try {
-        const f1 = document.getElementById('wFile1');
-        const f2 = document.getElementById('wFile2');
-        const fd = new FormData();
-        if (f1 && f1.files && f1.files[0]) fd.append('file1', f1.files[0]);
-        if (f2 && f2.files && f2.files[0]) fd.append('file2', f2.files[0]);
-        if ([...fd.entries()].length > 0) {
-          const resUp = await fetch(API('/api/board_upload.php'), { method:'POST', body: fd });
-          const jUp = await resUp.json();
-          if (resUp.ok && jUp.ok && Array.isArray(jUp.files)) attachments = jUp.files;
-        }
-      } catch {}
-      if (!title || !content){ alert('제목과 내용을 입력해 주세요.'); return; }
-      try {
-        const res = await fetch(API('/api/board_submit.php'), {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, category, content, secret, status: '문의중', author: user.nickname||user.username, author_username: user.username, name, phone, password, attachments })
-        });
-        const j = await res.json();
-        if (!res.ok || !j.ok) throw new Error('등록 실패');
-        closeWrite();
-        load();
-      } catch (err){ alert('오류: 게시글 등록에 실패했습니다'); }
-    };
-  }
-  function closeWrite(){ const modal = document.getElementById('boardWriteModal'); if (modal) modal.hidden = true; }
-
-  async function openView(item){
-    const modal = document.getElementById('boardViewModal');
-    const body = document.getElementById('viewBody');
-    const titleEl = document.getElementById('viewTitle');
-    if (!modal || !body || !titleEl) return;
-    titleEl.textContent = item?.title || '게시글';
-    let payload = { id: item?.id };
-    const u = getUser();
-    // 관리자/작성자는 비밀번호 없이 시도
-    try {
-      let res = await fetch(API('/api/board_view.php'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-      if (res.status === 403 && item?.secret && !(u && (u.role==='admin' || (u.username||'').toLowerCase() === (item.author_username||'').toLowerCase()))){
-        const pw = window.prompt('비밀글입니다. 비밀번호를 입력하세요.');
-        if (!pw) { body.innerHTML = '<div class="loading">비밀글입니다. 작성자와 관리자만 열람 가능합니다.</div>'; modal.hidden = false; return; }
-        payload.password = pw;
-        res = await fetch(API('/api/board_view.php'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-      }
-      const j = await res.json();
-      if (!res.ok || !j.ok){
-        body.innerHTML = '<div class="loading">열람 권한이 없습니다.</div>';
-      } else {
-        const it = j.item || item;
-        const dateStr = it.timestamp ? new Date(it.timestamp).toLocaleString() : '';
-        let attHtml = '';
-        const atts = Array.isArray(it.attachments) ? it.attachments : [];
-        if (atts.length){
-          attHtml = '<div style="margin-top:12px;">첨부파일: ' + atts.map(a => `<a href="${a.url}" target="_blank" rel="noopener">${a.name||'파일'}</a>`).join(' · ') + '</div>';
-        }
-        body.innerHTML = `<div style=\"color:var(--muted);font-size:14px;margin-bottom:8px;\">작성자: ${it.author||'-'} · 등록일: ${dateStr} · 상태: ${it.status||'문의중'}</div><div style=\"white-space:pre-wrap;\">${(it.content||'')}</div>${attHtml}`;
-        // 관리자 상태 토글 버튼
-        const u2 = getUser();
-        if (u2 && u2.role === 'admin'){
-          const actions = document.createElement('div');
-          actions.style.marginTop = '12px';
-          const btnDone = document.createElement('button');
-          btnDone.className = 'btn btn-accent';
-          btnDone.textContent = '답변완료로 변경';
-          btnDone.onclick = async () => { try { await fetch(API('/api/board_status.php'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: it.id, status: '답변완료' }) }); load(); openView(it); } catch {} };
-          const btnPending = document.createElement('button');
-          btnPending.className = 'btn';
-          btnPending.style.marginLeft = '8px';
-          btnPending.textContent = '문의중으로 변경';
-          btnPending.onclick = async () => { try { await fetch(API('/api/board_status.php'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: it.id, status: '문의중' }) }); load(); openView(it); } catch {} };
-          actions.appendChild(btnDone);
-          actions.appendChild(btnPending);
-          body.appendChild(actions);
-        }
-        // 조회수는 서버에서 증가 처리함. 목록 갱신.
-        load();
-      }
-    } catch {
-      body.innerHTML = '<div class="loading">네트워크 오류로 불러오지 못했습니다.</div>';
-    }
-    modal.hidden = false;
-    modal.querySelectorAll('[data-modal-close]').forEach(el=>el.addEventListener('click', ()=>{ modal.hidden = true; }, { once: true }));
-  }
-
-  writeBtn.addEventListener('click', openWrite);
-  load();
-})();
-
 function showMainAdPopup() {
+  if (document.querySelector('.main-ad-popup')) return;
   if (localStorage.getItem('hideMainAdToday') === getTodayStr()) return;
   let popup = document.createElement('div');
   popup.className = 'main-ad-popup';
@@ -1651,23 +2188,11 @@ function getTodayStr() {
   const d = new Date();
   return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
 }
-if (document.body && location.pathname.endsWith('index.html')) {
-  window.addEventListener('DOMContentLoaded', showMainAdPopup);
+function isHomePage() {
+  const path = location.pathname.replace(/\\/g, '/');
+  return path.endsWith('/index.html') || path === '/' || path.endsWith('/SEPNPHP/');
 }
 
-function showMainAdPopupAlways() {
-  let popup = document.createElement('div');
-  popup.className = 'main-ad-popup';
-  popup.innerHTML = `
-    <div class="main-ad-content">
-      <strong>🚀 테스트 팝업</strong>
-      <p>이 팝업은 항상 뜹니다.<br>광고/이벤트/공지 등 원하는 내용을 넣으세요.</p>
-      <div class="main-ad-actions">
-        <button id="mainAdCloseBtn2">닫기</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(popup);
-  document.getElementById('mainAdCloseBtn2').onclick = () => popup.remove();
+if (document.body && isHomePage()) {
+  window.addEventListener('DOMContentLoaded', showMainAdPopup);
 }
-window.onload = showMainAdPopupAlways;

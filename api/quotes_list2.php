@@ -9,9 +9,15 @@ if (use_json_fallback()) {
 } else {
   $pdo = get_db();
   if ($pdo instanceof PDO) {
-    $stmt = $pdo->query('SELECT `id`, `name`, `product`, `message`, `email`, `phone`, `status`, `timestamp` FROM `quotes` ORDER BY `timestamp` DESC');
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode($rows, JSON_UNESCAPED_UNICODE);
+    try {
+      $stmt = $pdo->query('SELECT `id`, `name`, `company`, `position`, `product`, `message`, `email`, `phone`, `status`, `timestamp` FROM `quotes` ORDER BY `timestamp` DESC');
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+      echo json_encode($rows, JSON_UNESCAPED_UNICODE);
+    } catch (Throwable $e) {
+      $stmt = $pdo->query('SELECT `id`, `name`, `product`, `message`, `email`, `phone`, `status`, `timestamp` FROM `quotes` ORDER BY `timestamp` DESC');
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+      echo json_encode($rows, JSON_UNESCAPED_UNICODE);
+    }
   } else {
     echo json_encode([], JSON_UNESCAPED_UNICODE);
   }

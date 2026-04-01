@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="../assets/css/styles.css" />
     <style>
       .quote-landing { display: grid; gap: 16px; }
-      .quote-actions { display: flex; justify-content: flex-end; }
+      .quote-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+      .quote-actions { display: flex; justify-content: flex-end; gap: 10px; margin: 0; }
       .quote-note { color: var(--muted); font-size: 14px; }
     </style>
   </head>
@@ -27,9 +28,9 @@
         <nav class="site-nav" aria-label="주요">
           <ul>
             <li><a href="about.html">회사소개</a></li>
+            <li><a href="facility.html">시설 및 공정</a></li>
             <li><a href="products.html">제품소개</a></li>
             <li><a href="quote.html" aria-current="page">견적문의</a></li>
-            <li><a href="contact.html">문의 게시판</a></li>
           </ul>
         </nav>
         <div class="nav-actions" aria-label="계정 영역"></div>
@@ -37,16 +38,18 @@
     </header>
     <main class="container page-main">
       <section class="quote-landing">
-        <div class="section-header stack">
-          <h1 class="page-title section-title">견적문의</h1>
-          <p class="quote-note section-desc">등록된 견적문의 목록을 확인하고, 하단 버튼으로 새 견적을 등록하세요.</p>
+        <div class="quote-head">
+          <div class="section-header stack">
+            <h1 class="page-title section-title">견적문의</h1>
+            <p class="quote-note section-desc">등록된 견적문의 목록을 확인하고, 하단 버튼으로 새 견적을 등록하세요.</p>
+          </div>
+          <div class="quote-actions">
+            <a class="btn" href="quote-history.html">내 견적 내역</a>
+            <a class="btn btn-accent" href="quote-register.html">견적 문의 등록</a>
+          </div>
         </div>
         <div id="quotes-list" class="quotes-list" aria-live="polite" aria-busy="true">
           <div class="loading">견적 데이터를 불러오는 중…</div>
-        </div>
-        <div class="quote-actions">
-          <a class="btn" href="quote-history.html">내 견적 내역</a>
-          <a class="btn btn-accent" href="quote-register.html">견적 문의 등록</a>
         </div>
       </section>
     </main>

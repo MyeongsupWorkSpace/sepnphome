@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 header('Content-Type: application/json; charset=utf-8');
 
@@ -25,6 +26,7 @@ if (use_json_fallback()) {
   $allowed = true;
   if (!!($item['secret'] ?? false)) {
     $allowed = false;
+    if (session_status() !== PHP_SESSION_ACTIVE) { @session_start(); }
     $u = current_user_json();
     $isAdmin = !!($u && ($u['role'] ?? '') === 'admin');
     $isAuthor = !!($u && strcasecmp((string)($u['username'] ?? ''), (string)($item['author_username'] ?? '')) === 0);
@@ -55,6 +57,7 @@ if (use_json_fallback()) {
   $allowed = true;
   if ((int)($item['secret'] ?? 0) === 1) {
     $allowed = false;
+    if (session_status() !== PHP_SESSION_ACTIVE) { @session_start(); }
     $u = current_user($pdo);
     $isAdmin = !!($u && ($u['role'] ?? '') === 'admin');
     $isAuthor = !!($u && strcasecmp((string)($u['username'] ?? ''), (string)($item['author_username'] ?? '')) === 0);

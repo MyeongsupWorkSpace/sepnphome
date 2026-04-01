@@ -8,7 +8,7 @@ if (use_json_fallback()) {
 	json_out($rows);
 } else {
 	$pdo = get_db();
-		requireAdmin();
+	require_admin($pdo);
 	$stmt = $pdo->query('SELECT `id`, `username`, `nickname`, `rank`, `role`, `status`, `created_at` FROM `users` WHERE `status` = "승인대기" ORDER BY `created_at` DESC');
 	$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 	json_out($rows);

@@ -34,263 +34,7 @@
       display: flex;
       gap: 8px;
       margin-bottom: 16px;
-      align-items: center;
-    }
-    .search-bar input {
-      flex: 1;
-      height: 36px;
-      padding: 0 12px;
-      border: 1px solid var(--bd);
-      border-radius: 6px;
-      font-size: 14px;
-    }
-    .search-bar select {
-      height: 36px;
-      padding: 0 12px;
-      border: 1px solid var(--bd);
-      border-radius: 6px;
-      font-size: 14px;
-      min-width: 140px;
-    }
-    
-    .btn { 
-      height:36px; 
-      padding:0 16px; 
-      border:1px solid var(--bd); 
-      border-radius:6px; 
-      background:#fff; 
-      color:#111; 
-      cursor:pointer; 
-      font-size:14px;
-      white-space: nowrap;
-    }
-    .btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
-    .btn:hover { opacity: 0.9; }
-    
-    .product-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .product-table thead {
-      background: var(--bg-soft);
-    }
-    .product-table th {
-      padding: 12px 8px;
-      text-align: left;
-      font-weight: 600;
-      font-size: 13px;
-      color: var(--fg);
-      border-bottom: 2px solid var(--bd);
-    }
-    .product-table td {
-      padding: 12px 8px;
-      font-size: 14px;
-      border-bottom: 1px solid #f0f0f0;
-    }
-    .product-table tbody tr:hover {
-      background: #f8f9fa;
-    }
-    .product-table tbody tr {
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--fg2);
-    }
-    
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    .badge.process {
-      background: #e7f3ff;
-      color: #0078d4;
-    }
-    
-    /* 상세 모달 */
-    .modal { 
-      position:fixed; 
-      inset:0; 
-      background:rgba(0,0,0,.35); 
-      display:flex; 
-      align-items:center; 
-      justify-content:center; 
-      opacity:0; 
-      visibility:hidden; 
-      transition:.15s; 
-      z-index:10000; 
-    }
-    .modal.show { opacity:1; visibility:visible; }
-    .modal-card { 
-      background:#fff; 
-      width:min(92vw,700px); 
-      max-height: 90vh;
-      overflow-y: auto;
-      border-radius:12px; 
-      box-shadow:0 10px 30px rgba(0,0,0,.2); 
-      padding:24px; 
-      position:relative; 
-    }
-    .modal-card h3 { margin:0 0 16px; font-size: 20px; }
-    .modal-close { 
-      position:absolute; 
-      top:16px; 
-      right:16px; 
-      border:none; 
-      background:transparent; 
-      font-size:24px; 
-      cursor:pointer; 
-      color:#777; 
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-    }
-    .modal-close:hover { background: #f0f0f0; color:#dc3545; }
-    
-    .detail-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    .detail-item {
-      padding: 12px;
-      background: var(--bg-soft);
-      border-radius: 6px;
-    }
-    .detail-item label {
-      display: block;
-      font-size: 12px;
-      color: var(--fg2);
-      margin-bottom: 4px;
-    }
-    .detail-item .value {
-      font-size: 14px;
-      font-weight: 500;
-      color: #111;
-    }
-    
-    .process-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .process-list li {
-      padding: 4px 10px;
-      background: #e7f3ff;
-      border: 1px solid #b3d9ff;
-      border-radius: 4px;
-      font-size: 13px;
-    }
-    
-    .modal-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid var(--bd);
-    }
-    
-    .stats {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-    .stat-card {
-      flex: 1;
-      min-width: 150px;
-      padding: 16px;
-      background: var(--bg-soft);
-      border-radius: 8px;
-      border: 1px solid var(--bd);
-    }
-    .stat-card label {
-      display: block;
-      font-size: 12px;
-      color: var(--fg2);
-      margin-bottom: 4px;
-    }
-    .stat-card .value {
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--primary);
-    }
-  </style>
-</head>
-<body>
-  <!-- 고정 헤더 -->
-  <header class="fixed-header"></header>
-
-  <main class="container">
-    <div class="card">
-      <h2>제품 목록</h2>
-      
-      <!-- 통계 -->
-      <div class="stats">
-        <div class="stat-card">
-          <label>전체 제품</label>
-          <div class="value" id="statTotal">0</div>
-        </div>
-        <div class="stat-card">
-          <label>거래처 수</label>
-          <div class="value" id="statVendors">0</div>
-        </div>
-      </div>
-      
-      <!-- 검색 바 -->
-      <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="제품명, 거래처 검색..." />
-        <select id="filterVendor">
-          <option value="">전체 거래처</option>
-        </select>
-        <button class="btn primary" id="btnRefresh">🔄 새로고침</button>
-      </div>
-      
-      <!-- 제품 테이블 -->
-      <div id="tableContainer"></div>
-    </div>
-  </main>
-
-  <!-- 상세 모달 -->
-  <div id="detailModal" class="modal">
-    <div class="modal-card">
-      <button type="button" id="btnDetailClose" class="modal-close">✕</button>
-      <h3 id="detailTitle">제품 상세</h3>
-      
-      <div class="detail-grid" id="detailContent"></div>
-      
-      <div id="processSection" style="margin-top: 16px;">
-        <h4 style="margin: 0 0 8px; font-size: 16px;">공정 정보</h4>
-        <ul class="process-list" id="processList"></ul>
-      </div>
-      
-      <div class="modal-actions">
-        <button class="btn" id="btnEdit">수정</button>
-        <button class="btn" id="btnDelete" style="color: #dc3545; border-color: #dc3545;">삭제</button>
-      </div>
-    </div>
-  </div>
-
-<script src="assets/api.js"></script>
-<script src="assets/nav.js"></script>
-<script>
+      <script src="assets/product-list.page.js"></script>
 // 로그인 확인(동일 동작)
 const empNo = sessionStorage.getItem('sepnp_emp_no');
 if (!empNo) {
@@ -364,48 +108,70 @@ function renderTable() {
       </div>`;
     return;
   }
-  
-  container.innerHTML = `
-    <table class="product-table">
-      <thead>
-        <tr>
-          <th style="width: 50px;">#</th>
-          <th>거래처</th>
-          <th>제품명</th>
-          <th>용지</th>
-          <th>크기(장×폭×고)</th>
-          <th>단가</th>
-          <th>공정</th>
-          <th style="width: 160px;">등록</th>
-          <th style="width: 160px;">수정</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${filtered.map((p, idx) => `
-          <tr data-id="${p.id || idx}">
-            <td>${idx + 1}</td>
-            <td><strong>${escapeHtml(p.vendor || '-')}</strong></td>
-            <td>${escapeHtml(p.name || '-')}</td>
-            <td>${escapeHtml(p.paper?.type || '-')}</td>
-            <td>${formatSize(p.size)}</td>
-            <td>${formatPrice(p.price)}</td>
-            <td>
-              <span class="badge process">${(p.processes || []).length}개</span>
-            </td>
-            <td style="color: #888; font-size: 12px;">
-              ${formatAudit(p.createdAt, p.createdBy)}
-            </td>
-            <td style="color: #888; font-size: 12px;">
-              ${formatAudit(p.updatedAt, p.updatedBy)}
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>`;
-  
-  // 행 클릭 이벤트
-  container.querySelectorAll('tbody tr').forEach((tr, idx) => {
-    tr.addEventListener('click', () => showDetail(filtered[idx]));
+
+  const grouped = filtered.reduce((acc, p) => {
+    const key = (p.vendor || '').trim() || '미지정';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(p);
+    return acc;
+  }, {});
+
+  const vendorKeys = Object.keys(grouped).sort((a, b) => a.localeCompare(b, 'ko'));
+  const flat = [];
+
+  container.innerHTML = vendorKeys.map((vendorName) => {
+    const list = grouped[vendorName] || [];
+    const rows = list.map((p, idx) => {
+      const flatIndex = flat.length;
+      flat.push(p);
+      return `
+        <tr data-index="${flatIndex}">
+          <td>${idx + 1}</td>
+          <td><strong>${escapeHtml(p.vendor || '-')}</strong></td>
+          <td>${escapeHtml(p.name || '-')}</td>
+          <td>${escapeHtml(p.paper?.type || '-')}</td>
+          <td>${formatSize(p.size)}</td>
+          <td>${formatPrice(p.price)}</td>
+          <td>
+            <span class="badge process">${(p.processes || []).length}개</span>
+          </td>
+          <td style="color: #888; font-size: 12px;">
+            ${formatAudit(p.createdAt, p.createdBy)}
+          </td>
+          <td style="color: #888; font-size: 12px;">
+            ${formatAudit(p.updatedAt, p.updatedBy)}
+          </td>
+        </tr>`;
+    }).join('');
+
+    return `
+      <div class="vendor-group">
+        <div class="vendor-title">${escapeHtml(vendorName)} <span class="vendor-count">${list.length}</span></div>
+        <table class="product-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th>거래처</th>
+              <th>제품명</th>
+              <th>용지</th>
+              <th>크기(장×폭×고)</th>
+              <th>단가</th>
+              <th>공정</th>
+              <th style="width: 160px;">등록</th>
+              <th style="width: 160px;">수정</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>`;
+  }).join('');
+
+  container.querySelectorAll('tbody tr').forEach((tr) => {
+    const idx = Number(tr.dataset.index);
+    if (!Number.isFinite(idx) || !flat[idx]) return;
+    tr.addEventListener('click', () => showDetail(flat[idx]));
   });
 }
 

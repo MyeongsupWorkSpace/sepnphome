@@ -1,4 +1,5 @@
 <?php
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 header('Content-Type: application/json; charset=utf-8');
 
@@ -23,6 +24,7 @@ if (use_json_fallback()) {
   if (($user['status'] ?? '') !== '승인완료' && ($user['role'] ?? '') !== 'admin') {
     json_out(['ok'=>false,'error'=>'pending_approval'], 403); exit;
   }
+  if (session_status() !== PHP_SESSION_ACTIVE) { @session_start(); }
   $_SESSION['user_name'] = (string)$user['username'];
   if (session_status() === PHP_SESSION_ACTIVE) { @session_write_close(); }
   json_out(['ok'=>true,'user'=>$user]);
@@ -41,6 +43,7 @@ if (use_json_fallback()) {
   if ($user['status'] !== '승인완료' && $user['role'] !== 'admin') {
     json_out(['ok'=>false,'error'=>'pending_approval'], 403); exit;
   }
+  if (session_status() !== PHP_SESSION_ACTIVE) { @session_start(); }
   $_SESSION['user_id'] = (int)$user['id'];
   if (session_status() === PHP_SESSION_ACTIVE) { @session_write_close(); }
   json_out(['ok'=>true,'user'=>[

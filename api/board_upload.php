@@ -33,7 +33,7 @@ foreach ($_FILES as $key => $file) {
   $safe = sanitize_name($orig);
   $target = $uploadDir . DIRECTORY_SEPARATOR . (uniqid('att_') . '_' . $safe);
   if (@move_uploaded_file($tmp, $target)) {
-    $rel = 'uploads/' . basename($target);
+    $rel = '/uploads/' . basename($target);
     $results[] = [ 'name' => $orig, 'path' => $target, 'url' => $rel, 'size' => $size, 'type' => $type ];
   }
 }

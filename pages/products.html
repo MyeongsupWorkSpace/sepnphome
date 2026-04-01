@@ -22,16 +22,16 @@
         <nav class="site-nav" aria-label="주요">
           <ul>
             <li><a href="about.html">회사소개</a></li>
+            <li><a href="facility.html">시설 및 공정</a></li>
             <li><a href="products.html" aria-current="page">제품소개</a></li>
             <li><a href="quote.html">견적문의</a></li>
-            <li><a href="contact.html">문의 게시판</a></li>
           </ul>
         </nav>
         <div class="nav-actions" aria-label="계정 영역"></div>
       </div>
     </header>
     <main class="container page-main">
-      <section class="products-hero" id="type-view">
+      <section class="products-hero is-hidden" id="type-view">
         <div class="section-header stack">
           <h1 class="page-title section-title">제품소개</h1>
           <p class="section-desc">분야별 제작 노하우를 담은 핵심 제품군을 소개합니다. 이미지와 상세 페이지는 필요에 따라 교체하세요.</p>
@@ -47,37 +47,37 @@
         </div>
       </section>
 
-      <section class="tab-panel is-active" data-tab-panel="color-box" data-tab-group="type" aria-label="칼라박스">
+      <section class="tab-panel is-active is-hidden" data-tab-panel="color-box" data-tab-group="type" aria-label="칼라박스">
         <div class="product-embed">
           <iframe class="product-iframe" src="products/color-box.html" title="칼라박스" loading="lazy" scrolling="no"></iframe>
         </div>
       </section>
 
-      <section class="tab-panel" data-tab-panel="corrugated" data-tab-group="type" aria-label="골판지 박스">
+      <section class="tab-panel is-hidden" data-tab-panel="corrugated" data-tab-group="type" aria-label="골판지 박스">
         <div class="product-embed">
           <iframe class="product-iframe" src="products/corrugated-box.html" title="골판지 박스" loading="lazy" scrolling="no"></iframe>
         </div>
       </section>
 
-      <section class="tab-panel" data-tab-panel="special" data-tab-group="type" aria-label="특수인쇄">
+      <section class="tab-panel is-hidden" data-tab-panel="special" data-tab-group="type" aria-label="특수인쇄">
         <div class="product-embed">
           <iframe class="product-iframe" src="products/special-printing.html" title="특수인쇄" loading="lazy" scrolling="no"></iframe>
         </div>
       </section>
 
-      <section class="tab-panel" data-tab-panel="commercial" data-tab-group="type" aria-label="상업인쇄">
+      <section class="tab-panel is-hidden" data-tab-panel="commercial" data-tab-group="type" aria-label="상업인쇄">
         <div class="product-embed">
           <iframe class="product-iframe" src="products/commercial-printing.html" title="상업인쇄" loading="lazy" scrolling="no"></iframe>
         </div>
       </section>
 
-      <section class="tab-panel" data-tab-panel="shopping-bag" data-tab-group="type" aria-label="쇼핑백">
+      <section class="tab-panel is-hidden" data-tab-panel="shopping-bag" data-tab-group="type" aria-label="쇼핑백">
         <div class="product-embed">
           <iframe class="product-iframe" src="products/shopping-bag.html" title="쇼핑백" loading="lazy" scrolling="no"></iframe>
         </div>
       </section>
 
-      <section class="tab-panel" data-tab-panel="etc" data-tab-group="type" aria-label="기타">
+      <section class="tab-panel is-hidden" data-tab-panel="etc" data-tab-group="type" aria-label="기타">
         <div class="product-embed">
           <iframe class="product-iframe" src="products/etc.html" title="기타" loading="lazy" scrolling="no"></iframe>
         </div>
@@ -101,64 +101,5 @@
       </div>
     </footer>
     <script src="../assets/js/main.js"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const tabBars = document.querySelectorAll(".tab-bar[data-tab-group]");
-        const resizeIframe = (frame) => {
-          if (!frame) return;
-          try {
-            const doc = frame.contentDocument || frame.contentWindow?.document;
-            if (!doc) return;
-            const height = Math.max(
-              doc.body?.scrollHeight || 0,
-              doc.documentElement?.scrollHeight || 0
-            );
-            if (height) frame.style.height = `${height}px`;
-          } catch {}
-        };
-
-        document.querySelectorAll('.product-iframe').forEach((frame) => {
-          frame.addEventListener('load', () => resizeIframe(frame));
-        });
-
-        tabBars.forEach((bar) => {
-          const group = bar.dataset.tabGroup;
-          const tabs = bar.querySelectorAll(".tab-btn[data-tab-target]");
-          const panels = document.querySelectorAll(`.tab-panel[data-tab-group="${group}"]`);
-          const applyTab = (target, activeTab) => {
-            tabs.forEach((btn) => {
-              const isActive = btn === activeTab;
-              btn.classList.toggle("is-active", isActive);
-              btn.setAttribute("aria-selected", isActive ? "true" : "false");
-            });
-
-            panels.forEach((panel) => {
-              const isAll = target === "all";
-              const isMatch = panel.dataset.tabPanel === target;
-              panel.classList.toggle("is-active", isAll || isMatch);
-            });
-
-            if (group === 'type') {
-              const activePanel = document.querySelector(`.tab-panel.is-active[data-tab-group="${group}"]`);
-              const frame = activePanel?.querySelector('.product-iframe');
-              if (frame) {
-                setTimeout(() => resizeIframe(frame), 50);
-              }
-            }
-          };
-
-          tabs.forEach((tab) => {
-            tab.addEventListener("click", () => {
-              applyTab(tab.dataset.tabTarget, tab);
-            });
-          });
-
-          const defaultTab = bar.querySelector(".tab-btn.is-active") || tabs[0];
-          if (defaultTab) {
-            applyTab(defaultTab.dataset.tabTarget, defaultTab);
-          }
-        });
-      });
-    </script>
   </body>
 </html>

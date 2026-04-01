@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>시설 및 공정 — SEPNP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+    <style>
+      .facility-tabs { margin: 8px 0 24px; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(135deg, #fff 0%, #f7f4f2 100%); box-shadow: var(--shadow-sm); }
+      .tab-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; padding: 0; list-style: none; }
+      .tab-button { border: 1px solid var(--border); background: #fff; border-radius: 999px; padding: 8px 14px; font-weight: 600; cursor: pointer; transition: background .2s ease, border-color .2s ease, box-shadow .2s ease; }
+      .tab-button[aria-selected="true"] { border-color: var(--accent); background: rgba(140,47,57,0.08); box-shadow: 0 10px 24px rgba(140,47,57,0.16); }
+      .tab-panel { display: none; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: #fff; }
+      .tab-panel.is-active { display: block; }
+      .tab-panel p { margin: 0 0 8px; }
+      .tab-panel ul { margin: 0; padding-left: 18px; }
+      .media-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; margin-top: 12px; }
+      .media-card { border: 1px solid var(--border); border-radius: 14px; background: var(--bg-elev); box-shadow: var(--shadow-sm); overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+      .media-card img { width: 100%; height: 180px; object-fit: cover; display: block; background: var(--bg-muted); }
+      .media-body { padding: 12px 14px 14px; display: grid; gap: 6px; }
+      .media-title { margin: 0; font-size: 15px; font-weight: 700; }
+      .media-desc { margin: 0; color: var(--muted); font-size: 13px; }
+      .media-list { margin: 2px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+      .media-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+      .media-chip { font-size: 12px; padding: 4px 8px; border-radius: 999px; background: var(--bg-muted); border: 1px solid var(--border); }
+      .process-flow { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 10px; margin-top: 12px; }
+      .flow-step { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--bg-elev); display: grid; gap: 6px; position: relative; }
+      .flow-step::after { content: "→"; position: absolute; right: -16px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 700; }
+      .flow-step:last-child::after { content: ""; }
+      .flow-num { font-size: 12px; color: var(--muted); font-weight: 700; }
+      .flow-title { margin: 0; font-size: 14px; font-weight: 700; }
+      .flow-desc { margin: 0; color: var(--muted); font-size: 12.5px; }
+      @media (max-width: 1024px) { .media-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .process-flow { grid-template-columns: repeat(3, minmax(0,1fr)); } .flow-step::after { display: none; } }
+      @media (max-width: 640px) { .media-grid { grid-template-columns: 1fr; } .process-flow { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="../index.html" class="logo" aria-label="홈으로 이동">
+          <img src="../assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요">
+          <ul>
+            <li><a href="about.html">회사소개</a></li>
+            <li><a href="facility.html" aria-current="page">시설 및 공정</a></li>
+            <li><a href="products.html">제품소개</a></li>
+            <li><a href="quote.html">견적문의</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+    <main class="container page-main">
+      <div class="section-header stack">
+        <h1 class="page-title section-title">시설 및 공정</h1>
+        <p class="section-desc">인쇄 품질과 납기를 책임지는 SEPNP의 생산 인프라를 소개합니다.</p>
+      </div>
+      <section class="facility-tabs" aria-label="시설 및 공정 소개">
+        <ul class="tab-list" role="tablist" aria-label="시설 및 공정 탭">
+          <li><button type="button" class="tab-button" role="tab" aria-selected="true" aria-controls="tab-machine" id="tab-machine-btn">기계소개</button></li>
+          <li><button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-flow" id="tab-flow-btn">공정흐름도</button></li>
+        </ul>
+        <div id="tab-machine" class="tab-panel is-active" role="tabpanel" aria-labelledby="tab-machine-btn">
+          <p>보유 장비를 공정별로 구성했습니다. 샘플부터 후가공까지 일관된 품질을 보장합니다.</p>
+          <div class="media-grid" aria-label="보유 장비 목록">
+            <article class="media-card">
+              <img src="../assets/img/기계/샘플러.png" alt="샘플러" loading="lazy" />
+              <div class="media-body">
+                <h3 class="media-title">샘플러</h3>
+                <ul class="media-list">
+                  <li>Kongsberg 샘플러</li>
+                </ul>
+              </div>
+            </article>
+            <article class="media-card">
+              <img src="../assets/img/기계/제판.png" alt="제판 장비" loading="lazy" />
+              <div class="media-body">
+                <h3 class="media-title">제판</h3>
+                <ul class="media-list">
+                  <li>스크린CTP</li>
+                  <li>후지 필름현상기</li>
+                  <li>신성 PS판 정렬기</li>
+                </ul>
+              </div>
+            </article>
+            <article class="media-card">
+              <img src="../assets/img/기계/제단기.png" alt="재단 장비" loading="lazy" />
+              <div class="media-body">
+                <h3 class="media-title">재단</h3>
+                <ul class="media-list">
+                  <li>폴라 재단기</li>
+                  <li>기타 트랜거</li>
+                </ul>
+              </div>
+            </article>
+            <article class="media-card">
+              <img src="../assets/img/기계/인쇄기.png" alt="인쇄 장비" loading="lazy" />
+              <div class="media-body">
+                <h3 class="media-title">인쇄</h3>
+                <ul class="media-list">
+                  <li>미쯔비시 A(4컬러)</li>
+                  <li>미쯔비시 D(4컬러)</li>
+                  <li>미쯔비시 로영(4컬러)</li>
+                </ul>
+              </div>
+            </article>
+            <article class="media-card">
+              <img src="../assets/img/기계/코팅기.png" alt="코팅 장비" loading="lazy" />
+              <div class="media-body">
+                <h3 class="media-title">코팅</h3>
+                <ul class="media-list">
+                  <li>보빈면 라미 코팅기</li>
+                  <li>엠보코팅 자동기</li>
+                  <li>타마다 UV코팅기</li>
+                  <li>콜드엠보싱기</li>
+                </ul>
+              </div>
+            </article>
+            <article class="media-card">
+              <img src="../assets/img/기계/금박기.png" alt="금박 장비" loading="lazy" />
+              <div class="media-body">
+                <h3 class="media-title">금박</h3>
+                <ul class="media-list">
+                  <li>후지 1020 연단금박기</li>
+                  <li>하이델베르그 실크대</li>
+                </ul>
+              </div>
+            </article>
+            <article class="media-card">
+              <img src="../assets/img/기계/합지기.png" alt="합지 장비" loading="lazy" />
+              <div class="media-body">
+                <h3 class="media-title">합지</h3>
+                <ul class="media-list">
+                  <li>조소 ST-1300L 자동</li>
+                </ul>
+              </div>
+            </article>
+            <article class="media-card">
+              <img src="../assets/img/기계/톰슨.png" alt="톰슨 장비" loading="lazy" />
+              <div class="media-body">
+                <h3 class="media-title">톰슨</h3>
+                <ul class="media-list">
+                  <li>아사히 1030 1대</li>
+                  <li>아사히 1050 1대</li>
+                  <li>조소 1030 1대</li>
+                  <li>오성 1060 1대</li>
+                </ul>
+              </div>
+            </article>
+            <article class="media-card">
+              <img src="../assets/img/기계/접착기.png" alt="접착 장비" loading="lazy" />
+              <div class="media-body">
+                <h3 class="media-title">접착</h3>
+                <ul class="media-list">
+                  <li>자동 접착 라인</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div id="tab-flow" class="tab-panel" role="tabpanel" aria-labelledby="tab-flow-btn">
+          <p>디자인 검수부터 출고까지 표준 공정 흐름으로 일정과 품질을 동시에 관리합니다.</p>
+          <div class="process-flow" aria-label="공정 흐름도">
+            <div class="flow-step">
+              <div class="flow-num">01</div>
+              <h3 class="flow-title">디자인 검수</h3>
+              <p class="flow-desc">칼선/색상/오탈자 점검</p>
+            </div>
+            <div class="flow-step">
+              <div class="flow-num">02</div>
+              <h3 class="flow-title">교정지 승인</h3>
+              <p class="flow-desc">샘플 확인 및 수정 반영</p>
+            </div>
+            <div class="flow-step">
+              <div class="flow-num">03</div>
+              <h3 class="flow-title">인쇄</h3>
+              <p class="flow-desc">컬러 기준 유지, 농도 관리</p>
+            </div>
+            <div class="flow-step">
+              <div class="flow-num">04</div>
+              <h3 class="flow-title">재단/합지</h3>
+              <p class="flow-desc">규격 정밀 재단 및 접합</p>
+            </div>
+            <div class="flow-step">
+              <div class="flow-num">05</div>
+              <h3 class="flow-title">후가공</h3>
+              <p class="flow-desc">코팅, 박, 형압 적용</p>
+            </div>
+            <div class="flow-step">
+              <div class="flow-num">06</div>
+              <h3 class="flow-title">검수/출고</h3>
+              <p class="flow-desc">전수/샘플 검사 후 납품</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-divider"></div>
+      <div class="container footer-bottom">
+        <div class="footer-bottom-inner">
+          <div class="footer-meta">
+            <div class="footer-links" aria-label="정책 링크">
+              <a href="#" class="footer-link">개인정보처리방침</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">이용약관</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">문의하기</a>
+            </div>
+          </div>
+          <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+        </div>
+      </div>
+    </footer>
+    <script src="../assets/js/main.js"></script>
+  </body>
+</html>

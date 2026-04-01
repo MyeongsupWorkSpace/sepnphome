@@ -10,8 +10,8 @@
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/styles.css" />
     <style>
-      .form-wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 12px; }
-      .form { width: 100%; display: grid; gap: 14px; max-width: 760px; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--bg-elev); box-shadow: var(--shadow-sm); overflow-wrap: break-word; }
+      .form-wrap { width: min(760px, 100%); max-width: 760px; margin: 0 auto; display: grid; gap: 12px; }
+      .form { width: 100%; max-width: 760px; display: grid; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--bg-elev); box-shadow: var(--shadow-sm); overflow-wrap: break-word; }
       .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; justify-content: start; align-items: start; }
       .grid-2.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: start; column-gap: 12px; }
       .stack-2 { display: grid; gap: 12px; }
@@ -96,6 +96,15 @@
       .row.is-hidden { display: none; }
       .section-block { padding: 10px; border-radius: 12px; background: var(--bg-muted); border: 1px solid var(--border); max-width: none; margin: 0; }
       .actions { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
+      .facility-tabs { margin: 16px 0 20px; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(135deg, #fff 0%, #f7f4f2 100%); box-shadow: var(--shadow-sm); }
+      .facility-tabs h2 { margin: 0 0 10px; font-size: 20px; }
+      .tab-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; padding: 0; list-style: none; }
+      .tab-button { border: 1px solid var(--border); background: #fff; border-radius: 999px; padding: 8px 14px; font-weight: 600; cursor: pointer; transition: background .2s ease, border-color .2s ease, box-shadow .2s ease; }
+      .tab-button[aria-selected="true"] { border-color: var(--accent); background: rgba(140,47,57,0.08); box-shadow: 0 10px 24px rgba(140,47,57,0.16); }
+      .tab-panel { display: none; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: #fff; }
+      .tab-panel.is-active { display: block; }
+      .tab-panel p { margin: 0 0 8px; }
+      .tab-panel ul { margin: 0; padding-left: 18px; }
       @media (max-width: 900px) { .subgrid-3 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
       @media (max-width: 768px) {
         .grid-2 { grid-template-columns: 1fr; }
@@ -121,9 +130,9 @@
         <nav class="site-nav" aria-label="주요">
           <ul>
             <li><a href="about.html">회사소개</a></li>
+            <li><a href="facility.html">시설 및 공정</a></li>
             <li><a href="products.html">제품소개</a></li>
             <li><a href="quote.html" aria-current="page">견적문의</a></li>
-            <li><a href="contact.html">문의 게시판</a></li>
           </ul>
         </nav>
         <div class="nav-actions" aria-label="계정 영역"></div>
@@ -132,40 +141,82 @@
     <main class="container page-main">
       <div class="form-wrap">
       <h1 class="page-title">견적 문의 등록</h1>
+      <section id="facility" class="facility-tabs" aria-label="시설 및 공정 소개">
+        <h2>시설 및 공정</h2>
+        <ul class="tab-list" role="tablist" aria-label="시설 및 공정 탭">
+          <li><button type="button" class="tab-button" role="tab" aria-selected="true" aria-controls="tab-facility" id="tab-facility-btn">시설소개</button></li>
+          <li><button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-machine" id="tab-machine-btn">기계소개</button></li>
+          <li><button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-process" id="tab-process-btn">공정소개</button></li>
+        </ul>
+        <div id="tab-facility" class="tab-panel is-active" role="tabpanel" aria-labelledby="tab-facility-btn">
+          <p>주문부터 출고까지 한 번에 처리되는 원스톱 인쇄 허브로, 종이 보관부터 품질 검수까지 동선이 최적화되어 있습니다.</p>
+          <ul>
+            <li>원지 창고-재단-인쇄-후가공-포장까지 직선 흐름 설계</li>
+            <li>습도/온도 관리로 색상 편차를 최소화하는 작업환경</li>
+            <li>샘플 룸에서 고객 확인 후 즉시 본작업 전환</li>
+          </ul>
+        </div>
+        <div id="tab-machine" class="tab-panel" role="tabpanel" aria-labelledby="tab-machine-btn">
+          <p>패키지 인쇄에 특화된 장비군으로 소량-대량 주문 모두 대응합니다.</p>
+          <ul>
+            <li>6도 옵셋 인쇄기: 고해상도 컬러 재현과 균일한 품질</li>
+            <li>자동 톰슨: 복잡한 칼선도 정밀하게 컷팅</li>
+            <li>UV/라미네이팅 라인: 다양한 후가공 옵션 즉시 적용</li>
+          </ul>
+        </div>
+        <div id="tab-process" class="tab-panel" role="tabpanel" aria-labelledby="tab-process-btn">
+          <p>인쇄 전 데이터 검수부터 출고까지 표준 공정을 운영합니다.</p>
+          <ul>
+            <li>디자인 검수-색상 교정-교정지 승인 프로세스</li>
+            <li>재단/인쇄/합지/후가공 단계별 QC 체크</li>
+            <li>납기별 라인 배정으로 일정 준수율 향상</li>
+          </ul>
+        </div>
+      </section>
       <form class="form" id="quoteForm">
         <div class="stack-2">
           <div class="field">
             <label>박스타입</label>
             <div class="chip-preview" aria-live="polite">
-              <img id="boxTypePreview" src="../assets/img/3면 예시.jpg" alt="C타입 3면접착 미리보기" />
+              <img id="boxTypePreview" src="../assets/img/견적 예시 이미지/3면 예시.jpg" alt="C타입 3면접착 미리보기" />
               <div id="boxTypePreviewLabel" class="muted">C타입 3면접착 미리보기</div>
             </div>
             <div class="chip-group" role="radiogroup" aria-label="박스타입 선택">
               <label>
-                <input type="radio" name="box_type" value="A타입 1면접착" data-preview="../assets/img/PD_1.jpg" required />
+                <input type="radio" name="box_type" value="A타입 1면접착" data-preview="../assets/img/견적 예시 이미지/1면접착 예시.png" required />
                 <span class="chip"><span class="chip-icon" aria-hidden="true"></span>A타입 1면접착</span>
               </label>
               <label>
-                <input type="radio" name="box_type" value="B타입 2면접착" data-preview="../assets/img/PD_2.jpg" />
+                <input type="radio" name="box_type" value="B타입 2면접착" data-preview="../assets/img/견적 예시 이미지/2면 접착 예시.png" />
                 <span class="chip"><span class="chip-icon" aria-hidden="true"></span>B타입 2면접착</span>
               </label>
               <label>
-                <input type="radio" name="box_type" value="C타입 3면접착" data-preview="../assets/img/3면 예시.jpg" checked />
+                <input type="radio" name="box_type" value="C타입 3면접착" data-preview="../assets/img/견적 예시 이미지/3면 예시.jpg" checked />
                 <span class="chip"><span class="chip-icon" aria-hidden="true"></span>C타입 3면접착</span>
               </label>
               <label>
-                <input type="radio" name="box_type" value="D타입 조립식 박스" data-preview="../assets/img/PD_4.jpg" />
+                <input type="radio" name="box_type" value="D타입 조립식 박스" data-preview="../assets/img/견적 예시 이미지/조리박스 예시.png" />
                 <span class="chip"><span class="chip-icon" aria-hidden="true"></span>D타입 조립식 박스</span>
               </label>
               <label>
-                <input type="radio" name="box_type" value="E타입 자동카토너" data-preview="../assets/img/PD_5.jpg" />
+                <input type="radio" name="box_type" value="E타입 자동카토너" data-preview="../assets/img/견적 예시 이미지/자동카토너 예시.png" />
                 <span class="chip"><span class="chip-icon" aria-hidden="true"></span>E타입 자동카토너</span>
               </label>
             </div>
           </div>
           <div class="grid-2">
             <div class="field">
-              <label for="name">성함</label>
+              <label for="company">회사명</label>
+              <input id="company" name="company" required />
+            </div>
+            <div class="field">
+              <label for="position">직급</label>
+              <input id="position" name="position" placeholder="예: 과장" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="name">성명</label>
               <input id="name" name="name" required />
             </div>
             <div class="field">
@@ -242,6 +293,8 @@
               <label class="chk"><input type="checkbox" name="coating[]" value="유광CR" /> 유광CR</label>
               <label class="chk"><input type="checkbox" name="coating[]" value="무광라미" /> 무광라미</label>
               <label class="chk"><input type="checkbox" name="coating[]" value="유광라미" /> 유광라미</label>
+              <label class="chk"><input type="checkbox" name="coating[]" value="오버코팅" /> 오버코팅</label>
+              <label class="chk"><input type="checkbox" name="coating[]" value="부분유광코팅(실크)" /> 부분유광코팅(실크)</label>
             </div>
             <div class="row">
               <label class="chk"><input id="finFoil" type="checkbox" name="finishing[]" value="금박" aria-controls="foilOptions" /> 금박</label>
@@ -288,180 +341,5 @@
       </div>
     </footer>
     <script src="../assets/js/main.js"></script>
-    <script>
-      // 로그인 필요: 미로그인 시 로그인 페이지로 이동
-      (function(){
-        try {
-          const raw = localStorage.getItem('sepn_user');
-          const u = raw ? JSON.parse(raw) : null;
-          if (!u || !u.username) {
-            const ret = encodeURIComponent(location.pathname);
-            location.href = 'login.html?return=' + ret;
-            return;
-          }
-        } catch {
-          const ret = encodeURIComponent(location.pathname);
-          location.href = 'login.html?return=' + ret;
-          return;
-        }
-      })();
-      const form = document.getElementById('quoteForm');
-      const statusEl = document.getElementById('status');
-      // 코팅 선택 시 하위 옵션 토글
-      const finCoating = document.getElementById('finCoating');
-      const coatingRow = document.getElementById('coatingOptions');
-      function updateCoatingVisibility(){
-        const show = !!(finCoating && finCoating.checked);
-        if (coatingRow){
-          coatingRow.classList.toggle('is-hidden', !show);
-          if (!show){
-            coatingRow.querySelectorAll('input[name="coating[]"]').forEach(cb => { cb.checked = false; });
-          }
-        }
-      }
-      finCoating && finCoating.addEventListener('change', updateCoatingVisibility);
-      updateCoatingVisibility();
-      // 금박/형압 선택 시 사이즈 입력 토글
-      const finFoil = document.getElementById('finFoil');
-      const foilRow = document.getElementById('foilOptions');
-      function updateFoilVisibility(){
-        const show = !!(finFoil && finFoil.checked);
-        if (foilRow){
-          foilRow.classList.toggle('is-hidden', !show);
-          if (!show){
-            const fw = document.getElementById('foil_w');
-            const fh = document.getElementById('foil_h');
-            if (fw) fw.value = '';
-            if (fh) fh.value = '';
-          }
-        }
-      }
-      finFoil && finFoil.addEventListener('change', updateFoilVisibility);
-      updateFoilVisibility();
-
-      const finEmboss = document.getElementById('finEmboss');
-      const embossRow = document.getElementById('embossOptions');
-      function updateEmbossVisibility(){
-        const show = !!(finEmboss && finEmboss.checked);
-        if (embossRow){
-          embossRow.classList.toggle('is-hidden', !show);
-          if (!show){
-            const ew = document.getElementById('emboss_w');
-            const eh = document.getElementById('emboss_h');
-            if (ew) ew.value = '';
-            if (eh) eh.value = '';
-          }
-        }
-      }
-      finEmboss && finEmboss.addEventListener('change', updateEmbossVisibility);
-      updateEmbossVisibility();
-      // 연락처 자동 포커스 이동
-      const phone1 = document.getElementById('phone1');
-      const phone2 = document.getElementById('phone2');
-      const phone3 = document.getElementById('phone3');
-      function onlyDigits(el){ if (!el) return; el.value = el.value.replace(/\D+/g, ''); }
-      phone1?.addEventListener('input', () => {
-        onlyDigits(phone1);
-        if (phone1.value.length >= 3) phone2?.focus();
-      });
-      phone2?.addEventListener('input', () => {
-        onlyDigits(phone2);
-        if (phone2.value.length >= 4) phone3?.focus();
-      });
-      phone3?.addEventListener('input', () => { onlyDigits(phone3); });
-
-      // 이메일 도메인 선택/직접입력
-      const emailDomainSelect = document.getElementById('emailDomainSelect');
-      const emailDomainCustom = document.getElementById('emailDomainCustom');
-      function updateEmailDomainUI(){
-        const direct = emailDomainSelect?.value === 'direct';
-        if (emailDomainCustom){
-          emailDomainCustom.classList.toggle('is-hidden', !direct);
-          if (!direct) emailDomainCustom.value = '';
-        }
-      }
-      emailDomainSelect?.addEventListener('change', updateEmailDomainUI);
-      updateEmailDomainUI();
-
-      // 박스타입 미리보기
-      const previewImg = document.getElementById('boxTypePreview');
-      const previewLabel = document.getElementById('boxTypePreviewLabel');
-      function updateBoxPreview(){
-        const selected = document.querySelector('input[name="box_type"]:checked');
-        if (!selected || !previewImg || !previewLabel) return;
-        const src = selected.getAttribute('data-preview') || '../assets/img/PD_3.jpg';
-        const label = selected.value || '박스타입 미리보기';
-        previewImg.src = src;
-        previewImg.alt = label + ' 미리보기';
-        previewLabel.textContent = label + ' 미리보기';
-      }
-      document.querySelectorAll('input[name="box_type"]').forEach(radio => {
-        radio.addEventListener('change', updateBoxPreview);
-      });
-      updateBoxPreview();
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        statusEl.textContent = '등록 중…';
-        const fd = new FormData(form);
-        // 이메일 조합
-        const emailId = (fd.get('email_id') || '').toString().trim();
-        const domainSelect = (fd.get('email_domain_select') || '').toString().trim();
-        const domainCustom = (fd.get('email_domain_custom') || '').toString().trim();
-        const domain = domainSelect === 'direct' ? domainCustom : domainSelect;
-        if (emailId && domain) {
-          fd.set('email', `${emailId}@${domain}`);
-        }
-        fd.delete('email_id');
-        fd.delete('email_domain_select');
-        fd.delete('email_domain_custom');
-        // 연락처 조합
-        const p1 = (fd.get('phone1') || '').toString().trim();
-        const p2 = (fd.get('phone2') || '').toString().trim();
-        const p3 = (fd.get('phone3') || '').toString().trim();
-        if (p1 || p2 || p3) {
-          const joined = [p1, p2, p3].filter(Boolean).join('-');
-          fd.set('phone', joined);
-        }
-        fd.delete('phone1');
-        fd.delete('phone2');
-        fd.delete('phone3');
-        const finishings = fd.getAll('finishing[]'); fd.delete('finishing[]');
-        const coatings = fd.getAll('coating[]'); fd.delete('coating[]');
-        const data = Object.fromEntries(fd.entries());
-        if (finishings.length) data.finishing = finishings;
-        if (coatings.length) data.coating = coatings;
-        // 요약 문자열 생성(관리/목록 표시 용이)
-        const parts = [];
-        if (coatings.length) parts.push('코팅:' + coatings.join(', '));
-        const fw = data.foil_w||''; const fh = data.foil_h||'';
-        if (finishings.includes('금박') && (fw || fh)) parts.push(`금박:${fw||0}x${fh||0}mm`);
-        const ew = data.emboss_w||''; const eh = data.emboss_h||'';
-        if (finishings.includes('형압') && (ew || eh)) parts.push(`형압:${ew||0}x${eh||0}mm`);
-        if (parts.length) data.finishing_detail = parts.join(' | ');
-        try {
-          const res = await fetch(API('/api/submit_quote.php'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-          });
-          if (!res.ok) throw new Error('서버 오류');
-          const j = await res.json();
-          if (j && j.ok) {
-            statusEl.textContent = '등록되었습니다. 홈페이지에서 실시간으로 확인 가능합니다.';
-            statusEl.className = 'note success';
-            form.reset();
-          } else {
-            throw new Error(j?.error || '등록 실패');
-          }
-        } catch (err) {
-          if (err.name === 'AbortError') {
-            statusEl.textContent = '서버 응답이 없습니다. 네트워크 상태를 확인해 주세요.';
-          } else {
-            statusEl.textContent = '오류: ' + (err?.message || '등록에 실패했습니다');
-          }
-          statusEl.className = 'note error';
-        }
-      });
-    </script>
   </body>
 </html>

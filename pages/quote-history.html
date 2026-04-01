@@ -27,9 +27,9 @@
         <nav class="site-nav" aria-label="주요">
           <ul>
             <li><a href="about.html">회사소개</a></li>
+            <li><a href="facility.html">시설 및 공정</a></li>
             <li><a href="products.html">제품소개</a></li>
             <li><a href="quote.html">견적문의</a></li>
-            <li><a href="contact.html">문의 게시판</a></li>
           </ul>
         </nav>
         <div class="nav-actions" aria-label="계정 영역"></div>
@@ -39,7 +39,11 @@
       <section class="quote-landing">
         <div class="section-header stack">
           <h1 class="page-title section-title">내 견적 내역</h1>
-          <p class="quote-note section-desc">회원명 기준으로 등록된 견적을 표시합니다. 이름이 다르면 목록이 비어 보일 수 있습니다.</p>
+          <p class="quote-note section-desc">회원 이메일 또는 성명 기준으로 등록된 견적을 표시합니다. 정보가 다르면 목록이 비어 보일 수 있습니다.</p>
+        </div>
+        <div class="quote-actions">
+          <a class="btn" href="quote.html">견적 목록</a>
+          <a class="btn btn-accent" href="quote-register.html">견적 문의 등록</a>
         </div>
         <section class="section-card" style="padding:16px;">
           <div class="section-header stack" style="margin-bottom:10px;">
@@ -52,10 +56,6 @@
         </section>
         <div id="my-quotes-list" class="quotes-list" aria-live="polite" aria-busy="true">
           <div class="loading">견적 데이터를 불러오는 중…</div>
-        </div>
-        <div class="quote-actions">
-          <a class="btn" href="quote.html">견적 목록</a>
-          <a class="btn btn-accent" href="quote-register.html">견적 문의 등록</a>
         </div>
       </section>
     </main>
@@ -77,23 +77,5 @@
       </div>
     </footer>
     <script src="../assets/js/main.js"></script>
-    <script>
-      // 로그인 필요: 미로그인 시 로그인 페이지로 이동
-      (function(){
-        try {
-          const raw = localStorage.getItem('sepn_user');
-          const u = raw ? JSON.parse(raw) : null;
-          if (!u || !u.username) {
-            const ret = encodeURIComponent(location.pathname);
-            location.href = 'login.html?return=' + ret;
-            return;
-          }
-        } catch {
-          const ret = encodeURIComponent(location.pathname);
-          location.href = 'login.html?return=' + ret;
-          return;
-        }
-      })();
-    </script>
   </body>
 </html>

@@ -25,15 +25,6 @@
   <script src="assets/api.js"></script>
   <script src="assets/perm.js"></script>
   <script src="assets/nav.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', ()=>{
-      if(!Permissions.has('quotation.view')){
-        alert('견적서를 볼 권한이 없습니다.');
-        try{ window.location.href='employee.html'; }catch(e){}
-        return;
-      }
-      Permissions.applyGates();
-    });
-  </script>
+  <script src="assets/quotation.page.js"></script>
 </body>
 </html>

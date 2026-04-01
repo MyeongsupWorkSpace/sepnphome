@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
+define('SEPNP_NO_SESSION', true);
 require __DIR__ . '/db.php';
 header('Content-Type: application/json; charset=utf-8');
 
+if (session_status() !== PHP_SESSION_ACTIVE) { @session_start(); }
 $pdo = use_json_fallback() ? null : get_db();
 if (use_json_fallback()) { require_admin_json(); } else { require_admin($pdo); }
 

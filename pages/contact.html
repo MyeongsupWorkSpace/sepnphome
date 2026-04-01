@@ -22,6 +22,7 @@
         <nav class="site-nav" aria-label="주요">
           <ul>
             <li><a href="about.html">회사소개</a></li>
+            <li><a href="facility.html">시설 및 공정</a></li>
             <li><a href="products.html">제품소개</a></li>
             <li><a href="quote.html">견적문의</a></li>
             <li><a href="contact.html" aria-current="page">문의 게시판</a></li>
@@ -153,20 +154,4 @@
     </footer>
     <script src="../assets/js/main.js"></script>
   </body>
-  <script>
-    // 로그인 필요: 미로그인 시 로그인 페이지로 이동
-    (function(){
-      try {
-        const raw = localStorage.getItem('sepn_user');
-        const u = raw ? JSON.parse(raw) : null;
-        if (!u || !u.username) {
-          const ret = encodeURIComponent(location.pathname);
-          location.href = 'login.html?return=' + ret;
-        }
-      } catch {
-        const ret = encodeURIComponent(location.pathname);
-        location.href = 'login.html?return=' + ret;
-      }
-    })();
-  </script>
 </html>
