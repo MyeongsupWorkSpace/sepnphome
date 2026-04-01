@@ -226,6 +226,22 @@ function migrate(PDO $pdo): void {
     `timestamp` BIGINT
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `notices` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `category` VARCHAR(32) DEFAULT "notice",
+    `title` VARCHAR(191) NOT NULL,
+    `summary` VARCHAR(255) NULL,
+    `content` TEXT NULL,
+    `notice_date` VARCHAR(10) NULL,
+    `is_pinned` TINYINT(1) DEFAULT 0,
+    `attachments_json` TEXT NULL,
+    `views` INT DEFAULT 0,
+    `created_at` INT,
+    `updated_at` INT
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  try { $pdo->exec('ALTER TABLE `notices` ADD COLUMN `attachments_json` TEXT NULL'); } catch (Throwable $e) { /* ignore */ }
+
   $pdo->exec('CREATE TABLE IF NOT EXISTS `coupons` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `code` VARCHAR(64) NOT NULL UNIQUE,

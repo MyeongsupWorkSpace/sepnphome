@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>공지 관리 — SEPNP Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="../../index.html" class="logo" aria-label="홈으로 이동">
+          <img src="../../assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요"><ul></ul></nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+
+    <main class="container page-main">
+      <div class="section-header stack">
+        <h1 class="page-title section-title">공지 관리</h1>
+        <p class="section-desc">홈페이지 공지사항과 회사 소식을 등록하고 관리합니다.</p>
+      </div>
+
+      <section class="section-card notice-admin">
+        <form class="notice-form" id="noticeForm">
+          <div class="notice-form-grid">
+            <label class="notice-label" for="noticeTitle">제목</label>
+            <input id="noticeTitle" name="title" placeholder="공지 제목" required />
+
+            <label class="notice-label" for="noticeCategory">분류</label>
+            <select id="noticeCategory" name="category">
+              <option value="notice">공지사항</option>
+              <option value="company">회사 소식</option>
+            </select>
+
+            <label class="notice-label" for="noticeDate">날짜</label>
+            <input id="noticeDate" name="date" type="date" required />
+
+            <label class="notice-label" for="noticeSummary">요약</label>
+            <textarea id="noticeSummary" name="summary" rows="3" placeholder="간단한 요약을 입력하세요."></textarea>
+
+            <label class="notice-label" for="noticeEditor">내용</label>
+            <div class="notice-editor">
+              <div class="notice-toolbar" role="toolbar" aria-label="공지 편집 도구">
+                <button type="button" class="toolbar-btn" data-cmd="bold" aria-label="굵게"><strong>B</strong></button>
+                <button type="button" class="toolbar-btn" data-cmd="italic" aria-label="기울임"><em>I</em></button>
+                <button type="button" class="toolbar-btn" data-cmd="underline" aria-label="밑줄"><u>U</u></button>
+                <button type="button" class="toolbar-btn" data-cmd="insertUnorderedList" aria-label="글머리">• 목록</button>
+                <button type="button" class="toolbar-btn" data-cmd="insertOrderedList" aria-label="번호 목록">1. 목록</button>
+                <button type="button" class="toolbar-btn" data-action="link" aria-label="링크">링크</button>
+              </div>
+              <div id="noticeEditor" class="notice-editor-body" contenteditable="true" aria-label="공지 내용"></div>
+              <textarea id="noticeContent" name="content" class="is-hidden" aria-hidden="true"></textarea>
+            </div>
+
+            <label class="notice-label" for="noticeFiles">첨부파일</label>
+            <div class="notice-upload">
+              <input id="noticeFiles" type="file" multiple />
+              <button type="button" class="btn btn-ghost" id="noticeUpload">업로드</button>
+            </div>
+            <div class="notice-attachments" id="noticeAttachments"></div>
+
+            <label class="notice-label" for="noticePinned">고정</label>
+            <div class="notice-pin">
+              <input id="noticePinned" name="is_pinned" type="checkbox" />
+              <span>상단 고정</span>
+            </div>
+          </div>
+          <div class="notice-actions">
+            <button type="submit" class="btn btn-accent" id="noticeSave">등록</button>
+            <button type="button" class="btn" id="noticeReset">초기화</button>
+          </div>
+          <div class="notice-hint" id="noticeHint" aria-live="polite"></div>
+        </form>
+
+        <div class="notice-list">
+          <div class="section-header">
+            <h2 class="section-title">등록된 공지</h2>
+            <span class="section-desc" id="noticeCount">0건</span>
+          </div>
+          <div class="notice-table-wrap">
+            <table class="notice-table" aria-label="공지 목록">
+              <thead>
+                <tr>
+                  <th>날짜</th>
+                  <th>분류</th>
+                  <th>고정</th>
+                  <th>제목</th>
+                  <th>요약</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody id="noticeTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-divider"></div>
+      <div class="container footer-bottom">
+        <div class="footer-bottom-inner">
+          <div class="footer-meta">
+            <div class="footer-links" aria-label="정책 링크">
+              <a href="#" class="footer-link">개인정보처리방침</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">이용약관</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">문의하기</a>
+            </div>
+          </div>
+          <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/notices-admin.js"></script>
+  </body>
+</html>

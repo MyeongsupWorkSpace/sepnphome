@@ -546,6 +546,64 @@ function initSimpleTabs() {
   });
 }
 
+function initNoticeBoard() {
+  const section = document.querySelector('.news-section');
+  if (!section) return;
+  const API = window.API || ((p) => p);
+  const lists = {
+    all: section.querySelector('[data-news-list="all"]'),
+    notice: section.querySelector('[data-news-list="notice"]'),
+    company: section.querySelector('[data-news-list="company"]'),
+  };
+
+  const createItem = (item) => {
+    const li = document.createElement('li');
+    li.className = 'news-item';
+    const badge = document.createElement('span');
+    badge.className = `news-badge${item.category === 'company' ? ' badge-news' : ''}`;
+    badge.textContent = item.category === 'company' ? '소식' : '공지';
+    const pin = document.createElement('span');
+    pin.className = 'news-pin';
+    pin.textContent = item.is_pinned ? '고정' : '';
+    const body = document.createElement('div');
+    body.className = 'news-item-body';
+    const title = document.createElement('a');
+    title.className = 'news-title';
+    title.href = `/pages/notice.html?id=${item.id}`;
+    title.textContent = item.title;
+    const summary = document.createElement('p');
+    summary.className = 'news-summary';
+    summary.textContent = item.summary || '';
+    const date = document.createElement('span');
+    date.className = 'news-date';
+    date.textContent = item.date ? item.date.replace(/-/g, '.') : '';
+    body.append(title, summary);
+    li.append(badge, body, date);
+    if (item.is_pinned) li.appendChild(pin);
+    return li;
+  };
+
+  const render = (listEl, listItems) => {
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    listItems.forEach(item => listEl.appendChild(createItem(item)));
+  };
+
+  const load = async () => {
+    try {
+      const res = await fetch(API('/api/notices_list.php?limit=30'));
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) return;
+      const maxItems = 6;
+      render(lists.all, data.slice(0, maxItems));
+      render(lists.notice, data.filter(i => i.category === 'notice').slice(0, maxItems));
+      render(lists.company, data.filter(i => i.category === 'company').slice(0, maxItems));
+    } catch {}
+  };
+  load();
+}
+
 function initMapBannerClose() {
   const btn = document.querySelector('.map-banner-close');
   if (!btn) return;
@@ -1052,6 +1110,7 @@ function initAdminQuotesPage() {
 }
 
 initSimpleTabs();
+initNoticeBoard();
 initMapBannerClose();
 initLoginPageModal();
 initQuoteRegisterPage();
@@ -1317,6 +1376,7 @@ function renderNav() {
     `<li><a href="#" data-menu="company">회사소개</a></li>`,
     `<li><a href="${prefix}/pages/facility.html">시설 및 공정</a></li>`,
     `<li><a href="#" data-menu="products">제품소개</a></li>`,
+    `<li><a href="${prefix}/pages/notices.html">공지사항</a></li>`,
     `<li><a href="${prefix}/pages/quote.html">견적문의</a></li>`,
     isAdmin ? `<li><a href="${prefix}/pages/admin/index.html" data-menu="admin">관리</a></li>` : ''
   ].filter(Boolean).join('');
@@ -1465,6 +1525,7 @@ function ensureDropdownMenus(prefixHint, isAdmin){
         <li><a href="${prefix}/pages/admin/approvals.html">승인 관리</a></li>
         <li><a href="${prefix}/pages/admin/customers.html">고객 관리</a></li>
         <li><a href="${prefix}/pages/admin/quotes.html">견적 관리</a></li>
+        <li><a href="${prefix}/pages/admin/notices.html">공지 관리</a></li>
       </ul>`;
     container.appendChild(wrap3);
   }

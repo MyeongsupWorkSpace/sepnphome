@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>공지사항 — SEPNP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-top">
+        <a href="../index.html" class="logo" aria-label="홈으로 이동">
+          <img src="../assets/img/SE_logo.png" alt="SEPNP 로고" />
+        </a>
+      </div>
+      <div class="container header-bottom">
+        <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+        <nav class="site-nav" aria-label="주요"><ul></ul></nav>
+        <div class="nav-actions" aria-label="계정 영역"></div>
+      </div>
+    </header>
+
+    <main class="container page-main notice-page">
+      <div class="section-header stack">
+        <h1 class="page-title section-title">공지사항</h1>
+        <p class="section-desc">SEPNP의 최신 공지와 회사 소식을 확인하세요.</p>
+      </div>
+
+      <section class="notice-board section-card" aria-labelledby="noticeBoardTitle">
+        <div class="section-header">
+          <h2 class="section-title" id="noticeBoardTitle">공지 목록</h2>
+          <span class="section-desc" id="noticeTotal">0건</span>
+        </div>
+        <div class="notice-controls">
+          <input id="noticeSearch" type="search" placeholder="검색어를 입력하세요" aria-label="공지 검색" />
+          <select id="noticePageSize" aria-label="페이지 크기">
+            <option value="6">6개씩</option>
+            <option value="9">9개씩</option>
+            <option value="12">12개씩</option>
+          </select>
+        </div>
+        <ul class="news-tab-list" role="tablist" aria-label="공지 분류 탭">
+          <li><button type="button" class="tab-button" role="tab" aria-selected="true" aria-controls="tab-notices-all" id="tab-notices-all-btn">전체</button></li>
+          <li><button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-notices-notice" id="tab-notices-notice-btn">공지사항</button></li>
+          <li><button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-notices-company" id="tab-notices-company-btn">회사 소식</button></li>
+        </ul>
+        <div class="notice-panels">
+          <div class="tab-panel is-active" id="tab-notices-all" role="tabpanel" aria-labelledby="tab-notices-all-btn">
+            <ul class="news-list" data-notice-list="all"></ul>
+          </div>
+          <div class="tab-panel" id="tab-notices-notice" role="tabpanel" aria-labelledby="tab-notices-notice-btn">
+            <ul class="news-list" data-notice-list="notice"></ul>
+          </div>
+          <div class="tab-panel" id="tab-notices-company" role="tabpanel" aria-labelledby="tab-notices-company-btn">
+            <ul class="news-list" data-notice-list="company"></ul>
+          </div>
+        </div>
+        <div class="notice-pager" id="noticePager"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-divider"></div>
+      <div class="container footer-bottom">
+        <div class="footer-bottom-inner">
+          <div class="footer-meta">
+            <div class="footer-links" aria-label="정책 링크">
+              <a href="#" class="footer-link">개인정보처리방침</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">이용약관</a>
+              <span class="footer-sep">|</span>
+              <a href="#" class="footer-link">문의하기</a>
+            </div>
+          </div>
+          <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../assets/js/main.js"></script>
+    <script src="../assets/js/notices.js"></script>
+  </body>
+</html>
