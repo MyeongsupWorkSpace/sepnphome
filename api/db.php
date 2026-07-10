@@ -65,11 +65,11 @@ if (!defined('SEPNP_ACCESS_LOGGED')) {
 
 function db_config(): array {
   $cfg = [
-    'host' => getenv('MYSQL_HOST') ?: 'localhost',
-    'port' => getenv('MYSQL_PORT') ?: '3306',
-    'db' => getenv('MYSQL_DB') ?: '',
-    'user' => getenv('MYSQL_USER') ?: '',
-    'pass' => getenv('MYSQL_PASS') ?: '',
+    'host' => 'localhost',
+    'port' => '3306',
+    'db' => '',
+    'user' => '',
+    'pass' => '',
     'charset' => getenv('MYSQL_CHARSET') ?: 'utf8mb4',
   ];
   $file = __DIR__ . '/db_config.php';
@@ -79,15 +79,45 @@ function db_config(): array {
       $cfg = array_merge($cfg, $fileCfg);
     }
   }
+
+  // Environment variables override file config for deployment/runtime flexibility.
+  $envHost = getenv('MYSQL_HOST') ?: getenv('MYSQLHOST');
+  $envPort = getenv('MYSQL_PORT') ?: getenv('MYSQLPORT');
+  $envDb = getenv('MYSQL_DB') ?: getenv('MYSQLDATABASE');
+  $envUser = getenv('MYSQL_USER') ?: getenv('MYSQLUSER');
+  $envPass = getenv('MYSQL_PASS') ?: getenv('MYSQLPASSWORD');
+  $envCharset = getenv('MYSQL_CHARSET');
+
+  if ($envHost !== false && $envHost !== '') $cfg['host'] = $envHost;
+  if ($envPort !== false && $envPort !== '') $cfg['port'] = $envPort;
+  if ($envDb !== false && $envDb !== '') $cfg['db'] = $envDb;
+  if ($envUser !== false && $envUser !== '') $cfg['user'] = $envUser;
+  if ($envPass !== false && $envPass !== '') $cfg['pass'] = $envPass;
+  if ($envCharset !== false && $envCharset !== '') $cfg['charset'] = $envCharset;
+
   return $cfg;
 }
 
 function use_json_fallback_config(): bool {
-  return false;
+  $v = getenv('APP_USE_JSON');
+  if ($v === false) return false;
+  $v = strtolower(trim((string)$v));
+  return in_array($v, ['1', 'true', 'yes', 'on'], true);
+}
+
+function has_pdo_mysql_driver(): bool {
+  if (!class_exists('PDO')) return false;
+  try {
+    $drivers = PDO::getAvailableDrivers();
+    return is_array($drivers) && in_array('mysql', $drivers, true);
+  } catch (Throwable $e) {
+    return false;
+  }
 }
 
 function use_json_fallback(): bool {
-  return false;
+  if (use_json_fallback_config()) return true;
+  return !has_pdo_mysql_driver();
 }
 
 function db_path(): string {
@@ -104,12 +134,15 @@ function get_db(): PDO {
   $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s;connect_timeout=3', $cfg['host'], $cfg['port'], $cfg['db'], $cfg['charset']);
   try {
     @ini_set('mysql.connect_timeout', '3');
-    $pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], [
+    $options = [
       PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
       PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
       PDO::ATTR_TIMEOUT => 3,
-      PDO::MYSQL_ATTR_INIT_COMMAND => 'SET SESSION MAX_EXECUTION_TIME=3000',
-    ]);
+    ];
+    if (defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
+      $options[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET SESSION MAX_EXECUTION_TIME=3000';
+    }
+    $pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], $options);
     try { $pdo->query('SET SESSION innodb_lock_wait_timeout=3'); } catch (Throwable $e) { /* ignore */ }
     bootstrap_db($pdo);
     return $pdo;
@@ -137,8 +170,6 @@ function bootstrap_db(PDO $pdo): void {
       migrate($pdo);
       seed_coupons($pdo);
       seed_admin($pdo);
-      seed_portal_admin($pdo);
-      seed_sample_data($pdo);
       @flock($fp, LOCK_UN);
     }
     @fclose($fp);
@@ -148,8 +179,6 @@ function bootstrap_db(PDO $pdo): void {
   migrate($pdo);
   seed_coupons($pdo);
   seed_admin($pdo);
-  seed_portal_admin($pdo);
-  seed_sample_data($pdo);
   @file_put_contents($flag, (string)$now);
 }
 
@@ -208,31 +237,13 @@ function migrate(PDO $pdo): void {
     `timestamp` INT
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
-  $pdo->exec('CREATE TABLE IF NOT EXISTS `board_posts` (
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `notices` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `category` VARCHAR(64) NULL,
     `title` VARCHAR(191) NOT NULL,
-    `content` TEXT NOT NULL,
-    `secret` TINYINT(1) DEFAULT 0,
-    `author` VARCHAR(191) NULL,
-    `name` VARCHAR(191) NULL,
-    `phone` VARCHAR(64) NULL,
-    `order_no` VARCHAR(64) NULL,
-    `author_username` VARCHAR(191) NOT NULL,
-    `status` VARCHAR(32) DEFAULT "문의중",
-    `password_hash` VARCHAR(255) NULL,
-    `attachments_json` TEXT NULL,
-    `views` INT DEFAULT 0,
-    `timestamp` BIGINT
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-
-  $pdo->exec('CREATE TABLE IF NOT EXISTS `notices` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `category` VARCHAR(32) DEFAULT "notice",
-    `title` VARCHAR(191) NOT NULL,
     `summary` VARCHAR(255) NULL,
-    `content` TEXT NULL,
-    `notice_date` VARCHAR(10) NULL,
+    `content` MEDIUMTEXT NULL,
+    `notice_date` VARCHAR(32) NULL,
     `is_pinned` TINYINT(1) DEFAULT 0,
     `attachments_json` TEXT NULL,
     `views` INT DEFAULT 0,
@@ -240,13 +251,56 @@ function migrate(PDO $pdo): void {
     `updated_at` INT
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
-  try { $pdo->exec('ALTER TABLE `notices` ADD COLUMN `attachments_json` TEXT NULL'); } catch (Throwable $e) { /* ignore */ }
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `site_settings` (
+    `id` TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+    `company` VARCHAR(191) NULL,
+    `phone` VARCHAR(64) NULL,
+    `address` TEXT NULL,
+    `email` VARCHAR(191) NULL,
+    `partner_email` VARCHAR(191) NULL,
+    `delivery_address` TEXT NULL,
+    `hours` VARCHAR(255) NULL,
+    `hours_note` VARCHAR(255) NULL,
+    `kakao_link` VARCHAR(255) NULL,
+    `updated_at` INT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `main_ad_settings` (
+    `id` TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+    `enabled` TINYINT(1) DEFAULT 1,
+    `title` VARCHAR(191) NULL,
+    `message` TEXT NULL,
+    `updated_at` INT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `vendor_brands` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `slug` VARCHAR(64) NOT NULL UNIQUE,
+    `name` VARCHAR(191) NOT NULL,
+    `sort_order` INT DEFAULT 0,
+    `created_at` INT NULL,
+    `updated_at` INT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `vendor_products` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `brand_id` INT UNSIGNED NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(255) NULL,
+    `image_url` VARCHAR(255) NULL,
+    `sort_order` INT DEFAULT 0,
+    `created_at` INT NULL,
+    `updated_at` INT NULL,
+    INDEX (`brand_id`),
+    CONSTRAINT `fk_vendor_products_brand` FOREIGN KEY (`brand_id`) REFERENCES `vendor_brands`(`id`) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
   $pdo->exec('CREATE TABLE IF NOT EXISTS `coupons` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `code` VARCHAR(64) NOT NULL UNIQUE,
     `title` VARCHAR(191) NOT NULL,
     `description` VARCHAR(255) NULL,
+    `expires_at` INT NULL,
     `created_at` INT
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
@@ -255,87 +309,35 @@ function migrate(PDO $pdo): void {
     `user_id` INT UNSIGNED NOT NULL,
     `coupon_id` INT UNSIGNED NOT NULL,
     `qty` INT NOT NULL DEFAULT 0,
+    `granted_at` INT NULL,
+    `revoked_at` INT NULL,
     `created_at` INT,
     `updated_at` INT,
     UNIQUE KEY `uniq_user_coupon` (`user_id`, `coupon_id`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
-  // ===== Portal tables =====
-  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_employees` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `emp_no` VARCHAR(64) NULL,
-    `username` VARCHAR(191) NULL,
-    `password_hash` VARCHAR(255) NULL,
-    `name` VARCHAR(191) NULL,
-    `dept` VARCHAR(191) NULL,
-    `position` VARCHAR(191) NULL,
-    `phone` VARCHAR(64) NULL,
-    `email` VARCHAR(191) NULL,
-    `join_date` VARCHAR(32) NULL,
-    `status` VARCHAR(32) DEFAULT "pending",
-    `role` VARCHAR(32) DEFAULT "viewer",
-    `perms_json` TEXT NULL,
-    `created_at` BIGINT NULL,
-    `updated_at` BIGINT NULL,
-    INDEX (`emp_no`),
-    INDEX (`username`),
-    INDEX (`status`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-
-  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_suppliers` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `data_json` MEDIUMTEXT NULL,
-    `created_at` BIGINT NULL,
-    `updated_at` BIGINT NULL
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-
-  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_papers` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `data_json` MEDIUMTEXT NULL,
-    `created_at` BIGINT NULL,
-    `updated_at` BIGINT NULL
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-
-  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_materials` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `data_json` MEDIUMTEXT NULL,
-    `created_at` BIGINT NULL,
-    `updated_at` BIGINT NULL
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-
-  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_products` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `data_json` MEDIUMTEXT NULL,
-    `created_at` BIGINT NULL,
-    `updated_at` BIGINT NULL
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-
-  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_customers` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `data_json` MEDIUMTEXT NULL,
-    `created_at` BIGINT NULL,
-    `updated_at` BIGINT NULL
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-
-  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_orders` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `data_json` MEDIUMTEXT NULL,
-    `created_at` BIGINT NULL,
-    `updated_at` BIGINT NULL
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-
-  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_assignments` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `date_key` VARCHAR(32) NULL,
-    `data_json` MEDIUMTEXT NULL,
-    `created_at` BIGINT NULL,
-    `updated_at` BIGINT NULL,
-    INDEX (`date_key`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-
+  // ===== ERP state tables =====
   $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_kv` (
     `kv_key` VARCHAR(191) NOT NULL PRIMARY KEY,
     `data_json` MEDIUMTEXT NULL,
+    `updated_at` BIGINT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `portal_erp_rows` (
+    `section_key` VARCHAR(191) NOT NULL,
+    `row_no` INT UNSIGNED NOT NULL,
+    `data_json` MEDIUMTEXT NULL,
+    `created_at` BIGINT NULL,
+    `updated_at` BIGINT NULL,
+    PRIMARY KEY (`section_key`, `row_no`),
+    INDEX (`updated_at`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+
+  $pdo->exec('CREATE TABLE IF NOT EXISTS `production_state_store` (
+    `id` TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+    `state_json` MEDIUMTEXT NULL,
+    `updated_by_user_id` INT UNSIGNED NULL,
+    `created_at` BIGINT NULL,
     `updated_at` BIGINT NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
@@ -361,6 +363,11 @@ function migrate(PDO $pdo): void {
       }
     }
   } catch (Throwable $e) { /* ignore */ }
+
+  try { $pdo->exec('ALTER TABLE `notices` ADD COLUMN `attachments_json` TEXT NULL'); } catch (Throwable $e) { /* ignore */ }
+  try { $pdo->exec('ALTER TABLE `coupons` ADD COLUMN `expires_at` INT NULL'); } catch (Throwable $e) { /* ignore */ }
+  try { $pdo->exec('ALTER TABLE `user_coupons` ADD COLUMN `granted_at` INT NULL'); } catch (Throwable $e) { /* ignore */ }
+  try { $pdo->exec('ALTER TABLE `user_coupons` ADD COLUMN `revoked_at` INT NULL'); } catch (Throwable $e) { /* ignore */ }
 }
 
 function seed_coupons(PDO $pdo): void {
@@ -371,7 +378,7 @@ function seed_coupons(PDO $pdo): void {
   }
   if ($count > 0) return;
   $now = time();
-  $stmt = $pdo->prepare('INSERT INTO `coupons`(`code`,`title`,`description`,`created_at`) VALUES(:code,:title,:desc,:ts)');
+  $stmt = $pdo->prepare('INSERT INTO `coupons`(`code`,`title`,`description`,`expires_at`,`created_at`) VALUES(:code,:title,:desc,:exp,:ts)');
   $defaults = [
     ['code' => 'DIEFREE', 'title' => '목형비 면제 쿠폰', 'desc' => '목형비 1회 면제'],
     ['code' => 'FREESAMPLE', 'title' => '무료 샘플링 쿠폰', 'desc' => '샘플 제작 1회 무료'],
@@ -381,6 +388,7 @@ function seed_coupons(PDO $pdo): void {
       ':code' => $c['code'],
       ':title' => $c['title'],
       ':desc' => $c['desc'],
+      ':exp' => null,
       ':ts' => $now,
     ]);
   }
@@ -389,13 +397,13 @@ function seed_coupons(PDO $pdo): void {
 function grant_default_coupons(PDO $pdo, int $userId): void {
   try {
     $codes = ['DIEFREE', 'FREESAMPLE'];
-    $stmt = $pdo->prepare('SELECT `id`, `code` FROM `coupons` WHERE `code` IN ("DIEFREE","FREESAMPLE")');
-    $stmt->execute();
+    $stmt = $pdo->prepare('SELECT `id`, `code` FROM `coupons` WHERE `code` IN ("DIEFREE","FREESAMPLE") AND (`expires_at` IS NULL OR `expires_at` >= :now)');
+    $stmt->execute([':now' => time()]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $map = [];
     foreach ($rows as $r) { $map[$r['code']] = (int)$r['id']; }
     $now = time();
-    $ins = $pdo->prepare('INSERT INTO `user_coupons`(`user_id`,`coupon_id`,`qty`,`created_at`,`updated_at`) VALUES(:uid,:cid,:qty,:ts,:ts) ON DUPLICATE KEY UPDATE `qty` = `qty` + VALUES(`qty`), `updated_at` = VALUES(`updated_at`)');
+    $ins = $pdo->prepare('INSERT INTO `user_coupons`(`user_id`,`coupon_id`,`qty`,`granted_at`,`created_at`,`updated_at`) VALUES(:uid,:cid,:qty,:ts,:ts,:ts) ON DUPLICATE KEY UPDATE `qty` = `qty` + VALUES(`qty`), `granted_at` = VALUES(`granted_at`), `updated_at` = VALUES(`updated_at`)');
     foreach ($codes as $code) {
       if (!isset($map[$code])) continue;
       $ins->execute([
@@ -414,8 +422,8 @@ function seed_admin(PDO $pdo): void {
   $stmt = $pdo->prepare('SELECT `id` FROM `users` WHERE `username` = :u LIMIT 1');
   $stmt->execute([':u' => 'sepnp']);
   $exists = $stmt->fetchColumn();
+  $hash = password_hash('0536', PASSWORD_DEFAULT);
   if (!$exists) {
-    $hash = password_hash('0536', PASSWORD_DEFAULT);
     $pdo->prepare('INSERT INTO `users`(`username`, `password_hash`, `nickname`, `rank`, `role`, `status`, `created_at`) VALUES(:u, :p, :n, :r, :role, :s, :ts)')
       ->execute([
         ':u' => 'sepnp',
@@ -426,36 +434,18 @@ function seed_admin(PDO $pdo): void {
         ':s' => '승인완료',
         ':ts' => time(),
       ]);
+    return;
   }
-}
 
-function seed_portal_admin(PDO $pdo): void {
-  try {
-    $stmt = $pdo->prepare('SELECT `id` FROM `portal_employees` WHERE `username` = :u LIMIT 1');
-    $stmt->execute([':u' => 'sepnp']);
-    $exists = $stmt->fetchColumn();
-    if ($exists) return;
-    $hash = password_hash('0536', PASSWORD_DEFAULT);
-    $now = time();
-    $pdo->prepare('INSERT INTO `portal_employees`(`emp_no`,`username`,`password_hash`,`name`,`dept`,`position`,`phone`,`email`,`join_date`,`status`,`role`,`perms_json`,`created_at`,`updated_at`) VALUES(:emp_no,:u,:ph,:name,:dept,:pos,:phone,:email,:join_date,:status,:role,:perms,:ts,:ts)')
-      ->execute([
-        ':emp_no' => 'ADMIN',
-        ':u' => 'sepnp',
-        ':ph' => $hash,
-        ':name' => '관리자',
-        ':dept' => '관리부',
-        ':pos' => '관리자',
-        ':phone' => '',
-        ':email' => '',
-        ':join_date' => date('Y-m-d'),
-        ':status' => 'active',
-        ':role' => 'admin',
-        ':perms' => json_encode(['*'], JSON_UNESCAPED_UNICODE),
-        ':ts' => $now,
-      ]);
-  } catch (Throwable $e) {
-    // ignore
-  }
+  $pdo->prepare('UPDATE `users` SET `password_hash` = :p, `nickname` = :n, `rank` = :r, `role` = :role, `status` = :s WHERE `username` = :u')
+    ->execute([
+      ':u' => 'sepnp',
+      ':p' => $hash,
+      ':n' => '관리자',
+      ':r' => 'Master',
+      ':role' => 'admin',
+      ':s' => '승인완료',
+    ]);
 }
 
 function seed_sample_data(PDO $pdo): void {
@@ -554,6 +544,106 @@ function seed_sample_data(PDO $pdo): void {
       ]);
     }
   }
+
+  try {
+    $brandCount = (int)$pdo->query('SELECT COUNT(*) FROM `vendor_brands`')->fetchColumn();
+  } catch (Throwable $e) {
+    $brandCount = 0;
+  }
+  if ($brandCount === 0) {
+    $now = time();
+    $brands = [
+      ['slug' => 'lotte', 'name' => '롯데', 'sort' => 1],
+      ['slug' => 'nongshim', 'name' => '농심', 'sort' => 2],
+      ['slug' => 'crown', 'name' => '크라운', 'sort' => 3],
+      ['slug' => 'nestle', 'name' => '네슬레', 'sort' => 4],
+    ];
+    $stmtBrand = $pdo->prepare('INSERT INTO `vendor_brands`(`slug`,`name`,`sort_order`,`created_at`,`updated_at`) VALUES(:slug,:name,:sort,:created_at,:updated_at)');
+    $brandIds = [];
+    foreach ($brands as $b) {
+      $stmtBrand->execute([
+        ':slug' => $b['slug'],
+        ':name' => $b['name'],
+        ':sort' => $b['sort'],
+        ':created_at' => $now,
+        ':updated_at' => $now,
+      ]);
+      $brandIds[$b['slug']] = (int)$pdo->lastInsertId();
+    }
+
+    $products = [
+      [
+        'brand' => 'lotte',
+        'name' => 'ABC초코쿠키 오리지널',
+        'desc' => '',
+        'img' => '/assets/img/%EB%A1%AF%EB%8D%B0/ABC%EC%B4%88%EC%BD%94%EC%BF%A0%ED%82%A4%20%EC%98%A4%EB%A6%AC%EC%A7%80%EB%84%90.png',
+        'sort' => 1,
+      ],
+      [
+        'brand' => 'lotte',
+        'name' => '가나 마일드',
+        'desc' => '',
+        'img' => '/assets/img/%EB%A1%AF%EB%8D%B0/%EA%B0%80%EB%82%98%20%EB%A7%88%EC%9D%BC%EB%93%9C.png',
+        'sort' => 2,
+      ],
+      [
+        'brand' => 'nongshim',
+        'name' => '카프리썬 오렌지',
+        'desc' => '',
+        'img' => '/assets/img/%EB%86%8D%EC%8B%AC/%EC%B9%B4%ED%94%84%EB%A6%AC%EC%8D%AC%20%EC%98%A4%EB%A0%8C%EC%A7%80.jpg',
+        'sort' => 1,
+      ],
+      [
+        'brand' => 'nongshim',
+        'name' => '카프리썬 오렌지망고',
+        'desc' => '',
+        'img' => '/assets/img/%EB%86%8D%EC%8B%AC/%EC%B9%B4%ED%94%84%EB%A6%AC%EC%8D%AC%20%EC%98%A4%EB%A0%8C%EC%A7%80%EB%A7%9D%EA%B3%A0.jpg',
+        'sort' => 2,
+      ],
+      [
+        'brand' => 'crown',
+        'name' => '빅파이 딸기',
+        'desc' => '',
+        'img' => '/assets/img/%ED%81%AC%EB%9D%BC%EC%9A%B4/%EB%B9%85%ED%8C%8C%EC%9D%B4%20%EB%94%B8%EA%B8%B0.jpg',
+        'sort' => 1,
+      ],
+      [
+        'brand' => 'crown',
+        'name' => '참크래커',
+        'desc' => '',
+        'img' => '/assets/img/%ED%81%AC%EB%9D%BC%EC%9A%B4/%EC%B0%B8%ED%81%AC%EB%9E%98%EC%BB%A4.jpg',
+        'sort' => 2,
+      ],
+      [
+        'brand' => 'nestle',
+        'name' => '스타벅스 미디엄로스트',
+        'desc' => '',
+        'img' => '/assets/img/%EB%84%A4%EC%8A%AC%EB%A0%88/%EC%8A%A4%ED%83%80%EB%B2%85%EC%8A%A4%20%EB%AF%B8%EB%94%94%EC%97%84%EB%A1%9C%EC%8A%A4%ED%8A%B8.webp',
+        'sort' => 1,
+      ],
+      [
+        'brand' => 'nestle',
+        'name' => '네스카페 수프리모 아메리카노 블랙',
+        'desc' => '',
+        'img' => '/assets/img/%EB%84%A4%EC%8A%AC%EB%A0%88/%EB%84%A4%EC%8A%A4%EC%B9%B4%ED%8E%98%20%EC%88%98%ED%94%84%EB%A6%AC%EB%AA%A8%20%EC%95%84%EB%A9%94%EB%A6%AC%EC%B9%B4%EB%85%B8%20%EB%B8%94%EB%9E%99.webp',
+        'sort' => 2,
+      ],
+    ];
+    $stmtProduct = $pdo->prepare('INSERT INTO `vendor_products`(`brand_id`,`name`,`description`,`image_url`,`sort_order`,`created_at`,`updated_at`) VALUES(:brand_id,:name,:description,:image_url,:sort_order,:created_at,:updated_at)');
+    foreach ($products as $p) {
+      $bid = $brandIds[$p['brand']] ?? 0;
+      if ($bid <= 0) continue;
+      $stmtProduct->execute([
+        ':brand_id' => $bid,
+        ':name' => $p['name'],
+        ':description' => $p['desc'],
+        ':image_url' => $p['img'],
+        ':sort_order' => $p['sort'],
+        ':created_at' => $now,
+        ':updated_at' => $now,
+      ]);
+    }
+  }
 }
 
 function requireAdmin() {
@@ -567,25 +657,20 @@ function requireAdmin() {
 function grantCouponToUser($user_id, $coupon_id) {
   $pdo = get_db();
   if (!($pdo instanceof PDO)) return ["error" => "DB unavailable"];
-  $sql = "SELECT id FROM user_coupons WHERE user_id=? AND coupon_id=? AND qty > 0";
-  $stmt = $pdo->prepare($sql);
-  $stmt->execute([$user_id, $coupon_id]);
-  if ($stmt->fetch()) {
-    return ["error" => "already granted"];
-  }
   $now = time();
-  $sql = "INSERT INTO user_coupons (user_id, coupon_id, qty, created_at, updated_at) VALUES (?, ?, 1, ?, ?) ON DUPLICATE KEY UPDATE qty = qty + 1, updated_at = VALUES(updated_at)";
+  $sql = "INSERT INTO user_coupons (user_id, coupon_id, qty, granted_at, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?) ON DUPLICATE KEY UPDATE qty = qty + 1, granted_at = VALUES(granted_at), updated_at = VALUES(updated_at)";
   $stmt = $pdo->prepare($sql);
-  $stmt->execute([$user_id, $coupon_id, $now, $now]);
+  $stmt->execute([$user_id, $coupon_id, $now, $now, $now]);
   return ["success" => true];
 }
 
 function revokeUserCoupon($user_coupon_id) {
   $pdo = get_db();
   if (!($pdo instanceof PDO)) return ["error" => "DB unavailable"];
-  $sql = "UPDATE user_coupons SET qty = qty - 1, updated_at = ? WHERE id = ? AND qty > 0";
+  $sql = "UPDATE user_coupons SET qty = qty - 1, revoked_at = ?, updated_at = ? WHERE id = ? AND qty > 0";
   $stmt = $pdo->prepare($sql);
-  $stmt->execute([time(), $user_coupon_id]);
+  $now = time();
+  $stmt->execute([$now, $now, $user_coupon_id]);
   if ($stmt->rowCount() > 0) {
     return ["success" => true];
   }
@@ -595,7 +680,7 @@ function revokeUserCoupon($user_coupon_id) {
 function getUserCoupons($user_id) {
   $pdo = get_db();
   if (!($pdo instanceof PDO)) return [];
-  $sql = "SELECT uc.id as user_coupon_id, c.id as coupon_id, c.code as coupon_code, c.title as coupon_name, uc.qty, uc.created_at, uc.updated_at FROM user_coupons uc JOIN coupons c ON uc.coupon_id = c.id WHERE uc.user_id=? ORDER BY uc.created_at DESC";
+  $sql = "SELECT uc.id as user_coupon_id, c.id as coupon_id, c.code as coupon_code, c.title as coupon_name, c.expires_at, uc.qty, uc.granted_at, uc.revoked_at, uc.created_at, uc.updated_at FROM user_coupons uc JOIN coupons c ON uc.coupon_id = c.id WHERE uc.user_id=? ORDER BY uc.created_at DESC";
   $stmt = $pdo->prepare($sql);
   $stmt->execute([$user_id]);
   return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -620,16 +705,6 @@ function json_quotes_path(): string { return data_dir() . DIRECTORY_SEPARATOR . 
 function json_coupons_path(): string { return data_dir() . DIRECTORY_SEPARATOR . 'coupons.json'; }
 function json_user_coupons_path(): string { return data_dir() . DIRECTORY_SEPARATOR . 'user_coupons.json'; }
 
-function json_portal_path(string $name): string {
-  return data_dir() . DIRECTORY_SEPARATOR . 'portal_' . $name . '.json';
-}
-function json_portal_all(string $name): array { return json_load(json_portal_path($name)); }
-function json_portal_save(string $name, array $rows): void { json_save(json_portal_path($name), $rows); }
-function json_portal_next_id(array $rows): int {
-  $max = 0; foreach ($rows as $r) { $id = (int)($r['id'] ?? 0); if ($id > $max) $max = $id; }
-  return $max + 1;
-}
-
 function json_load(string $path): array {
   if (!is_file($path)) return [];
   $raw = @file_get_contents($path);
@@ -650,8 +725,8 @@ function json_seed_coupons(): void {
   $rows = json_coupons_all();
   if ($rows && count($rows) > 0) return;
   $defaults = [
-    ['code' => 'DIEFREE', 'title' => '목형비 면제 쿠폰', 'description' => '목형비 1회 면제'],
-    ['code' => 'FREESAMPLE', 'title' => '무료 샘플링 쿠폰', 'description' => '샘플 제작 1회 무료'],
+    ['code' => 'DIEFREE', 'title' => '목형비 면제 쿠폰', 'description' => '목형비 1회 면제', 'expires_at' => null],
+    ['code' => 'FREESAMPLE', 'title' => '무료 샘플링 쿠폰', 'description' => '샘플 제작 1회 무료', 'expires_at' => null],
   ];
   json_save(json_coupons_path(), $defaults);
 }
@@ -663,13 +738,14 @@ function json_user_coupon_add(string $username, string $couponCode, int $qty = 1
   foreach ($rows as &$r) {
     if (($r['username'] ?? '') === $username && ($r['coupon_code'] ?? '') === $couponCode) {
       $r['qty'] = (int)($r['qty'] ?? 0) + $qty;
+      $r['granted_at'] = time();
       $updated = true;
       break;
     }
   }
   unset($r);
   if (!$updated) {
-    $rows[] = ['username' => $username, 'coupon_code' => $couponCode, 'qty' => $qty];
+    $rows[] = ['username' => $username, 'coupon_code' => $couponCode, 'qty' => $qty, 'granted_at' => time(), 'revoked_at' => null];
   }
   json_save(json_user_coupons_path(), $rows);
 }
@@ -681,14 +757,18 @@ function json_user_coupons(string $username): array {
   foreach ($defs as $d) { $map[$d['code']] = $d; }
   $rows = json_user_coupons_all();
   $out = [];
+  $now = time();
   foreach ($rows as $r) {
     if (($r['username'] ?? '') !== $username) continue;
     $code = (string)($r['coupon_code'] ?? '');
     $def = $map[$code] ?? ['code'=>$code,'title'=>$code,'description'=>''];
+    $expiresAt = $def['expires_at'] ?? null;
+    if ($expiresAt && (int)$expiresAt < $now) continue;
     $out[] = [
       'code' => $def['code'] ?? $code,
       'title' => $def['title'] ?? $code,
       'description' => $def['description'] ?? '',
+      'expires_at' => $expiresAt,
       'qty' => (int)($r['qty'] ?? 0),
     ];
   }
@@ -796,6 +876,31 @@ function json_user_update_password_by_id(int $id, string $password_hash): bool {
   return $updated;
 }
 
+function json_user_delete_by_id(int $id): ?array {
+  $users = json_users_all();
+  $deleted = null;
+  $out = [];
+  foreach ($users as $u) {
+    if ((int)($u['id'] ?? 0) === $id) {
+      $deleted = $u;
+      continue;
+    }
+    $out[] = $u;
+  }
+  if ($deleted) json_save(json_users_path(), $out);
+  return $deleted;
+}
+
+function json_user_coupons_delete_by_username(string $username): void {
+  $rows = json_user_coupons_all();
+  $out = [];
+  foreach ($rows as $r) {
+    if (($r['username'] ?? '') === $username) continue;
+    $out[] = $r;
+  }
+  json_save(json_user_coupons_path(), $out);
+}
+
 function json_quote_add(array $fields): array {
   $quotes = json_quotes_all();
   $id = 1;
@@ -843,6 +948,73 @@ function require_admin_json(): ?array {
     exit;
   }
   return $u;
+}
+
+function production_state_default(): array {
+  return [
+    'customers' => [],
+    'products' => [],
+    'dies' => [],
+    'orders' => [],
+    'workorders' => [],
+    'shipments' => [],
+    'counters' => [
+      'customer' => 1,
+      'product' => 1,
+      'die' => 1,
+      'order' => 1,
+      'workorder' => 1,
+      'shipment' => 1,
+    ],
+  ];
+}
+
+function normalize_production_state($state): array {
+  $default = production_state_default();
+  if (!is_array($state)) {
+    return $default;
+  }
+
+  $normalized = [];
+  foreach (['customers', 'products', 'dies', 'orders', 'workorders', 'shipments'] as $key) {
+    $normalized[$key] = isset($state[$key]) && is_array($state[$key]) ? array_values($state[$key]) : [];
+  }
+
+  $counters = isset($state['counters']) && is_array($state['counters']) ? $state['counters'] : [];
+  $normalized['counters'] = [];
+  foreach ($default['counters'] as $key => $value) {
+    $counterValue = (int)($counters[$key] ?? $value);
+    $normalized['counters'][$key] = $counterValue > 0 ? $counterValue : $value;
+  }
+
+  return $normalized;
+}
+
+function production_state_get(PDO $pdo): array {
+  try {
+    $stmt = $pdo->query('SELECT `state_json` FROM `production_state_store` WHERE `id` = 1 LIMIT 1');
+    $raw = $stmt->fetchColumn();
+    if (!$raw) {
+      return production_state_default();
+    }
+    $decoded = json_decode((string)$raw, true);
+    return normalize_production_state($decoded);
+  } catch (Throwable $e) {
+    return production_state_default();
+  }
+}
+
+function production_state_save(PDO $pdo, array $state, ?int $userId = null): array {
+  $normalized = normalize_production_state($state);
+  $now = time();
+  $json = json_encode($normalized, JSON_UNESCAPED_UNICODE);
+  $stmt = $pdo->prepare('INSERT INTO `production_state_store`(`id`,`state_json`,`updated_by_user_id`,`created_at`,`updated_at`) VALUES(1,:state,:uid,:ts,:ts) ON DUPLICATE KEY UPDATE `state_json` = VALUES(`state_json`), `updated_by_user_id` = VALUES(`updated_by_user_id`), `updated_at` = VALUES(`updated_at`)');
+  $stmt->execute([
+    ':state' => $json,
+    ':uid' => $userId,
+    ':ts' => $now,
+  ]);
+  return $normalized;
 }
 
 ?>

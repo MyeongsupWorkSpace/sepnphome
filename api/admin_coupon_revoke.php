@@ -1,12 +1,16 @@
 <?php
-require_once "db.php";
-requireAdmin();
+require __DIR__ . '/db.php';
+header('Content-Type: application/json; charset=utf-8');
 
-$user_coupon_id = $_POST['user_coupon_id'] ?? null;
-if (!$user_coupon_id) {
-    http_response_code(400);
-    echo json_encode(["error" => "user_coupon_id required"]);
-    exit;
+$pdo = get_db();
+require_admin($pdo);
+
+$userCouponId = (int)($_POST['user_coupon_id'] ?? 0);
+if ($userCouponId <= 0) {
+    json_out(["ok" => false, "error" => "user_coupon_id required"], 400);
 }
-$res = revokeUserCoupon($user_coupon_id);
-echo json_encode($res);
+$res = revokeUserCoupon($userCouponId);
+if (!empty($res['error'])) {
+    json_out(["ok" => false, "error" => $res['error']], 400);
+}
+json_out(["ok" => true]);

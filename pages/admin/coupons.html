@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>쿠폰 관리 — SEPNP Admin</title>
+  <title>쿠폰 관리 — 성은지기인쇄(주) | SEPNP Admin</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="../../assets/css/styles.css">
   <style>
@@ -12,13 +12,44 @@
     .admin-coupons-table tbody tr:hover { background: var(--bg-muted); }
     .admin-coupons-toolbar { display: flex; gap: 12px; margin: 18px 0; }
     .admin-coupons-toolbar input, .admin-coupons-toolbar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; min-width: 120px; }
-    .admin-coupons-toolbar button { padding: 8px 16px; border-radius: 10px; background: var(--primary); color: #fff; border: none; cursor: pointer; }
+    .admin-coupons-toolbar button { padding: 8px 16px; border-radius: 10px; background: var(--primary); color: #000; border: none; cursor: pointer; }
     .admin-coupons-toolbar button:disabled { background: var(--muted); cursor: not-allowed; }
+    .admin-coupon-def { margin-top: 24px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-elev); }
+    .admin-coupon-def .field-row { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .admin-coupon-def input, .admin-coupon-def textarea { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; width: 100%; }
+    .admin-coupon-def textarea { min-height: 80px; resize: vertical; }
+    .admin-coupon-def .actions { display: flex; gap: 10px; justify-content: flex-end; }
   </style>
 </head>
 <body>
-  <main class="container">
+  <header class="site-header">
+    <div class="container header-top">
+      <a href="../../index.html" class="logo" aria-label="홈으로 이동">
+        <img src="../../assets/img/SE_logo.png" alt="SEPNP 로고" />
+      </a>
+    </div>
+    <div class="container header-bottom">
+      <button class="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">☰</button>
+      <nav class="site-nav" aria-label="주요"><ul></ul></nav>
+      <div class="nav-actions" aria-label="계정 영역"></div>
+    </div>
+  </header>
+  <main class="container page-main">
     <h1>쿠폰 관리</h1>
+    <section class="admin-coupon-def">
+      <h2 class="section-title" style="margin-bottom:12px;">쿠폰 정의</h2>
+      <form id="adminCouponDefForm" onsubmit="return false;">
+        <div class="field-row"><label for="adminCouponCode">코드</label><input id="adminCouponCode" placeholder="예: SPRING2026"></div>
+        <div class="field-row"><label for="adminCouponTitle">쿠폰명</label><input id="adminCouponTitle" placeholder="예: 봄맞이 할인"></div>
+        <div class="field-row"><label for="adminCouponDesc">설명</label><textarea id="adminCouponDesc" placeholder="쿠폰 설명"></textarea></div>
+        <div class="field-row"><label for="adminCouponExpires">유효기간</label><input id="adminCouponExpires" type="date" placeholder="YYYY-MM-DD"></div>
+        <div class="actions">
+          <button class="btn" id="adminCouponResetBtn" type="button">초기화</button>
+          <button class="btn btn-accent" id="adminCouponSaveBtn" type="button">저장</button>
+        </div>
+      </form>
+    </section>
+    <div id="adminCouponsDefTable" style="margin-top:16px;"></div>
     <div class="admin-coupons-toolbar">
       <input type="text" id="adminCouponUserSearch" placeholder="사용자 ID 또는 이름 검색">
       <select id="adminCouponSelect"></select>
@@ -27,6 +58,23 @@
     </div>
     <div id="adminCouponsTableWrap"></div>
   </main>
+  <footer class="site-footer">
+    <div class="footer-divider"></div>
+    <div class="container footer-bottom">
+      <div class="footer-bottom-inner">
+        <div class="footer-meta">
+          <div class="footer-links" aria-label="정책 링크">
+            <a href="#" class="footer-link">개인정보처리방침</a>
+            <span class="footer-sep">|</span>
+            <a href="#" class="footer-link">이용약관</a>
+            <span class="footer-sep">|</span>
+            <a href="#" class="footer-link">문의하기</a>
+          </div>
+        </div>
+        <div class="footer-copy">Copyright (c) <span id="year"></span> SEPNP. All Rights Reserved.</div>
+      </div>
+    </div>
+  </footer>
   <script src="../../assets/js/main.js"></script>
 </body>
 </html>

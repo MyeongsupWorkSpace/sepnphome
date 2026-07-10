@@ -44,7 +44,7 @@ $env:APP_USE_JSON = '1'
 php -S 127.0.0.1:8000 -t .
 ```
 
-`env_APP_USE_JSON` 상태는 `/api/ping.php`에서 확인 가능합니다.
+`env_APP_USE_JSON` 상태는 서버 환경 변수 설정으로 확인하세요.
 
 ## 컨테이너 배포 (권장)
 Apache+PHP 컨테이너로 쉽게 배포할 수 있습니다.

@@ -14,11 +14,12 @@ $pdo = get_db();
 $u = current_user($pdo);
 if (!$u) { json_out(['ok'=>false,'error'=>'unauthorized'], 401); exit; }
 
-$stmt = $pdo->prepare('SELECT c.`code`, c.`title`, c.`description`, uc.`qty`
+$now = time();
+$stmt = $pdo->prepare('SELECT c.`code`, c.`title`, c.`description`, c.`expires_at`, uc.`qty`, COALESCE(uc.`granted_at`, uc.`created_at`) AS `granted_at`
   FROM `user_coupons` uc
   JOIN `coupons` c ON c.`id` = uc.`coupon_id`
-  WHERE uc.`user_id` = :uid
+  WHERE uc.`user_id` = :uid AND uc.`qty` > 0 AND (c.`expires_at` IS NULL OR c.`expires_at` >= :now)
   ORDER BY c.`id` ASC');
-$stmt->execute([':uid' => (int)$u['id']]);
+$stmt->execute([':uid' => (int)$u['id'], ':now' => $now]);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 json_out(['ok'=>true, 'coupons'=>$rows]);

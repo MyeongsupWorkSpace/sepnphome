@@ -50,6 +50,63 @@ if (use_json_fallback()) {
 }
 
 $pdo = get_db();
+$seedDefaults = function(PDO $pdo): void {
+  $defaults = [
+    [
+      'category' => 'notice',
+      'title' => '4월 공장 견학 일정 안내',
+      'summary' => '현장 견학은 매주 목요일에 진행되며 사전 예약이 필요합니다.',
+      'content' => '현장 견학은 매주 목요일에 진행되며 사전 예약이 필요합니다.',
+      'notice_date' => '2026-04-01',
+    ],
+    [
+      'category' => 'company',
+      'title' => '신규 자동 재단 설비 도입',
+      'summary' => '고난이도 패키지의 정밀도를 높이는 최신 장비를 가동했습니다.',
+      'content' => '고난이도 패키지의 정밀도를 높이는 최신 장비를 가동했습니다.',
+      'notice_date' => '2026-03-30',
+    ],
+    [
+      'category' => 'notice',
+      'title' => '친환경 포장재 라인업 확대',
+      'summary' => '친환경 인증 소재와 저탄소 공정을 기본 옵션으로 제공합니다.',
+      'content' => '친환경 인증 소재와 저탄소 공정을 기본 옵션으로 제공합니다.',
+      'notice_date' => '2026-03-26',
+    ],
+    [
+      'category' => 'company',
+      'title' => '브랜드 컨설팅 케이스북 공개',
+      'summary' => '패키지 개선으로 매출이 상승한 사례를 담은 자료를 공유합니다.',
+      'content' => '패키지 개선으로 매출이 상승한 사례를 담은 자료를 공유합니다.',
+      'notice_date' => '2026-03-22',
+    ],
+  ];
+  $stmt = $pdo->prepare('INSERT INTO `notices`(`category`,`title`,`summary`,`content`,`notice_date`,`is_pinned`,`attachments_json`,`views`,`created_at`,`updated_at`) VALUES(:category,:title,:summary,:content,:notice_date,0,:attachments_json,0,:created_at,:updated_at)');
+  $now = time();
+  foreach ($defaults as $row) {
+    $stmt->execute([
+      ':category' => $row['category'],
+      ':title' => $row['title'],
+      ':summary' => $row['summary'],
+      ':content' => $row['content'],
+      ':notice_date' => $row['notice_date'],
+      ':attachments_json' => '[]',
+      ':created_at' => $now,
+      ':updated_at' => $now,
+    ]);
+  }
+};
+
+$totalCount = 0;
+try {
+  $totalCount = (int)$pdo->query('SELECT COUNT(*) FROM `notices`')->fetchColumn();
+} catch (Throwable $e) {
+  $totalCount = 0;
+}
+if ($totalCount === 0) {
+  try { $seedDefaults($pdo); } catch (Throwable $e) { /* ignore */ }
+}
+
 $params = [];
 $sql = 'SELECT `id`,`category`,`title`,`summary`,`notice_date`,`is_pinned`,`views`';
 if ($includeContent) { $sql .= ',`content`'; }

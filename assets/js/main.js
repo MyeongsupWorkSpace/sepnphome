@@ -3,39 +3,297 @@ const yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 // Site settings helpers
+let siteSettingsCache = null;
 function getSiteSettings() {
+  if (siteSettingsCache) return siteSettingsCache;
   try {
     const raw = localStorage.getItem('sepn_site_settings');
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+    siteSettingsCache = raw ? JSON.parse(raw) : {};
+    return siteSettingsCache || {};
+  } catch {
+    siteSettingsCache = {};
+    return siteSettingsCache;
+  }
 }
-function setSiteSettings(settings) {
-  const prev = getSiteSettings();
+function setSiteSettings(settings, options = {}) {
+  const prev = options.replace ? {} : getSiteSettings();
   const next = { ...prev, ...settings };
-  localStorage.setItem('sepn_site_settings', JSON.stringify(next));
+  siteSettingsCache = next;
+  if (options.persist !== false) {
+    localStorage.setItem('sepn_site_settings', JSON.stringify(next));
+  }
   return next;
+}
+function normalizeTimeText(text) {
+  if (!text) return text;
+  return text.replace(/\b(am|pm)\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?/gi, (_m, ap, h, m) => {
+    let hour = parseInt(h, 10);
+    let min = m != null ? parseInt(m, 10) : 0;
+    if (Number.isNaN(hour)) return _m;
+    if (ap.toLowerCase() === 'pm' && hour < 12) hour += 12;
+    if (ap.toLowerCase() === 'am' && hour === 12) hour = 0;
+    const hh = String(hour).padStart(2, '0');
+    const mm = String(Number.isNaN(min) ? 0 : min).padStart(2, '0');
+    return `${hh}:${mm}`;
+  });
 }
 function applySiteSettingsUI() {
   const s = getSiteSettings();
   // Footer company name
-  const fb = document.querySelector('.footer-bottom');
-  if (fb && s.company) {
-    fb.innerHTML = `© <span id="year"></span> ${s.company}.`;
-    const y = document.getElementById('year');
-    if (y) y.textContent = new Date().getFullYear();
+  if (s.company) {
+    document.querySelectorAll('.footer-copy').forEach((el) => {
+      el.innerHTML = `Copyright (c) <span id="year"></span> ${s.company}. All Rights Reserved.`;
+      const y = el.querySelector('#year');
+      if (y) y.textContent = new Date().getFullYear();
+    });
   }
   // Contact/info placeholders
   const map = [
     ['site-company','company'],
     ['site-phone','phone'],
     ['site-address','address'],
+    ['site-email','email'],
+    ['site-partner-email','partnerEmail'],
+    ['site-delivery-address','deliveryAddress'],
+    ['site-hours','hours'],
+    ['site-hours-note','hoursNote'],
   ];
   for (const [id, key] of map) {
     const el = document.getElementById(id);
-    if (el && s[key]) el.textContent = s[key];
+    if (el && Object.prototype.hasOwnProperty.call(s, key)) {
+      const value = s[key] || '';
+      el.textContent = id === 'site-hours' ? normalizeTimeText(value) : value;
+    }
+  }
+  const emailLink = document.getElementById('site-email-link');
+  if (emailLink && Object.prototype.hasOwnProperty.call(s, 'email')) {
+    if (s.email) {
+      emailLink.setAttribute('href', `mailto:${s.email}`);
+      emailLink.classList.remove('is-hidden');
+    } else {
+      emailLink.removeAttribute('href');
+      emailLink.classList.add('is-hidden');
+    }
+  }
+  const partnerLink = document.getElementById('site-partner-email-link');
+  if (partnerLink && Object.prototype.hasOwnProperty.call(s, 'partnerEmail')) {
+    if (s.partnerEmail) {
+      partnerLink.setAttribute('href', `mailto:${s.partnerEmail}`);
+      partnerLink.classList.remove('is-hidden');
+    } else {
+      partnerLink.removeAttribute('href');
+      partnerLink.classList.add('is-hidden');
+    }
+  }
+  const kakaoLink = document.getElementById('site-kakao-link');
+  if (kakaoLink && Object.prototype.hasOwnProperty.call(s, 'kakaoLink')) {
+    if (s.kakaoLink) {
+      kakaoLink.setAttribute('href', s.kakaoLink);
+      kakaoLink.classList.remove('is-hidden');
+    } else {
+      kakaoLink.setAttribute('href', '#');
+      kakaoLink.classList.add('is-hidden');
+    }
   }
 }
 applySiteSettingsUI();
+
+// Main ad settings helpers
+const MAIN_AD_DEFAULTS = {
+  enabled: true,
+  title: '🎉 SEPNP 특별 이벤트!',
+  message: '지금 회원가입 시 목형비 면제 쿠폰 증정!\n견적 문의도 빠르게!'
+};
+let mainAdSettingsCache = null;
+function normalizeMainAdSettings(raw) {
+  const base = raw && typeof raw === 'object' ? raw : {};
+  return { ...MAIN_AD_DEFAULTS, ...base };
+}
+function getMainAdSettings() {
+  if (mainAdSettingsCache) return mainAdSettingsCache;
+  try {
+    const raw = localStorage.getItem('sepn_main_ad_settings');
+    mainAdSettingsCache = normalizeMainAdSettings(raw ? JSON.parse(raw) : {});
+    return mainAdSettingsCache || normalizeMainAdSettings({});
+  } catch {
+    mainAdSettingsCache = normalizeMainAdSettings({});
+    return mainAdSettingsCache;
+  }
+}
+function setMainAdSettings(settings, options = {}) {
+  const prev = options.replace ? normalizeMainAdSettings({}) : getMainAdSettings();
+  const next = normalizeMainAdSettings({ ...prev, ...settings });
+  mainAdSettingsCache = next;
+  if (options.persist !== false) {
+    localStorage.setItem('sepn_main_ad_settings', JSON.stringify(next));
+  }
+  return next;
+}
+
+async function loadSiteSettings() {
+  try {
+    const res = await fetchWithTimeout(API('/api/site_settings_get.php'), { credentials: 'include' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data?.ok) return;
+    if (data.settings && typeof data.settings === 'object') {
+      setSiteSettings(data.settings, { replace: true });
+      applySiteSettingsUI();
+    }
+  } catch {}
+}
+
+async function loadMainAdSettings() {
+  try {
+    const res = await fetchWithTimeout(API('/api/main_ad_get.php'), { credentials: 'include' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data?.ok) return;
+    if (data.settings && typeof data.settings === 'object') {
+      setMainAdSettings(data.settings, { replace: true });
+    }
+  } catch {}
+}
+
+async function saveSiteSettings(payload) {
+  try {
+    const res = await fetchWithTimeout(API('/api/site_settings_save.php'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'include',
+    });
+    if (!res.ok) return { ok: false, error: 'http_error' };
+    const data = await res.json();
+    if (!data?.ok) return { ok: false, error: data?.error || 'server_error' };
+    if (data.settings && typeof data.settings === 'object') {
+      setSiteSettings(data.settings, { replace: true });
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'network_error' };
+  }
+}
+
+async function saveMainAdSettings(payload) {
+  try {
+    const res = await fetchWithTimeout(API('/api/main_ad_save.php'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'include',
+    });
+    if (!res.ok) return { ok: false, error: 'http_error' };
+    const data = await res.json();
+    if (!data?.ok) return { ok: false, error: data?.error || 'server_error' };
+    if (data.settings && typeof data.settings === 'object') {
+      setMainAdSettings(data.settings, { replace: true });
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'network_error' };
+  }
+}
+
+function initSiteSettingsForm() {
+  const form = document.querySelector('.settings');
+  if (!form) return;
+  const fields = {
+    company: 'company',
+    phone: 'phone',
+    address: 'address',
+    email: 'email',
+    partnerEmail: 'partnerEmail',
+    deliveryAddress: 'deliveryAddress',
+    hours: 'hours',
+    hoursNote: 'hoursNote',
+    kakaoLink: 'kakaoLink',
+  };
+  const hydrate = () => {
+    const s = getSiteSettings();
+    Object.entries(fields).forEach(([key, id]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (Object.prototype.hasOwnProperty.call(s, key)) {
+        el.value = s[key] || '';
+      }
+    });
+  };
+  hydrate();
+  loadSiteSettings().then(hydrate).catch(() => {});
+  const hint = document.getElementById('settingsHint');
+  const btn = document.getElementById('saveSettings');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    if (hint) {
+      hint.textContent = '저장 중입니다...';
+      hint.classList.remove('ok', 'error');
+    }
+    const payload = {};
+    Object.entries(fields).forEach(([key, id]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      payload[key] = el.value.trim();
+    });
+    const result = await saveSiteSettings(payload);
+    if (result.ok) {
+      applySiteSettingsUI();
+      if (hint) {
+        hint.textContent = '저장되었습니다.';
+        hint.classList.add('ok');
+      }
+    } else if (hint) {
+      hint.textContent = '저장에 실패했습니다. 관리자 권한을 확인하세요.';
+      hint.classList.add('error');
+    }
+    btn.disabled = false;
+  });
+}
+initSiteSettingsForm();
+
+function initMainAdSettingsForm() {
+  const form = document.getElementById('mainAdSettingsForm');
+  if (!form) return;
+  const enabledEl = document.getElementById('mainAdEnabled');
+  const titleEl = document.getElementById('mainAdTitle');
+  const messageEl = document.getElementById('mainAdMessage');
+  const hint = document.getElementById('mainAdSettingsHint');
+  const btn = document.getElementById('saveMainAdSettings');
+  const hydrate = () => {
+    const s = getMainAdSettings();
+    if (enabledEl) enabledEl.checked = !!s.enabled;
+    if (titleEl && Object.prototype.hasOwnProperty.call(s, 'title')) titleEl.value = s.title || '';
+    if (messageEl && Object.prototype.hasOwnProperty.call(s, 'message')) messageEl.value = s.message || '';
+  };
+  hydrate();
+  loadMainAdSettings().then(hydrate).catch(() => {});
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    if (hint) {
+      hint.textContent = '저장 중입니다...';
+      hint.classList.remove('ok', 'error');
+    }
+    const payload = {
+      enabled: !!enabledEl?.checked,
+      title: (titleEl?.value || '').trim(),
+      message: (messageEl?.value || '').trim(),
+    };
+    const result = await saveMainAdSettings(payload);
+    if (result.ok) {
+      if (hint) {
+        hint.textContent = '저장되었습니다.';
+        hint.classList.add('ok');
+      }
+    } else if (hint) {
+      hint.textContent = '저장에 실패했습니다. 관리자 권한을 확인하세요.';
+      hint.classList.add('error');
+    }
+    btn.disabled = false;
+  });
+}
+initMainAdSettingsForm();
 
 // Footer policy links
 function applyFooterPolicyLinks() {
@@ -51,17 +309,37 @@ function applyFooterPolicyLinks() {
       } else if (label.includes('이용약관')) {
         if (!href || href === '#') a.setAttribute('href', `${prefix}/terms.html`);
       } else if (label.includes('문의하기')) {
-        if (!href || href === '#') a.setAttribute('href', `${prefix}/quote.html`);
+        const prev = a.previousElementSibling;
+        const next = a.nextElementSibling;
+        if (prev && prev.classList.contains('footer-sep')) {
+          prev.remove();
+        } else if (next && next.classList.contains('footer-sep')) {
+          next.remove();
+        }
+        a.remove();
       }
     });
   } catch {}
 }
 applyFooterPolicyLinks();
 
-// API base: always use same-origin paths
-const API_BASE = '';
+// API base: support deployments under subpaths (e.g., /SEPNPHP)
+const API_BASE = (() => {
+  try {
+    const path = location.pathname || '';
+    let base = path.replace(/\/pages\/.*$/, '').replace(/\/index\.html$/, '');
+    if (base === path) {
+      base = path.replace(/\/admin\/.*$/, '');
+    }
+    base = base.replace(/\/$/, '');
+    return base === '/' ? '' : base;
+  } catch {
+    return '';
+  }
+})();
 window.API_BASE = API_BASE;
-const API = (p) => `${p}`;
+const API = (p) => `${API_BASE}${p}`;
+window.API = API;
 
 function getPortalUrl() {
   return '/SEportal/public/index.html';
@@ -73,6 +351,9 @@ function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
   return fetch(url, { ...options, signal: controller.signal })
     .finally(() => clearTimeout(id));
 }
+
+loadSiteSettings();
+loadMainAdSettings();
 
 function getLocalUser() {
   try { return JSON.parse(localStorage.getItem('sepn_user') || 'null'); } catch { return null; }
@@ -277,29 +558,9 @@ function renderQuotes(quotes) {
     if (s.length === 2) return s[0] + '*';
     return s[0] + '*'.repeat(s.length - 2) + s[s.length - 1];
   };
-  // 빈 목록: 15행 유지, 8번째 줄에 안내문 중앙 배치
+  // 빈 목록
   if (!quotes.length) {
-    const emptyRows = Array.from({ length: 15 }).map((_, i) => (
-      i === 7
-        ? `<tr><td colspan="4" class="quotes-empty-inline">아직 등록된 견적문의가 없습니다.</td></tr>`
-        : `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`
-    )).join('');
-    const table = `
-      <table class="quotes-table" aria-label="견적 문의 내역">
-        <thead>
-          <tr>
-            <th>등록 날짜</th>
-            <th>성명</th>
-            <th>제목</th>
-            <th>처리상태</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${emptyRows}
-        </tbody>
-      </table>
-    `;
-    listEl.innerHTML = table;
+    listEl.innerHTML = `<div class="timeline-empty">아직 등록된 견적문의가 없습니다.</div>`;
     listEl.setAttribute('aria-busy', 'false');
     return;
   }
@@ -308,46 +569,32 @@ function renderQuotes(quotes) {
     .slice()
     .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
     .slice(0, maxRows);
-  const rows = view
-    .map(q => {
-      const rawTs = Number(q.timestamp || 0);
-      const ts = rawTs ? (rawTs < 1000000000000 ? rawTs * 1000 : rawTs) : 0;
-      const dateStr = ts ? new Date(ts).toLocaleString() : '';
-      const name = maskName(q.name || '-');
-      const title = q.product || (q.message ? (q.message + '').slice(0, 40) + '…' : '-');
-      const statusRaw = (q.status || '문의중');
-      const isDone = statusRaw === '답변완료';
-      const statusClass = isDone ? 'status-done' : 'status-pending';
-      const statusLabel = isDone ? '답변완료' : '문의중';
-      return `
-        <tr>
-          <td>${dateStr}</td>
-          <td>${name}</td>
-          <td>${title}</td>
-          <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
-        </tr>
-      `;
-    })
-    .join('');
-  const placeholders = Array.from({ length: Math.max(0, maxRows - (view.length)) })
-    .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
-    .join('');
-  const table = `
-    <table class="quotes-table" aria-label="견적 문의 내역">
-      <thead>
-        <tr>
-          <th>등록 날짜</th>
-          <th>성명</th>
-          <th>제목</th>
-          <th>처리상태</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}${placeholders}
-      </tbody>
-    </table>
-  `;
-  listEl.innerHTML = table;
+  const rows = view.map(q => {
+    const rawTs = Number(q.timestamp || 0);
+    const ts = rawTs ? (rawTs < 1000000000000 ? rawTs * 1000 : rawTs) : 0;
+    const dateStr = ts ? new Date(ts).toLocaleDateString() : '';
+    const name = maskName(q.name || '-');
+    const title = q.product || '제품 문의';
+    const summary = (q.message || q.product || '').toString().slice(0, 80);
+    const statusRaw = (q.status || '문의중');
+    const isDone = statusRaw === '답변완료';
+    const statusClass = isDone ? 'status-done' : 'status-pending';
+    const statusLabel = isDone ? '답변완료' : '문의중';
+    return `
+      <div class="timeline-item">
+        <div class="timeline-card">
+          <div class="timeline-row">
+            <span class="timeline-date">${dateStr}</span>
+            <span class="status-badge ${statusClass}">${statusLabel}</span>
+          </div>
+          <div class="timeline-title">${title}</div>
+          <div class="timeline-meta">요청자: ${name}</div>
+          <div class="timeline-summary">${summary || '-'}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  listEl.innerHTML = `<div class="timeline-list" aria-label="견적 문의 내역">${rows}</div>`;
   listEl.setAttribute('aria-busy', 'false');
 }
 
@@ -467,6 +714,16 @@ function initQuotesStream() {
 (function initMyCoupons(){
   const wrap = document.getElementById('couponList');
   if (!wrap) return;
+  const fmtDate = (ts) => {
+    if (!ts) return '유효기간 없음';
+    const ms = Number(ts) < 1000000000000 ? Number(ts) * 1000 : Number(ts);
+    if (!ms) return '유효기간 없음';
+    const d = new Date(ms);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
   async function load(){
     wrap.setAttribute('aria-busy', 'true');
     try {
@@ -482,6 +739,7 @@ function initQuotesStream() {
             <div class="coupon-title">${c.title || c.code || '쿠폰'}</div>
             <div class="coupon-desc">${c.description || ''}</div>
             <div class="coupon-qty">보유 수량: ${c.qty ?? 0}장</div>
+            <div class="coupon-expiry">유효기간: ${fmtDate(c.expires_at)}</div>
           </div>
         `).join('');
       }
@@ -589,6 +847,13 @@ function initNoticeBoard() {
     listItems.forEach(item => listEl.appendChild(createItem(item)));
   };
 
+  const normalizeCategory = (value) => {
+    const v = (value || '').toString().toLowerCase().replace(/\s+/g, '');
+    if (v.includes('company') || v.includes('회사') || v.includes('소식') || v.includes('news')) return 'company';
+    if (v.includes('notice') || v.includes('공지')) return 'notice';
+    return 'notice';
+  };
+
   const load = async () => {
     try {
       const res = await fetch(API('/api/notices_list.php?limit=30'));
@@ -596,22 +861,15 @@ function initNoticeBoard() {
       const data = await res.json();
       if (!Array.isArray(data) || data.length === 0) return;
       const maxItems = 6;
-      render(lists.all, data.slice(0, maxItems));
-      render(lists.notice, data.filter(i => i.category === 'notice').slice(0, maxItems));
-      render(lists.company, data.filter(i => i.category === 'company').slice(0, maxItems));
+      const normalized = data.map(item => ({ ...item, category: normalizeCategory(item.category) }));
+      render(lists.all, normalized.slice(0, maxItems));
+      render(lists.notice, normalized.filter(i => i.category === 'notice').slice(0, maxItems));
+      render(lists.company, normalized.filter(i => i.category === 'company').slice(0, maxItems));
     } catch {}
   };
   load();
 }
 
-function initMapBannerClose() {
-  const btn = document.querySelector('.map-banner-close');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    const banner = document.querySelector('.map-banner');
-    if (banner) banner.style.display = 'none';
-  });
-}
 
 function initLoginPageModal() {
   const path = (location.pathname || '').toLowerCase();
@@ -946,37 +1204,35 @@ function initAdminQuotesPage() {
   function renderTable(){
     const start = (state.page - 1) * state.pageSize;
     const rows = state.filtered.slice(start, start + state.pageSize);
-    const htmlRows = (rows||[]).map(q => `
-      <tr data-id="${q.id}">
-        <td>${q.timestamp ? new Date(q.timestamp*1000).toLocaleString() : ''}</td>
-        <td>${q.company||''}</td>
-        <td>${q.position||''}</td>
-        <td>${q.name||''}</td>
-        <td>${q.phone||''}</td>
-        <td>
-          <div class="status-toggle" data-id="${q.id}">
-            <button type="button" class="status-btn status-pending ${((q.status||'')==='문의중')?'is-active':''}" data-status="문의중">문의중</button>
-            <button type="button" class="status-btn status-done ${((q.status||'')==='답변완료')?'is-active':''}" data-status="답변완료">답변완료</button>
+    if (!rows.length) {
+      wrap.innerHTML = '<div class="timeline-empty">등록된 견적이 없습니다.</div>';
+      return;
+    }
+    const cards = (rows||[]).map(q => {
+      const dateStr = q.timestamp ? new Date(q.timestamp*1000).toLocaleString() : '';
+      const title = q.product || '견적 문의';
+      const summary = (q.message || '').toString().slice(0, 80);
+      return `
+        <div class="timeline-item admin-quote-card" data-id="${q.id}">
+          <div class="timeline-card admin-card">
+            <div class="admin-card-row">
+              <div class="admin-card-title">${title}</div>
+              <div class="status-toggle" data-id="${q.id}">
+                <button type="button" class="status-btn status-pending ${((q.status||'')==='문의중')?'is-active':''}" data-status="문의중">문의중</button>
+                <button type="button" class="status-btn status-done ${((q.status||'')==='답변완료')?'is-active':''}" data-status="답변완료">답변완료</button>
+              </div>
+            </div>
+            <div class="admin-card-meta">
+              <span>등록일: ${dateStr}</span>
+              <span>회사명: ${q.company||''}</span>
+              <span>성명: ${q.name||''}</span>
+              <span>연락처: ${q.phone||''}</span>
+            </div>
+            <div class="timeline-summary">${summary || '-'}</div>
           </div>
-        </td>
-      </tr>
-    `).join('');
-    const table = `
-      <table class="quotes-admin-table" aria-label="견적 접수 목록">
-        <thead>
-          <tr>
-            <th>등록일</th>
-            <th>회사명</th>
-            <th>직급</th>
-            <th>성명</th>
-            <th>연락처</th>
-            <th>상태</th>
-          </tr>
-        </thead>
-        <tbody>${htmlRows}</tbody>
-      </table>
-    `;
-    wrap.innerHTML = table;
+        </div>`;
+    }).join('');
+    wrap.innerHTML = `<div class="timeline-list">${cards}</div>`;
     wrap.querySelectorAll('.status-toggle')?.forEach(group => {
       group.querySelectorAll('.status-btn')?.forEach(btn => btn.addEventListener('click', async (e) => {
         const g = e.currentTarget.closest('.status-toggle');
@@ -997,10 +1253,10 @@ function initAdminQuotesPage() {
         }
       }));
     });
-    wrap.querySelectorAll('tbody tr')?.forEach(tr => tr.addEventListener('click', (e) => {
+    wrap.querySelectorAll('.admin-quote-card')?.forEach(card => card.addEventListener('click', (e) => {
       const interactive = e.target.closest('select, button, a, input, textarea, label');
       if (interactive) return;
-      const idAttr = tr.getAttribute('data-id');
+      const idAttr = card.getAttribute('data-id');
       const id = idAttr ? parseInt(idAttr,10) : 0;
       const item = state.all.find(x=>x.id===id);
       if (item) openDetail(item);
@@ -1111,7 +1367,6 @@ function initAdminQuotesPage() {
 
 initSimpleTabs();
 initNoticeBoard();
-initMapBannerClose();
 initLoginPageModal();
 initQuoteRegisterPage();
 initAdminQuotesPage();
@@ -1124,18 +1379,37 @@ function closeAuthModals() {
   try { document.getElementById('registerModal')?.remove(); } catch {}
 }
 
-function createLoginModal() {
+function mapAuthErrorMessage(code, fallback = '요청 처리 중 오류가 발생했습니다.') {
+  const key = (code || '').toString().toLowerCase();
+  const table = {
+    invalid_login: '아이디 또는 비밀번호가 올바르지 않습니다.',
+    pending_approval: '승인 대기 중입니다. 관리자 승인 후 다시 로그인해 주세요.',
+    missing_fields: '필수 입력 항목을 모두 입력해 주세요.',
+    password_confirm_required: '비밀번호 확인을 입력해 주세요.',
+    password_mismatch: '비밀번호와 비밀번호 확인이 일치하지 않습니다.',
+    username_taken: '이미 사용 중인 아이디입니다.',
+    nickname_taken: '이미 사용 중인 닉네임입니다.',
+    forbidden: '접근 권한이 없습니다.',
+    network_error: '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+    timeout: '응답이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.'
+  };
+  return table[key] || fallback;
+}
+
+function createLoginModal(options = {}) {
   if (document.getElementById('loginModal')) return;
+  const prefillUsername = (options?.prefillUsername || '').toString().trim();
+  const noticeMessage = (options?.noticeMessage || '').toString().trim();
   const wrap = document.createElement('div');
   wrap.id = 'loginModal';
   wrap.innerHTML = `
-    <div class="modal-backdrop" data-modal-close></div>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
-      <div class="modal-card login-card">
+    <div class="modal-backdrop auth-backdrop" data-modal-close></div>
+    <div class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <div class="modal-card login-card premium-login-card">
         <div class="login-hero" aria-hidden="true">
-          <div class="login-badge">SEPNP 멤버</div>
-          <h2 class="login-hero-title">성은지기인쇄에 오신걸 환영합니다.</h2>
-          <p class="login-hero-sub">브랜드를 살리는 패키지, 고객을 끌어당기는 박스를 만듭니다.</p>
+          <div class="login-badge">SEPNP MEMBER</div>
+          <h2 class="login-hero-title">Welcome Back</h2>
+          <p class="login-hero-sub">생산, 견적, 고객관리까지 하나의 계정으로 안전하게 연결됩니다.</p>
           <ul class="login-points">
             <li>맞춤형 패키지 컨설팅 제공</li>
             <li>퀄리티·납기·단가를 함께 설계</li>
@@ -1145,20 +1419,23 @@ function createLoginModal() {
         <div class="login-panel">
           <div class="login-panel-header">
             <div>
-              <div class="login-title" id="loginTitle">로그인</div>
+              <div class="login-title" id="loginTitle">SEPNP 로그인</div>
               <div class="login-subtitle">아이디와 비밀번호를 입력해 주세요.</div>
             </div>
             <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
           </div>
           <div class="login-form">
+            <div id="modalLoginMsg" class="login-msg" aria-live="polite"></div>
             <label class="login-label" for="modalLoginId">아이디</label>
             <div class="login-input">
               <input id="modalLoginId" placeholder="아이디" autocomplete="username" />
             </div>
             <label class="login-label" for="modalLoginPw">비밀번호</label>
-            <div class="login-input">
+            <div class="login-input login-pw-wrap">
               <input id="modalLoginPw" type="password" placeholder="비밀번호" autocomplete="current-password" />
+              <button type="button" class="login-pw-toggle" id="toggleLoginPw" aria-label="비밀번호 보기">보기</button>
             </div>
+            <div id="modalCapsHint" class="input-hint capslock-hint" aria-live="polite"></div>
             <div class="login-options">
               <label class="login-check">
                 <input type="checkbox" id="rememberLogin" />
@@ -1181,8 +1458,42 @@ function createLoginModal() {
   const idInput = document.getElementById('modalLoginId');
   const pwInput = document.getElementById('modalLoginPw');
   const rememberEl = document.getElementById('rememberLogin');
+  const msgEl = document.getElementById('modalLoginMsg');
+  const pwToggle = document.getElementById('toggleLoginPw');
+  const capsHint = document.getElementById('modalCapsHint');
+  const submit = wrap.querySelector('#modalLoginSubmit');
+
+  const setMsg = (text, kind = '') => {
+    if (!msgEl) return;
+    msgEl.textContent = text || '';
+    msgEl.className = `login-msg${kind ? ` ${kind}` : ''}`;
+  };
+
+  pwToggle?.addEventListener('click', () => {
+    if (!pwInput) return;
+    const isHidden = pwInput.type === 'password';
+    pwInput.type = isHidden ? 'text' : 'password';
+    pwToggle.textContent = isHidden ? '숨김' : '보기';
+    pwToggle.setAttribute('aria-label', isHidden ? '비밀번호 숨기기' : '비밀번호 보기');
+  });
+
+
+  const setCapsWarning = (enabled) => {
+    if (!capsHint) return;
+    capsHint.textContent = enabled ? 'Caps Lock이 켜져 있습니다.' : '';
+    capsHint.classList.toggle('error', !!enabled);
+  };
+  const onCapsEvent = (event) => {
+    if (!event || typeof event.getModifierState !== 'function') return;
+    setCapsWarning(event.getModifierState('CapsLock'));
+  };
+  pwInput?.addEventListener('keydown', onCapsEvent);
+  pwInput?.addEventListener('keyup', onCapsEvent);
+  pwInput?.addEventListener('focus', () => setCapsWarning(false));
+  pwInput?.addEventListener('blur', () => setCapsWarning(false));
+
   try {
-    const saved = localStorage.getItem('sepn_login_id');
+    const saved = prefillUsername || localStorage.getItem('sepn_login_id');
     if (saved && idInput && rememberEl) {
       idInput.value = saved;
       rememberEl.checked = true;
@@ -1191,11 +1502,19 @@ function createLoginModal() {
       idInput?.focus();
     }
   } catch {}
-  const submit = wrap.querySelector('#modalLoginSubmit');
+  if (noticeMessage) setMsg(noticeMessage, 'ok');
   const handleSubmit = async () => {
     const username = (idInput?.value || '').trim();
     const password = (pwInput?.value || '').trim();
-    if (!username || !password) return;
+    if (!username || !password) {
+      setMsg('아이디와 비밀번호를 모두 입력해 주세요.', 'error');
+      return;
+    }
+    setMsg('로그인 중입니다...', 'pending');
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = '로그인 중...';
+    }
     try {
       if (rememberEl?.checked) localStorage.setItem('sepn_login_id', username);
       else localStorage.removeItem('sepn_login_id');
@@ -1208,7 +1527,7 @@ function createLoginModal() {
       });
       const data = await res.json();
       if (!data.ok) {
-        alert(data.error === 'pending_approval' ? '승인 대기 중입니다.' : '로그인 실패');
+        setMsg(mapAuthErrorMessage(data.error, '로그인에 실패했습니다. 아이디와 비밀번호를 확인해 주세요.'), 'error');
         return;
       }
       const u = data.user || {};
@@ -1219,6 +1538,7 @@ function createLoginModal() {
         u.status = '승인완료';
       }
       localStorage.setItem('sepn_user', JSON.stringify(u));
+      setMsg('로그인 성공! 이동 중입니다.', 'ok');
       closeAuthModals();
       // 직원 계정이면 포털로 이동
       if (['employee','staff'].includes((u.role || '').toLowerCase())) {
@@ -1227,9 +1547,14 @@ function createLoginModal() {
       }
       renderAuth();
       renderNav();
-    } catch {
-      alert('서버 응답이 없습니다. 잠시 후 다시 시도하세요.');
+    } catch (e) {
+      setMsg(mapAuthErrorMessage(e?.name === 'AbortError' ? 'timeout' : 'network_error'), 'error');
       return;
+    } finally {
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = '로그인';
+      }
     }
   };
   submit?.addEventListener('click', handleSubmit);
@@ -1249,14 +1574,14 @@ function renderAuth() {
       const header = document.querySelector('.site-header');
       if (!header) return;
       // 헤더 내부 nav-actions 중복 제거
-      const bottom = header.querySelector('.header-bottom');
-      if (bottom) {
-        const list = bottom.querySelectorAll('.nav-actions');
+      const top = header.querySelector('.header-top');
+      if (top) {
+        const list = top.querySelectorAll('.nav-actions');
         list.forEach((el, idx) => { if (idx > 0) el.remove(); });
       }
-      header.querySelectorAll('.header-top .nav-actions').forEach(el => el.remove());
+      header.querySelectorAll('.header-bottom .nav-actions').forEach(el => el.remove());
       // 로그인 버튼 중복 제거
-      const actions = header.querySelector('.header-bottom .nav-actions');
+      const actions = header.querySelector('.header-top .nav-actions');
       if (actions) {
         const loginBtns = actions.querySelectorAll('#openLogin');
         loginBtns.forEach((btn, idx) => { if (idx > 0) btn.remove(); });
@@ -1269,25 +1594,24 @@ function renderAuth() {
       const headerTop = document.querySelector('.site-header .header-top');
       const headerBottom = document.querySelector('.site-header .header-bottom');
       if (!headerTop && !headerBottom) return;
-      // 상단 액션 영역은 사용하지 않음(중복 버튼 방지)
-      headerTop?.querySelectorAll('.nav-actions')?.forEach(el => el.remove());
-      if (headerBottom) {
-        const bottomList = headerBottom.querySelectorAll('.nav-actions');
-        if (bottomList.length === 0) {
-          const bottom = document.createElement('div');
-          bottom.className = 'nav-actions';
-          bottom.setAttribute('aria-label', '계정 영역');
-          headerBottom.appendChild(bottom);
-        } else if (bottomList.length > 1) {
-          bottomList.forEach((el, idx) => { if (idx > 0) el.remove(); });
+      headerBottom?.querySelectorAll('.nav-actions')?.forEach(el => el.remove());
+      if (headerTop) {
+        const topList = headerTop.querySelectorAll('.nav-actions');
+        if (topList.length === 0) {
+          const top = document.createElement('div');
+          top.className = 'nav-actions';
+          top.setAttribute('aria-label', '계정 영역');
+          headerTop.appendChild(top);
+        } else if (topList.length > 1) {
+          topList.forEach((el, idx) => { if (idx > 0) el.remove(); });
         }
       }
     } catch {}
   }
   ensureAuthMount();
 
-  // 하단 네비 우측만 사용
-  const actions = document.querySelector('.site-header .header-bottom .nav-actions');
+  // 상단 우측만 사용
+  const actions = document.querySelector('.site-header .header-top .nav-actions');
   if (!actions) return;
   const raw = localStorage.getItem('sepn_user');
   let user = null;
@@ -1310,6 +1634,7 @@ function renderAuth() {
       ${['employee','staff'].includes((user.role || '').toLowerCase())
         ? '<a class="btn login-compact" id="portalLink" href="#">SE포털</a>'
         : ''}
+      <a class="btn login-compact" id="myPageLink" href="/pages/quote-history.html">마이페이지</a>
       <button type="button" class="btn login-compact logout-btn">로그아웃</button>
     `;
     const portalLink = actions.querySelector('#portalLink');
@@ -1351,13 +1676,33 @@ try {
 try {
   renderAuth();
 } catch (e) {
-  const actions = document.querySelector('.site-header .header-bottom .nav-actions');
+  const actions = document.querySelector('.site-header .header-top .nav-actions');
   if (actions) {
     actions.innerHTML = `<button type="button" class="btn login-compact" id="openLogin">로그인</button>`;
     const btn = actions.querySelector('#openLogin');
     btn?.addEventListener('click', () => { try { createLoginModal(); } catch {} });
   }
 }
+
+// 세션-로컬 사용자 동기화
+async function syncAuthSession() {
+  if (window.__sepn_auth_sync) return;
+  window.__sepn_auth_sync = true;
+  try {
+    const res = await fetchWithTimeout(API('/api/auth_me.php'), { credentials: 'include' });
+    const data = res.ok ? await res.json() : null;
+    if (data?.ok && data.user) {
+      localStorage.setItem('sepn_user', JSON.stringify(data.user));
+    } else {
+      localStorage.removeItem('sepn_user');
+    }
+  } catch {
+    // ignore network errors
+  }
+  try { renderAuth(); } catch {}
+  try { renderNav(); } catch {}
+}
+syncAuthSession();
 
 // Dynamic navigation: admin vs normal
 function renderNav() {
@@ -1376,6 +1721,7 @@ function renderNav() {
     `<li><a href="#" data-menu="company">회사소개</a></li>`,
     `<li><a href="${prefix}/pages/facility.html">시설 및 공정</a></li>`,
     `<li><a href="#" data-menu="products">제품소개</a></li>`,
+    `<li><a href="/SEportal/public/dashboard.html">SE통합관리</a></li>`,
     `<li><a href="${prefix}/pages/notices.html">공지사항</a></li>`,
     `<li><a href="${prefix}/pages/quote.html">견적문의</a></li>`,
     isAdmin ? `<li><a href="${prefix}/pages/admin/index.html" data-menu="admin">관리</a></li>` : ''
@@ -1400,6 +1746,7 @@ try {
   const user = getLocalUser();
   const path = (location.pathname || '').toLowerCase();
   const guarded = [
+    '/seportal/public/dashboard.html',
     '/pages/quote.html',
     '/pages/quote-register.html',
     '/pages/quote-history.html',
@@ -1421,7 +1768,7 @@ try {
     const a = e.target.closest('a');
     if (!a) return;
     const href = (a.getAttribute('href') || '').toLowerCase();
-    if (!/quote\.html|quote-register\.html|quote-history\.html/.test(href)) return;
+    if (!/dashboard\.html|quote\.html|quote-register\.html|quote-history\.html/.test(href)) return;
     if (getLocalUser()) return;
     e.preventDefault();
     alert('로그인이 필요합니다. 상단 로그인 버튼을 사용하세요.');
@@ -1444,6 +1791,14 @@ function initMegaMenu({ linkSelector, panelId, openOnClick = false, openOnHover 
   const open = () => { position(); panel.hidden = false; };
   const close = () => { panel.hidden = true; };
   const toggle = () => { panel.hidden ? open() : close(); };
+  let hoverTimer = null;
+  const scheduleClose = () => {
+    if (hoverTimer) clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(close, 120);
+  };
+  const cancelClose = () => {
+    if (hoverTimer) clearTimeout(hoverTimer);
+  };
 
   if (openOnClick) {
     link.addEventListener('click', (e) => {
@@ -1454,6 +1809,9 @@ function initMegaMenu({ linkSelector, panelId, openOnClick = false, openOnHover 
   if (openOnHover) {
     link.addEventListener('mouseenter', () => { open(); });
     link.addEventListener('focus', () => { open(); });
+    link.addEventListener('mouseleave', scheduleClose);
+    panel.addEventListener('mouseenter', cancelClose);
+    panel.addEventListener('mouseleave', scheduleClose);
   }
 
   document.addEventListener('click', (e) => {
@@ -1469,11 +1827,11 @@ function initMegaMenu({ linkSelector, panelId, openOnClick = false, openOnHover 
 
 // COMPANY 메가 메뉴 동작
 function initCompanyMega(){
-  initMegaMenu({ linkSelector: '.site-nav a[data-menu="company"]', panelId: 'companyMega', openOnClick: true });
+  initMegaMenu({ linkSelector: '.site-nav a[data-menu="company"]', panelId: 'companyMega', openOnClick: true, openOnHover: true });
 }
 
 function initProductsMega(){
-  initMegaMenu({ linkSelector: '.site-nav a[data-menu="products"]', panelId: 'productsMega', openOnClick: true });
+  initMegaMenu({ linkSelector: '.site-nav a[data-menu="products"]', panelId: 'productsMega', openOnClick: true, openOnHover: true });
 }
 
 // ADMIN 메가 메뉴 동작
@@ -1526,6 +1884,10 @@ function ensureDropdownMenus(prefixHint, isAdmin){
         <li><a href="${prefix}/pages/admin/customers.html">고객 관리</a></li>
         <li><a href="${prefix}/pages/admin/quotes.html">견적 관리</a></li>
         <li><a href="${prefix}/pages/admin/notices.html">공지 관리</a></li>
+        <li><a href="${prefix}/pages/admin/coupons.html">쿠폰 관리</a></li>
+        <li><a href="${prefix}/pages/admin/vendor-products.html">업체별 제품</a></li>
+        <li><a href="${prefix}/pages/admin/ad-popup.html">광고 팝업</a></li>
+        <li><a href="${prefix}/pages/admin/settings.html">푸터 설정</a></li>
       </ul>`;
     container.appendChild(wrap3);
   }
@@ -1537,25 +1899,48 @@ function createRegisterModal() {
   const wrap = document.createElement('div');
   wrap.id = 'registerModal';
   wrap.innerHTML = `
-    <div class="modal-backdrop" data-modal-close></div>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
-      <div class="modal-card">
-        <div class="modal-header">
-          <div class="modal-title" id="registerTitle">회원가입</div>
-          <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+    <div class="modal-backdrop auth-backdrop" data-modal-close></div>
+    <div class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
+      <div class="modal-card login-card premium-register-card">
+        <div class="login-hero" aria-hidden="true">
+          <div class="login-badge">SEPNP JOIN</div>
+          <h2 class="login-hero-title">Create Account</h2>
+          <p class="login-hero-sub">가입 후 관리자 승인 절차를 거치면 서비스 이용이 가능합니다.</p>
+          <ul class="login-points">
+            <li>가입 즉시 쿠폰이 자동 지급됩니다.</li>
+            <li>승인 후 견적/포털 기능을 이용할 수 있습니다.</li>
+            <li>정확한 정보 입력은 승인 속도를 높입니다.</li>
+          </ul>
         </div>
-        <div class="modal-body">
-          <label for="regId">아이디</label>
+        <div class="login-panel register-panel">
+          <div class="login-panel-header">
+            <div>
+              <div class="login-title" id="registerTitle">회원가입</div>
+              <div class="login-subtitle">승인형 계정을 생성합니다.</div>
+            </div>
+            <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+          </div>
+          <div class="register-msg" id="regMsg" aria-live="polite"></div>
+          <label class="login-label" for="regId">아이디</label>
           <div class="input-check-row">
-            <input id="regId" placeholder="아이디" />
+            <input id="regId" placeholder="아이디" autocomplete="username" />
             <button type="button" class="btn btn-ghost" id="regIdCheck">중복확인</button>
           </div>
           <div class="input-hint" id="regIdHint" aria-live="polite"></div>
-          <label for="regPw">비밀번호</label>
-          <input id="regPw" type="password" placeholder="비밀번호" />
-          <label for="regPw2">비밀번호 확인</label>
-          <input id="regPw2" type="password" placeholder="비밀번호 확인" />
-          <label for="regNick">닉네임</label>
+
+          <label class="login-label" for="regPw">비밀번호</label>
+          <div class="login-input login-pw-wrap">
+            <input id="regPw" type="password" placeholder="비밀번호" autocomplete="new-password" />
+            <button type="button" class="login-pw-toggle" id="toggleRegPw" aria-label="비밀번호 보기">보기</button>
+          </div>
+
+          <label class="login-label" for="regPw2">비밀번호 확인</label>
+          <div class="login-input login-pw-wrap">
+            <input id="regPw2" type="password" placeholder="비밀번호 확인" autocomplete="new-password" />
+            <button type="button" class="login-pw-toggle" id="toggleRegPw2" aria-label="비밀번호 보기">보기</button>
+          </div>
+
+          <label class="login-label" for="regNick">닉네임</label>
           <div class="input-check-row">
             <input id="regNick" placeholder="닉네임(선택)" />
             <button type="button" class="btn btn-ghost" id="regNickCheck">중복확인</button>
@@ -1565,6 +1950,7 @@ function createRegisterModal() {
             <button type="button" class="btn" data-modal-close>취소</button>
             <button type="button" class="btn btn-accent" id="regSubmit">가입</button>
           </div>
+          <div class="login-help">가입 완료 후 관리자 승인되면 로그인 가능합니다.</div>
         </div>
       </div>
     </div>`;
@@ -1578,6 +1964,27 @@ function createRegisterModal() {
   const nickCheckBtn = wrap.querySelector('#regNickCheck');
   const idHint = wrap.querySelector('#regIdHint');
   const nickHint = wrap.querySelector('#regNickHint');
+  const regMsg = wrap.querySelector('#regMsg');
+  const toggleRegPw = wrap.querySelector('#toggleRegPw');
+  const toggleRegPw2 = wrap.querySelector('#toggleRegPw2');
+
+  const setMsg = (text, type = '') => {
+    if (!regMsg) return;
+    regMsg.textContent = text || '';
+    regMsg.className = `register-msg${type ? ` ${type}` : ''}`;
+  };
+
+  const bindPwToggle = (button, input) => {
+    button?.addEventListener('click', () => {
+      if (!input) return;
+      const hidden = input.type === 'password';
+      input.type = hidden ? 'text' : 'password';
+      button.textContent = hidden ? '숨김' : '보기';
+      button.setAttribute('aria-label', hidden ? '비밀번호 숨기기' : '비밀번호 보기');
+    });
+  };
+  bindPwToggle(toggleRegPw, wrap.querySelector('#regPw'));
+  bindPwToggle(toggleRegPw2, wrap.querySelector('#regPw2'));
 
   const setHint = (el, msg, type) => {
     if (!el) return;
@@ -1629,23 +2036,51 @@ function createRegisterModal() {
     const password = (document.getElementById('regPw')?.value || '').trim();
     const passwordConfirm = (document.getElementById('regPw2')?.value || '').trim();
     const nickname = (document.getElementById('regNick')?.value || '').trim();
-    if (!username || !password || !passwordConfirm) return;
-    if (password !== passwordConfirm) {
-      alert('비밀번호가 일치하지 않습니다.');
+    if (!username || !password || !passwordConfirm) {
+      setMsg(mapAuthErrorMessage('missing_fields'), 'error');
       return;
     }
+    if (password !== passwordConfirm) {
+      setMsg(mapAuthErrorMessage('password_mismatch'), 'error');
+      return;
+    }
+
+    setMsg('가입 가능 여부를 확인 중입니다...', 'pending');
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = '가입 중...';
+    }
+
     const check = await checkAvailability({ username, nickname: nickname || undefined });
-    if (!check?.ok) { alert('중복 확인에 실패했습니다.'); return; }
+    if (!check?.ok) {
+      setHint(idHint, '아이디 확인에 실패했습니다. 다시 시도해 주세요.', 'error');
+      setMsg('중복 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = '가입';
+      }
+      return;
+    }
     if (check.usernameAvailable === false) {
-      setHint(idHint, '이미 사용 중인 아이디입니다.', 'error');
-      alert('이미 사용 중인 아이디입니다.');
+      setHint(idHint, mapAuthErrorMessage('username_taken'), 'error');
+      setMsg(mapAuthErrorMessage('username_taken'), 'error');
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = '가입';
+      }
       return;
     }
     if (nickname && check.nicknameAvailable === false) {
-      setHint(nickHint, '이미 사용 중인 닉네임입니다.', 'error');
-      alert('이미 사용 중인 닉네임입니다.');
+      setHint(nickHint, mapAuthErrorMessage('nickname_taken'), 'error');
+      setMsg(mapAuthErrorMessage('nickname_taken'), 'error');
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = '가입';
+      }
       return;
     }
+
+    setMsg('회원가입 요청을 처리하고 있습니다...', 'pending');
     try {
       const res = await fetchWithTimeout(API('/api/auth_register.php'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1654,37 +2089,37 @@ function createRegisterModal() {
       });
       const data = await res.json();
       if (!data.ok) {
-        if (data.error === 'username_taken') {
-          setHint(idHint, '이미 사용 중인 아이디입니다.', 'error');
-          alert('이미 사용 중인 아이디입니다.');
-        } else if (data.error === 'nickname_taken') {
-          setHint(nickHint, '이미 사용 중인 닉네임입니다.', 'error');
-          alert('이미 사용 중인 닉네임입니다.');
-        } else {
-          alert('가입 실패(아이디/닉네임 중복 등)');
-        }
+        if (data.error === 'username_taken') setHint(idHint, mapAuthErrorMessage(data.error), 'error');
+        if (data.error === 'nickname_taken') setHint(nickHint, mapAuthErrorMessage(data.error), 'error');
+        setMsg(mapAuthErrorMessage(data.error, '회원가입에 실패했습니다. 입력값을 확인해 주세요.'), 'error');
         return;
       }
-      alert('가입이 완료되었습니다. 관리자 승인 후 로그인 가능합니다.');
-      closeAuthModals();
-      renderAuth();
-      renderNav();
-      // 회원가입 직후 login 페이지라면 홈으로 이동
-      try {
-        const p = (location.pathname || '').toLowerCase();
-        if (p.endsWith('/pages/login.html') || p.endsWith('login.html')) {
-          window.location.href = '/';
-        }
-      } catch {}
-    } catch { alert('네트워크 오류'); }
+      setMsg('가입이 완료되었습니다. 관리자 승인 후 로그인 가능합니다.', 'ok');
+      setTimeout(() => {
+        closeAuthModals();
+        renderAuth();
+        renderNav();
+        createLoginModal({
+          prefillUsername: username,
+          noticeMessage: '회원가입이 완료되었습니다. 입력한 아이디로 로그인해 주세요.'
+        });
+      }, 500);
+    } catch (e) {
+      setMsg(mapAuthErrorMessage(e?.name === 'AbortError' ? 'timeout' : 'network_error'), 'error');
+    } finally {
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = '가입';
+      }
+    }
   });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); }, { once: true });
 }
 
 // Admin pages wiring
 async function initAdminApprovalsPage() {
-  const table = document.getElementById('pendingTable');
-  if (!table) return;
+  const list = document.getElementById('pendingList');
+  if (!list) return;
   // 일괄 승인 버튼을 페이지에 추가 (중복 방지)
   if (!document.getElementById('approveAllBtn')) {
     const btnWrap = document.createElement('div');
@@ -1699,35 +2134,45 @@ async function initAdminApprovalsPage() {
         initAdminApprovalsPage();
       } catch {}
     });
-    table.parentElement?.insertBefore(btnWrap, table);
+    list.parentElement?.insertBefore(btnWrap, list);
     btnWrap.appendChild(btn);
   }
-  const tbody = table.querySelector('tbody');
   let rows = [];
   try {
     const res = await fetch(API('/api/admin_users_pending.php'), { credentials: 'include' });
     rows = await res.json();
   } catch {}
-  const dataRows = (rows || []).map(u => `
-    <tr>
-      <td>${u.username}</td>
-      <td>${u.nickname || '-'}</td>
-      <td>${new Date((u.created_at||0)*1000).toLocaleString()}</td>
-      <td class="actions">
-        <button class="btn btn-accent" data-approve="${u.id}">승인</button>
-        <button class="btn" data-deny="${u.id}">거절</button>
-      </td>
-    </tr>`).join('');
-  const placeholdersA = Array.from({length: Math.max(0, 15 - ((rows||[]).length))})
-    .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
-    .join('');
-  tbody.innerHTML = dataRows + placeholdersA;
-  tbody.querySelectorAll('[data-approve]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+  if (!rows || rows.length === 0) {
+    list.innerHTML = '<div class="timeline-empty">승인 대기 사용자가 없습니다.</div>';
+    return;
+  }
+  const items = (rows || []).map(u => {
+    const dateStr = new Date((u.created_at||0)*1000).toLocaleString();
+    return `
+      <div class="timeline-item">
+        <div class="timeline-card admin-card">
+          <div class="admin-card-row">
+            <div class="admin-card-title">${u.username}</div>
+            <span class="admin-card-pill">승인대기</span>
+          </div>
+          <div class="admin-card-meta">
+            <span>닉네임: ${u.nickname || '-'}</span>
+            <span>요청일: ${dateStr}</span>
+          </div>
+          <div class="admin-card-actions">
+            <button class="btn btn-accent" data-approve="${u.id}">승인</button>
+            <button class="btn" data-deny="${u.id}">거절</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  list.innerHTML = `<div class="timeline-list">${items}</div>`;
+  list.querySelectorAll('[data-approve]')?.forEach(btn => btn.addEventListener('click', async (e) => {
     const id = parseInt(e.currentTarget.getAttribute('data-approve'), 10);
     await fetch(API('/api/admin_approve_user.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, action:'approve' }) });
     initAdminApprovalsPage();
   }));
-  tbody.querySelectorAll('[data-deny]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+  list.querySelectorAll('[data-deny]')?.forEach(btn => btn.addEventListener('click', async (e) => {
     const id = parseInt(e.currentTarget.getAttribute('data-deny'), 10);
     await fetch(API('/api/admin_approve_user.php'), { method:'POST', headers:{'Content-Type':'application/json'}, credentials: 'include', body: JSON.stringify({ id, action:'deny' }) });
     initAdminApprovalsPage();
@@ -1960,9 +2405,8 @@ initAdminUsersPage();
 
 // Admin customers page wiring
 async function initAdminCustomersPage() {
-  const table = document.getElementById('customersTable');
-  if (!table) return;
-  const tbody = table.querySelector('tbody');
+  const list = document.getElementById('customersList');
+  if (!list) return;
   const searchEl = document.getElementById('customerSearch');
   const pagerEl = document.getElementById('customerPager');
   const pageSize = 15;
@@ -1970,8 +2414,9 @@ async function initAdminCustomersPage() {
   let rows = [];
   let loadError = '';
   let needsLogin = false;
+  list.innerHTML = '<div class="timeline-empty">데이터를 불러오는 중…</div>';
   try {
-    const res = await fetch(API('/api/admin_users_all.php'), { credentials: 'include' });
+    const res = await fetchWithTimeout(API('/api/admin_users_all.php'), { credentials: 'include' });
     if (!res.ok) {
       if (res.status === 403) {
         loadError = '관리자 로그인 상태가 필요합니다.';
@@ -1986,7 +2431,7 @@ async function initAdminCustomersPage() {
     loadError = 'DB 연결 또는 네트워크 오류입니다.';
   }
   if (loadError) {
-    tbody.innerHTML = `<tr><td colspan="5" class="quotes-empty-inline">${loadError}</td></tr>`;
+    list.innerHTML = `<div class="timeline-empty">${loadError}</div>`;
     if (pagerEl) pagerEl.innerHTML = '';
     if (needsLogin && typeof createLoginModal === 'function') {
       createLoginModal();
@@ -2026,22 +2471,31 @@ async function initAdminCustomersPage() {
   const pageStart = (currentPage - 1) * pageSize;
   const pageItems = filtered.slice(pageStart, pageStart + pageSize);
 
-  const dataRows = (pageItems || []).map(u => `
-    <tr data-id="${u.id}">
-      <td>${esc(u.username)}</td>
-      <td>${esc(u.nickname || '-')}</td>
-      <td>${esc(u.rank || '-')}</td>
-      <td>${esc(u.status || '-')}</td>
-      <td>${fmtDate(u.created_at)}</td>
-    </tr>`
-  ).join('');
-  if (!dataRows) {
-    tbody.innerHTML = `<tr><td colspan="5" class="quotes-empty-inline">검색 결과가 없습니다.</td></tr>`;
+  const cards = (pageItems || []).map(u => {
+    return `
+      <div class="timeline-item" data-id="${u.id}">
+        <div class="timeline-card admin-card">
+          <div class="admin-card-row">
+            <div class="admin-card-title">${esc(u.username)}</div>
+            <span class="admin-card-pill">${esc(u.status || '-')}</span>
+          </div>
+          <div class="admin-card-meta">
+            <span>닉네임: ${esc(u.nickname || '-')}</span>
+            <span>등급: ${esc(u.rank || '-')}</span>
+            <span>가입일: ${fmtDate(u.created_at)}</span>
+          </div>
+          <div class="admin-card-actions">
+            <button class="btn" data-cust-status="일시정지" data-id="${u.id}">일시정지</button>
+            <button class="btn btn-accent" data-cust-status="정지" data-id="${u.id}">정지</button>
+            <button class="btn" data-cust-delete="${u.id}">삭제</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  if (!cards) {
+    list.innerHTML = `<div class="timeline-empty">검색 결과가 없습니다.</div>`;
   } else {
-    const placeholders = Array.from({length: Math.max(0, pageSize - ((pageItems||[]).length))})
-      .map(() => `<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`)
-      .join('');
-    tbody.innerHTML = dataRows + placeholders;
+    list.innerHTML = `<div class="timeline-list">${cards}</div>`;
   }
 
   function renderPager(){
@@ -2131,8 +2585,48 @@ async function initAdminCustomersPage() {
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAll(); }, { once: true });
   }
 
-  tbody.querySelectorAll('tr[data-id]')?.forEach(tr => tr.addEventListener('click', () => {
-    const id = parseInt(tr.getAttribute('data-id'), 10);
+  list.querySelectorAll('[data-cust-status]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const id = parseInt(e.currentTarget.getAttribute('data-id'), 10);
+    const status = e.currentTarget.getAttribute('data-cust-status');
+    try {
+      const res = await fetch(API('/api/admin_update_status.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ id, status })
+      });
+      const j = await res.json();
+      if (!j.ok) { alert(j.error ? `오류: ${j.error}` : '상태 변경 실패'); return; }
+      initAdminCustomersPage();
+    } catch { alert('네트워크 오류'); }
+  }));
+
+  list.querySelectorAll('[data-cust-delete]')?.forEach(btn => btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const id = parseInt(e.currentTarget.getAttribute('data-cust-delete'), 10);
+    if (!confirm('이 사용자를 삭제하시겠습니까?')) return;
+    try {
+      const res = await fetch(API('/api/admin_user_delete.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ id })
+      });
+      if (res.status === 403) {
+        alert('관리자 로그인 상태가 필요합니다.');
+        try { if (typeof createLoginModal === 'function') createLoginModal(); } catch {}
+        return;
+      }
+      const j = await res.json();
+      if (!j.ok) { alert(j.error ? `오류: ${j.error}` : '삭제 실패'); return; }
+      initAdminCustomersPage();
+    } catch { alert('네트워크 오류'); }
+  }));
+
+  list.querySelectorAll('.timeline-item[data-id]')?.forEach(card => card.addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    const id = parseInt(card.getAttribute('data-id'), 10);
     const item = (rows || []).find(x => x.id === id);
     if (item) openCustomerDetail(item);
   }));
@@ -2146,17 +2640,140 @@ function initAdminCouponsPage() {
   const grantBtn = document.getElementById('adminCouponGrantBtn');
   const revokeBtn = document.getElementById('adminCouponRevokeBtn');
   const tableWrap = document.getElementById('adminCouponsTableWrap');
+  const defForm = document.getElementById('adminCouponDefForm');
+  const defCode = document.getElementById('adminCouponCode');
+  const defTitle = document.getElementById('adminCouponTitle');
+  const defDesc = document.getElementById('adminCouponDesc');
+  const defExpires = document.getElementById('adminCouponExpires');
+  const defSaveBtn = document.getElementById('adminCouponSaveBtn');
+  const defResetBtn = document.getElementById('adminCouponResetBtn');
+  const defTable = document.getElementById('adminCouponsDefTable');
   if (!userSearch || !couponSelect || !grantBtn || !revokeBtn || !tableWrap) return;
   let selectedUserId = null;
   let selectedCouponId = null;
   let selectedUserCouponId = null;
+  let defs = [];
+
+  const fmtDate = (ts) => {
+    if (!ts) return '-';
+    const ms = Number(ts) < 1000000000000 ? Number(ts) * 1000 : Number(ts);
+    if (!ms) return '-';
+    return new Date(ms).toLocaleDateString();
+  };
+
+  function resetDefForm() {
+    if (defForm) defForm.dataset.id = '';
+    if (defCode) defCode.value = '';
+    if (defTitle) defTitle.value = '';
+    if (defDesc) defDesc.value = '';
+    if (defExpires) defExpires.value = '';
+  }
+
+  async function loadCouponDefs() {
+    if (!couponSelect) return;
+    try {
+      const res = await fetch(API('/api/coupons_list.php'), { credentials: 'include' });
+      const data = await res.json();
+      defs = Array.isArray(data.coupons) ? data.coupons : [];
+      couponSelect.innerHTML = defs.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+      renderDefTable();
+    } catch {
+      couponSelect.innerHTML = '';
+    }
+  }
+
+  function renderDefTable() {
+    if (!defTable) return;
+    if (!defs.length) {
+      defTable.innerHTML = '<div class="quotes-empty-inline">등록된 쿠폰이 없습니다.</div>';
+      return;
+    }
+    let html = '<table class="admin-coupons-table"><thead><tr><th>코드</th><th>쿠폰명</th><th>유효기간</th><th>관리</th></tr></thead><tbody>';
+    for (const c of defs) {
+      html += `<tr>
+        <td>${c.code || '-'}</td>
+        <td>${c.title || '-'}</td>
+        <td>${c.expires_at ? fmtDate(c.expires_at) : '무기한'}</td>
+        <td>
+          <button class="btn" data-coupon-edit="${c.id}">수정</button>
+          <button class="btn" data-coupon-delete="${c.id}">삭제</button>
+        </td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    defTable.innerHTML = html;
+
+    defTable.querySelectorAll('[data-coupon-edit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = parseInt(btn.getAttribute('data-coupon-edit'), 10);
+        const item = defs.find(d => d.id === id);
+        if (!item) return;
+        if (defForm) defForm.dataset.id = String(item.id);
+        if (defCode) defCode.value = item.code || '';
+        if (defTitle) defTitle.value = item.title || '';
+        if (defDesc) defDesc.value = item.description || '';
+        if (defExpires) {
+          if (item.expires_at) {
+            const ms = Number(item.expires_at) < 1000000000000 ? Number(item.expires_at) * 1000 : Number(item.expires_at);
+            const d = new Date(ms);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            defExpires.value = `${y}-${m}-${day}`;
+          } else {
+            defExpires.value = '';
+          }
+        }
+      });
+    });
+
+    defTable.querySelectorAll('[data-coupon-delete]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.getAttribute('data-coupon-delete'), 10);
+        if (!confirm('쿠폰을 삭제하시겠습니까?')) return;
+        try {
+          const res = await fetch(API('/api/admin_coupon_delete.php'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ id })
+          });
+          const j = await res.json();
+          if (!j.ok) { alert(j.error ? `오류: ${j.error}` : '삭제 실패'); return; }
+          resetDefForm();
+          loadCouponDefs();
+        } catch { alert('네트워크 오류'); }
+      });
+    });
+  }
+
+  defSaveBtn?.addEventListener('click', async () => {
+    const payload = {
+      id: defForm?.dataset.id ? parseInt(defForm.dataset.id, 10) : 0,
+      code: (defCode?.value || '').trim(),
+      title: (defTitle?.value || '').trim(),
+      description: (defDesc?.value || '').trim(),
+      expires_at: (defExpires?.value || '').trim(),
+    };
+    if (!payload.code || !payload.title) return alert('코드와 쿠폰명은 필수입니다.');
+    try {
+      const res = await fetch(API('/api/admin_coupon_save.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      const j = await res.json();
+      if (!j.ok) { alert(j.error ? `오류: ${j.error}` : '저장 실패'); return; }
+      resetDefForm();
+      loadCouponDefs();
+    } catch { alert('네트워크 오류'); }
+  });
+
+  defResetBtn?.addEventListener('click', resetDefForm);
 
   // 쿠폰 목록 불러오기
-  fetch(API('/api/coupons_my.php'), { credentials: 'include' })
-    .then(r => r.json())
-    .then(list => {
-      couponSelect.innerHTML = list.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
-    });
+  loadCouponDefs();
 
   // 사용자 검색 및 쿠폰 목록 조회
   userSearch.addEventListener('change', () => {
@@ -2173,7 +2790,7 @@ function initAdminCouponsPage() {
   function renderTable(rows) {
     let html = `<table class="admin-coupons-table"><thead><tr><th>쿠폰명</th><th>수량</th><th>발급일</th><th>회수일</th><th>선택</th></tr></thead><tbody>`;
     for (const r of rows) {
-      html += `<tr><td>${r.coupon_name}</td><td>${r.qty ?? 1}</td><td>${r.granted_at ?? '-'}</td><td>${r.revoked_at ?? '-'}</td><td><input type="radio" name="user_coupon" value="${r.user_coupon_id}"></td></tr>`;
+      html += `<tr><td>${r.coupon_name}</td><td>${r.qty ?? 1}</td><td>${fmtDate(r.granted_at)}</td><td>${fmtDate(r.revoked_at)}</td><td><input type="radio" name="user_coupon" value="${r.user_coupon_id}"></td></tr>`;
     }
     html += '</tbody></table>';
     tableWrap.innerHTML = html;
@@ -2192,7 +2809,7 @@ function initAdminCouponsPage() {
       credentials: 'include',
       body: new URLSearchParams({ user_id: selectedUserId, coupon_id: couponSelect.value })
     }).then(r => r.json()).then(res => {
-      if (res.success) {
+      if (res.ok) {
         alert('쿠폰 발급 완료');
         userSearch.dispatchEvent(new Event('change'));
       } else {
@@ -2208,7 +2825,7 @@ function initAdminCouponsPage() {
       credentials: 'include',
       body: new URLSearchParams({ user_coupon_id: selectedUserCouponId })
     }).then(r => r.json()).then(res => {
-      if (res.success) {
+      if (res.ok) {
         alert('쿠폰 회수 완료');
         userSearch.dispatchEvent(new Event('change'));
       } else {
@@ -2223,24 +2840,50 @@ initAdminUsersPage();
 initAdminCouponsPage();
 // (중복 제거) 인덱스 페이지의 견적 목록은 상단부의 SSE+폴링 로직을 사용합니다.
 
-function showMainAdPopup() {
+function setMultilineText(el, text) {
+  if (!el) return;
+  el.textContent = '';
+  const lines = (text || '').split('\n');
+  lines.forEach((line, idx) => {
+    el.appendChild(document.createTextNode(line));
+    if (idx < lines.length - 1) el.appendChild(document.createElement('br'));
+  });
+}
+
+async function showMainAdPopup() {
   if (document.querySelector('.main-ad-popup')) return;
   if (localStorage.getItem('hideMainAdToday') === getTodayStr()) return;
-  let popup = document.createElement('div');
+  await loadMainAdSettings();
+  const settings = getMainAdSettings();
+  if (!settings.enabled) return;
+
+  const popup = document.createElement('div');
   popup.className = 'main-ad-popup';
-  popup.innerHTML = `
-    <div class="main-ad-content">
-      <strong>🎉 SEPNP 특별 이벤트!</strong>
-      <p>지금 회원가입 시 <b>목형비 면제 쿠폰</b> 증정!<br>견적 문의도 빠르게!</p>
-      <div class="main-ad-actions">
-        <button id="mainAdCloseBtn">닫기</button>
-        <button id="mainAdHideTodayBtn">오늘 하루 보지 않기</button>
-      </div>
-    </div>
-  `;
+  const content = document.createElement('div');
+  content.className = 'main-ad-content';
+
+  const titleEl = document.createElement('strong');
+  titleEl.textContent = settings.title || MAIN_AD_DEFAULTS.title;
+  const messageEl = document.createElement('p');
+  const messageText = settings.message || MAIN_AD_DEFAULTS.message;
+  setMultilineText(messageEl, messageText);
+
+  const actions = document.createElement('div');
+  actions.className = 'main-ad-actions';
+  const closeBtn = document.createElement('button');
+  closeBtn.id = 'mainAdCloseBtn';
+  closeBtn.textContent = '닫기';
+  const hideBtn = document.createElement('button');
+  hideBtn.id = 'mainAdHideTodayBtn';
+  hideBtn.textContent = '오늘 하루 보지 않기';
+  actions.append(closeBtn, hideBtn);
+
+  content.append(titleEl, messageEl, actions);
+  popup.appendChild(content);
   document.body.appendChild(popup);
-  document.getElementById('mainAdCloseBtn').onclick = () => popup.remove();
-  document.getElementById('mainAdHideTodayBtn').onclick = () => {
+
+  closeBtn.onclick = () => popup.remove();
+  hideBtn.onclick = () => {
     localStorage.setItem('hideMainAdToday', getTodayStr());
     popup.remove();
   };

@@ -11,34 +11,52 @@
   const pagerEl = document.getElementById('noticePager');
   const API = window.API || ((p) => p);
   const state = { items: [], tab: 'all', page: 1, pageSize: 6, q: '' };
+    const normalizeCategory = (value) => {
+      const v = (value || '').toString().toLowerCase().replace(/\s+/g, '');
+      if (v.includes('company') || v.includes('회사') || v.includes('소식') || v.includes('news')) return 'company';
+      if (v.includes('notice') || v.includes('공지')) return 'notice';
+      return 'notice';
+    };
+
   if (pageSizeSelect && pageSizeSelect.value) {
     state.pageSize = parseInt(pageSizeSelect.value, 10) || 6;
   }
 
   const createItem = (item) => {
     const li = document.createElement('li');
-    li.className = 'news-item';
+    li.className = 'notice-item';
     const badge = document.createElement('span');
     badge.className = `news-badge${item.category === 'company' ? ' badge-news' : ''}`;
     badge.textContent = item.category === 'company' ? '소식' : '공지';
-    const pin = document.createElement('span');
-    pin.className = 'news-pin';
-    pin.textContent = item.is_pinned ? '고정' : '';
-    const body = document.createElement('div');
-    body.className = 'news-item-body';
+
     const title = document.createElement('a');
     title.className = 'news-title';
     title.href = `notice.html?id=${item.id}`;
     title.textContent = item.title || '';
+
     const summary = document.createElement('p');
     summary.className = 'news-summary';
     summary.textContent = item.summary || '';
+
     const date = document.createElement('span');
     date.className = 'news-date';
     date.textContent = item.date ? item.date.replace(/-/g, '.') : '';
-    body.append(title, summary);
-    li.append(badge, body, date);
-    if (item.is_pinned) li.appendChild(pin);
+
+    const head = document.createElement('div');
+    head.className = 'notice-head';
+    head.append(badge);
+    if (item.is_pinned) {
+      const pin = document.createElement('span');
+      pin.className = 'news-pin';
+      pin.textContent = '고정';
+      head.append(pin);
+    }
+
+    const body = document.createElement('div');
+    body.className = 'notice-card';
+    body.append(head, title, summary, date);
+
+    li.append(body);
     return li;
   };
 
@@ -47,7 +65,7 @@
     el.innerHTML = '';
     if (!items.length) {
       const empty = document.createElement('li');
-      empty.className = 'news-item notice-empty';
+      empty.className = 'notice-item notice-empty';
       empty.textContent = '등록된 공지가 없습니다.';
       el.appendChild(empty);
       return;
@@ -101,7 +119,9 @@
       const res = await fetch(API('/api/notices_list.php?limit=100'));
       if (!res.ok) throw new Error('failed');
       const data = await res.json();
-      state.items = Array.isArray(data) ? data : [];
+      state.items = Array.isArray(data)
+        ? data.map(item => ({ ...item, category: normalizeCategory(item.category) }))
+        : [];
       renderAll();
     } catch {
       renderList(lists.all, []);

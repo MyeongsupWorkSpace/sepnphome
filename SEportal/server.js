@@ -97,13 +97,6 @@ try {
   console.warn('⚠️ db 모듈 로드 실패:', e.message);
 }
 
-// 디버그 라우트 (DB 확인용)
-try {
-  app.use('/api/debug', require('./routes/debug'));
-} catch (e) {
-  console.warn('⚠️ debug route 없음:', e.message);
-}
-
 // 기존 API 라우트
 try { app.use('/api/auth', require('./routes/auth')); } catch {}
 try { app.use('/api/assignments', require('./routes/assignments')); } catch {}

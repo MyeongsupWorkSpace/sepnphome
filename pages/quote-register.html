@@ -3,15 +3,48 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>견적문의 등록 — SEPNP</title>
+    <title>견적문의 등록 — 성은지기인쇄(주) | SEPNP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/styles.css" />
     <style>
-      .form-wrap { width: min(760px, 100%); max-width: 760px; margin: 0 auto; display: grid; gap: 12px; }
-      .form { width: 100%; max-width: 760px; display: grid; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--bg-elev); box-shadow: var(--shadow-sm); overflow-wrap: break-word; }
+      .quote-register-page { padding-bottom: 20px; }
+      .form-wrap { width: min(980px, 100%); max-width: 980px; margin: 0 auto; display: grid; gap: 18px; }
+      .form-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+        gap: 18px;
+        padding: 18px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: linear-gradient(135deg, #fff7f2 0%, #f8f4ff 100%);
+        box-shadow: var(--shadow-sm);
+      }
+      .form-hero h1 { margin: 0 0 6px; }
+      .form-hero .page-desc { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+      .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+      .hero-badge { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: #fff; font-size: 12.5px; font-weight: 600; }
+      .hero-card { border-radius: 16px; border: 1px solid var(--border); background: #fff; padding: 14px; box-shadow: var(--shadow-sm); }
+      .hero-card h2 { margin: 0 0 8px; font-size: 16px; }
+      .hero-steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+      .hero-step { display: flex; gap: 10px; align-items: center; }
+      .hero-step .step-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        background: #8c2f39;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .hero-step span { font-size: 13.5px; color: var(--text); }
+      .form-panel { display: grid; gap: 16px; padding: 16px; border-radius: 18px; border: 1px solid var(--border); background: var(--bg-elev); box-shadow: var(--shadow-sm); }
+      .form { width: 100%; max-width: none; display: grid; gap: 14px; padding: 0; border: none; border-radius: 0; background: transparent; box-shadow: none; overflow-wrap: break-word; }
       .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; justify-content: start; align-items: start; }
       .grid-2.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: start; column-gap: 12px; }
       .stack-2 { display: grid; gap: 12px; }
@@ -96,7 +129,7 @@
       .row.is-hidden { display: none; }
       .section-block { padding: 10px; border-radius: 12px; background: var(--bg-muted); border: 1px solid var(--border); max-width: none; margin: 0; }
       .actions { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
-      .facility-tabs { margin: 16px 0 20px; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(135deg, #fff 0%, #f7f4f2 100%); box-shadow: var(--shadow-sm); }
+      .facility-tabs { margin: 0; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(135deg, #fff 0%, #f7f4f2 100%); box-shadow: var(--shadow-sm); }
       .facility-tabs h2 { margin: 0 0 10px; font-size: 20px; }
       .tab-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; padding: 0; list-style: none; }
       .tab-button { border: 1px solid var(--border); background: #fff; border-radius: 999px; padding: 8px 14px; font-weight: 600; cursor: pointer; transition: background .2s ease, border-color .2s ease, box-shadow .2s ease; }
@@ -106,6 +139,9 @@
       .tab-panel p { margin: 0 0 8px; }
       .tab-panel ul { margin: 0; padding-left: 18px; }
       @media (max-width: 900px) { .subgrid-3 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+      @media (max-width: 900px) {
+        .form-hero { grid-template-columns: 1fr; }
+      }
       @media (max-width: 768px) {
         .grid-2 { grid-template-columns: 1fr; }
         .grid-2.compact { grid-template-columns: 1fr; }
@@ -115,6 +151,7 @@
         .row-1-2 { grid-template-columns: 1fr; }
         .phone-grid { grid-template-columns: 1fr; }
         .phone-sep { display: none; }
+        .hero-card { order: 2; }
       }
     </style>
   </head>
@@ -138,42 +175,61 @@
         <div class="nav-actions" aria-label="계정 영역"></div>
       </div>
     </header>
-    <main class="container page-main">
+    <main class="container page-main quote-register-page">
       <div class="form-wrap">
-      <h1 class="page-title">견적 문의 등록</h1>
-      <section id="facility" class="facility-tabs" aria-label="시설 및 공정 소개">
-        <h2>시설 및 공정</h2>
-        <ul class="tab-list" role="tablist" aria-label="시설 및 공정 탭">
-          <li><button type="button" class="tab-button" role="tab" aria-selected="true" aria-controls="tab-facility" id="tab-facility-btn">시설소개</button></li>
-          <li><button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-machine" id="tab-machine-btn">기계소개</button></li>
-          <li><button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-process" id="tab-process-btn">공정소개</button></li>
-        </ul>
-        <div id="tab-facility" class="tab-panel is-active" role="tabpanel" aria-labelledby="tab-facility-btn">
-          <p>주문부터 출고까지 한 번에 처리되는 원스톱 인쇄 허브로, 종이 보관부터 품질 검수까지 동선이 최적화되어 있습니다.</p>
-          <ul>
-            <li>원지 창고-재단-인쇄-후가공-포장까지 직선 흐름 설계</li>
-            <li>습도/온도 관리로 색상 편차를 최소화하는 작업환경</li>
-            <li>샘플 룸에서 고객 확인 후 즉시 본작업 전환</li>
-          </ul>
+        <div class="form-hero">
+          <div>
+            <h1 class="page-title">견적 문의 등록</h1>
+            <p class="page-desc">제품 사양을 입력하면 담당자가 가장 빠른 일정으로 회신드립니다.</p>
+            <div class="hero-badges">
+              <span class="hero-badge">당일 확인</span>
+              <span class="hero-badge">담당자 직접 회신</span>
+              <span class="hero-badge">맞춤 후가공 상담</span>
+            </div>
+          </div>
+          <div class="hero-card">
+            <h2>진행 순서</h2>
+            <ul class="hero-steps">
+              <li class="hero-step"><span class="step-num">1</span><span>기본 정보 입력</span></li>
+              <li class="hero-step"><span class="step-num">2</span><span>사양/후가공 선택</span></li>
+              <li class="hero-step"><span class="step-num">3</span><span>담당자 확인 후 회신</span></li>
+            </ul>
+          </div>
         </div>
-        <div id="tab-machine" class="tab-panel" role="tabpanel" aria-labelledby="tab-machine-btn">
-          <p>패키지 인쇄에 특화된 장비군으로 소량-대량 주문 모두 대응합니다.</p>
-          <ul>
-            <li>6도 옵셋 인쇄기: 고해상도 컬러 재현과 균일한 품질</li>
-            <li>자동 톰슨: 복잡한 칼선도 정밀하게 컷팅</li>
-            <li>UV/라미네이팅 라인: 다양한 후가공 옵션 즉시 적용</li>
-          </ul>
-        </div>
-        <div id="tab-process" class="tab-panel" role="tabpanel" aria-labelledby="tab-process-btn">
-          <p>인쇄 전 데이터 검수부터 출고까지 표준 공정을 운영합니다.</p>
-          <ul>
-            <li>디자인 검수-색상 교정-교정지 승인 프로세스</li>
-            <li>재단/인쇄/합지/후가공 단계별 QC 체크</li>
-            <li>납기별 라인 배정으로 일정 준수율 향상</li>
-          </ul>
-        </div>
-      </section>
-      <form class="form" id="quoteForm">
+        <div class="form-panel">
+          <section id="facility" class="facility-tabs" aria-label="시설 및 공정 소개">
+            <h2>시설 및 공정</h2>
+            <ul class="tab-list" role="tablist" aria-label="시설 및 공정 탭">
+              <li><button type="button" class="tab-button" role="tab" aria-selected="true" aria-controls="tab-facility" id="tab-facility-btn">시설소개</button></li>
+              <li><button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-machine" id="tab-machine-btn">기계소개</button></li>
+              <li><button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="tab-process" id="tab-process-btn">공정소개</button></li>
+            </ul>
+            <div id="tab-facility" class="tab-panel is-active" role="tabpanel" aria-labelledby="tab-facility-btn">
+              <p>주문부터 출고까지 한 번에 처리되는 원스톱 인쇄 허브로, 종이 보관부터 품질 검수까지 동선이 최적화되어 있습니다.</p>
+              <ul>
+                <li>원지 창고-재단-인쇄-후가공-포장까지 직선 흐름 설계</li>
+                <li>습도/온도 관리로 색상 편차를 최소화하는 작업환경</li>
+                <li>샘플 룸에서 고객 확인 후 즉시 본작업 전환</li>
+              </ul>
+            </div>
+            <div id="tab-machine" class="tab-panel" role="tabpanel" aria-labelledby="tab-machine-btn">
+              <p>패키지 인쇄에 특화된 장비군으로 소량-대량 주문 모두 대응합니다.</p>
+              <ul>
+                <li>6도 옵셋 인쇄기: 고해상도 컬러 재현과 균일한 품질</li>
+                <li>자동 톰슨: 복잡한 칼선도 정밀하게 컷팅</li>
+                <li>UV/라미네이팅 라인: 다양한 후가공 옵션 즉시 적용</li>
+              </ul>
+            </div>
+            <div id="tab-process" class="tab-panel" role="tabpanel" aria-labelledby="tab-process-btn">
+              <p>인쇄 전 데이터 검수부터 출고까지 표준 공정을 운영합니다.</p>
+              <ul>
+                <li>디자인 검수-색상 교정-교정지 승인 프로세스</li>
+                <li>재단/인쇄/합지/후가공 단계별 QC 체크</li>
+                <li>납기별 라인 배정으로 일정 준수율 향상</li>
+              </ul>
+            </div>
+          </section>
+          <form class="form" id="quoteForm">
         <div class="stack-2">
           <div class="field">
             <label>박스타입</label>
@@ -320,7 +376,8 @@
           <button class="btn" type="submit">등록하기</button>
           <span id="status" class="note" aria-live="polite"></span>
         </div>
-      </form>
+          </form>
+        </div>
       </div>
     </main>
     <footer class="site-footer">

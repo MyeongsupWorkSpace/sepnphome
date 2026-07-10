@@ -1,0 +1,2477 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ERP | 수주오더등록</title>
+<style>
+:root{
+  --bg:#f4f6f8;--panel:#fff;--line:#e5e7eb;--text:#172033;--muted:#6b7280;
+  --nav:#18212f;--nav2:#202b3c;--primary:#2563eb;--success:#16a34a;--warn:#d97706;--danger:#dc2626;
+}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans KR",sans-serif;font-size:14px}
+.app{display:grid;grid-template-columns:245px 1fr;min-height:100vh}
+.sidebar{background:var(--nav);color:#fff;padding:20px 14px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{font-size:18px;font-weight:800;line-height:1.3;padding:4px 10px 20px;border-bottom:1px solid #334155;margin-bottom:12px}
+.brand small{display:block;color:#94a3b8;font-size:11px;margin-top:5px;font-weight:600}
+.nav{display:flex;flex-direction:column;gap:5px}.nav button{border:0;background:transparent;color:#cbd5e1;text-align:left;padding:12px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+.nav button:hover,.nav button.active{background:var(--nav2);color:#fff}.main{padding:26px;max-width:1600px;width:100%;margin:0 auto}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}.page-title h1{font-size:23px;margin:0 0 5px}.page-title p{margin:0;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:7px;padding:10px 13px;font-weight:700;cursor:pointer;background:#e5e7eb;color:#1f2937}.btn.primary{background:var(--primary);color:#fff}.btn.green{background:var(--success);color:#fff}.btn.danger{background:var(--danger);color:#fff}.btn.small{padding:6px 9px;font-size:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.02)}.grid{display:grid;gap:15px}.grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.metric .label{color:var(--muted);font-size:12px}.metric .num{font-size:26px;font-weight:800;margin-top:7px}.metric .hint{color:#64748b;font-size:12px;margin-top:5px}
+section.view{display:none}section.view.active{display:block}.stack{display:grid;gap:16px}.section-title{font-size:16px;margin:0 0 13px}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px}table{width:100%;border-collapse:collapse;min-width:760px;background:#fff}th,td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{background:#f8fafc;color:#475569;font-size:12px}tr:last-child td{border-bottom:0}
+.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eef2ff;color:#4338ca;font-size:12px;font-weight:700}.badge.ok{background:#dcfce7;color:#166534}.badge.warn{background:#fef3c7;color:#92400e}.badge.danger{background:#fee2e2;color:#991b1b}
+.form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.form .wide{grid-column:span 2}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;color:#475569;font-weight:700}input,select,textarea{width:100%;border:1px solid #d1d5db;border-radius:7px;padding:10px;background:#fff;font:inherit}textarea{min-height:80px;resize:vertical}.form-actions{display:flex;align-items:flex-end;gap:8px}
+.kpi-row{display:flex;gap:8px;flex-wrap:wrap}.progress{height:10px;border-radius:999px;background:#e5e7eb;overflow:hidden;min-width:120px}.progress>span{display:block;height:100%;background:var(--primary)}
+.notice{padding:11px 13px;border-radius:8px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}.empty{padding:28px;text-align:center;color:var(--muted)}
+.modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.42);align-items:center;justify-content:center;padding:18px;z-index:4}.modal.show{display:flex}.modal-box{background:#fff;max-width:980px;width:100%;max-height:90vh;overflow:auto;border-radius:12px;padding:20px}.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}.modal-head h2{margin:0;font-size:18px}
+.footer-note{color:var(--muted);font-size:12px;margin-top:10px}
+@media(max-width:1100px){.grid.four{grid-template-columns:repeat(2,1fr)}.form{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:780px){.app{grid-template-columns:1fr}.sidebar{position:static;height:auto}.nav{flex-direction:row;overflow:auto}.nav button{white-space:nowrap}.main{padding:16px}.grid.four,.grid.two,.form{grid-template-columns:1fr}.form .wide{grid-column:span 1}.topbar{flex-direction:column}.sidebar{padding:14px}.brand{padding-bottom:12px}}
+
+/* 제품사양서 ERP 참고 레이아웃 */
+.spec-shell{display:grid;grid-template-columns:280px minmax(0,1fr);gap:14px;min-height:720px}
+.spec-left{display:grid;grid-template-rows:auto minmax(260px,1fr) 150px;gap:12px}
+.spec-filter{padding:13px}
+.spec-filter .field{margin-bottom:8px}
+.spec-list{padding:0;overflow:hidden}
+.spec-list-head{display:flex;justify-content:space-between;align-items:center;padding:12px 13px;border-bottom:1px solid var(--line);font-weight:800}
+.spec-item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.spec-item:hover,.spec-item.active{background:#eff6ff}
+.spec-item b{display:block;font-size:13px}.spec-item small{display:block;color:var(--muted);margin-top:3px}
+.spec-history{padding:0;overflow:hidden}.spec-history .section-title{padding:12px 13px;margin:0;border-bottom:1px solid var(--line)}
+.spec-main{display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:14px}
+.spec-head{display:grid;grid-template-columns:1.2fr 1.2fr .9fr .9fr;gap:10px;align-items:end}
+.spec-head .full{grid-column:span 2}
+.spec-body{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:14px}
+.spec-process-card{padding:0;overflow:hidden}
+.spec-process-title{padding:12px 14px;border-bottom:1px solid var(--line);font-weight:800;background:#f8fafc}
+.process-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+.proc-row{display:grid;grid-template-columns:92px 1fr;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center}
+.proc-row:nth-child(odd){border-right:1px solid var(--line)}
+.proc-row label{font-weight:800;font-size:12px;color:#334155}
+.spec-side{display:grid;gap:12px}
+.preview-box{border:1px solid var(--line);border-radius:10px;min-height:230px;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#94a3b8;font-weight:800}
+.spec-bottom{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.spec-section{border:1px solid var(--line);border-radius:10px;padding:13px}
+.spec-section h3{font-size:13px;margin:0 0 11px;color:#334155}
+.compact-field{display:grid;grid-template-columns:84px 1fr;gap:8px;align-items:center;margin-bottom:8px}
+.compact-field label{font-size:12px;color:#475569;font-weight:700}
+@media(max-width:1100px){.spec-shell{grid-template-columns:1fr}.spec-left{grid-template-rows:auto auto auto}.spec-body{grid-template-columns:1fr}.spec-side{grid-template-columns:1fr 1fr}.spec-head{grid-template-columns:repeat(2,minmax(0,1fr))}.spec-bottom{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.spec-head,.spec-bottom{grid-template-columns:1fr}.spec-head .full{grid-column:span 1}.process-grid{grid-template-columns:1fr}.proc-row:nth-child(odd){border-right:0}.spec-side{grid-template-columns:1fr}}
+
+
+/* v4 제품사양 입력폼 정렬 개선 */
+.product-form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.product-form-grid .span2{grid-column:span 2}
+.product-form-grid .span4{grid-column:span 4}
+.inline-control{display:flex;gap:7px;align-items:center;min-width:0}
+.inline-control select,.inline-control input{min-width:0;flex:1}
+.inline-control .btn{flex:0 0 auto;white-space:nowrap}
+.stock-mode{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fafafa}
+.stock-mode label{font-size:12px;color:#334155;font-weight:700}
+.dynamic-options{display:flex;gap:7px;align-items:center}
+.dynamic-options select{flex:1;min-width:0}
+@media(max-width:780px){.product-form-grid{grid-template-columns:1fr}.product-form-grid .span2,.product-form-grid .span4{grid-column:span 1}}
+
+
+/* v7 로그인 및 저장이력 */
+.login-overlay{display:none;position:fixed;inset:0;z-index:20;background:linear-gradient(135deg,#172033,#2563eb);align-items:center;justify-content:center;padding:18px}
+.login-overlay.show{display:flex}.login-card{width:min(420px,100%);background:#fff;border-radius:16px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.login-card h1{margin:0 0 7px;font-size:23px}.login-card p{margin:0 0 18px;color:#64748b}.login-card .field{margin-bottom:12px}
+.user-chip{display:inline-flex;gap:7px;align-items:center;padding:8px 10px;border:1px solid #dbe3ee;border-radius:999px;background:#fff;font-size:12px;font-weight:700}
+.audit-box{margin-top:12px;padding:10px 12px;border:1px solid #dbeafe;background:#eff6ff;border-radius:8px;font-size:12px;color:#1e3a8a}
+
+
+/* v12 workflow */
+.workflow-card{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.workflow-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--line)}
+.workflow-steps{display:grid;grid-template-columns:repeat(8,minmax(125px,1fr));overflow:auto}
+.workflow-step{min-width:125px;padding:12px;border-right:1px solid var(--line);position:relative}
+.workflow-step:last-child{border-right:0}.workflow-step.done{background:#f0fdf4}.workflow-step.active{background:#eff6ff}.workflow-step.locked{background:#fafafa;color:#94a3b8}
+.workflow-step .step-name{font-weight:800;margin-bottom:7px}.workflow-step .step-meta{font-size:12px;color:#64748b;margin:7px 0}.workflow-step .arrow{position:absolute;right:-8px;top:50%;transform:translateY(-50%);z-index:2;background:#fff;border-radius:50%;color:#94a3b8;font-size:16px}
+.role-note{padding:10px 12px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:8px;font-size:12px}
+
+
+/* v14 호기 작업배정 */
+.machine-grid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px}
+.machine-card h3{margin:0 0 12px;font-size:16px}
+.queue-table tr.selected td{background:#eff6ff}
+.machine-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.machine-meta .metric-mini{border:1px solid var(--line);border-radius:9px;padding:10px;background:#fafafa}
+.machine-meta .metric-mini small{display:block;color:#64748b}
+.machine-meta .metric-mini b{display:block;margin-top:4px;font-size:16px}
+.assignment-banner{padding:12px 14px;border-radius:9px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8}
+.partner-list{display:flex;gap:8px;flex-wrap:wrap}
+.partner-chip{border:1px solid #dbe3ee;border-radius:999px;padding:6px 9px;background:#fff;font-size:12px}
+.machine-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:1000px){.machine-grid{grid-template-columns:1fr}.machine-meta{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* v15 설비 편성 보드 */
+.equip-board{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px}
+.equip-box{border:1px solid var(--line);border-radius:10px;padding:13px;cursor:pointer;background:#fff;min-height:125px;transition:.15s}
+.equip-box:hover{border-color:#93c5fd;transform:translateY(-1px)}
+.equip-box.selected{border:2px solid var(--primary);background:#eff6ff}
+.equip-box.busy{background:#fff7ed;border-color:#fdba74}
+.equip-box .machine-name{font-weight:800;font-size:14px}.equip-box .machine-process{font-size:12px;color:#64748b;margin:5px 0 10px}
+.equip-box .machine-worker{font-size:12px;color:#334155;line-height:1.5}
+.shift-line{border-top:1px solid var(--line);padding-top:9px;margin-top:9px;font-size:12px;color:#475569}
+.assignment-panel{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+@media(max-width:900px){.assignment-panel{grid-template-columns:1fr}}
+
+
+/* v16 설비 공정 구획 */
+.machine-group-board{display:grid;gap:16px}
+.machine-group{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fafafa}
+.machine-group-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.machine-group-title h3{margin:0;font-size:15px}
+.machine-group-title span{font-size:12px;color:#64748b}
+.machine-group .equip-board{grid-template-columns:repeat(auto-fill,minmax(165px,1fr))}
+
+
+/* v19 기장 중심 작업지시 / 제품 공정추적 */
+.captain-work-grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px}
+.current-machine-panel{padding:16px;border:1px solid #bfdbfe;border-radius:11px;background:#eff6ff}
+.current-machine-panel h3{margin:0 0 10px}.work-info-list{display:grid;gap:8px}
+.work-info-item{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(37,99,235,.15)}
+.work-info-item:last-child{border-bottom:0}.queue-action{display:flex;justify-content:flex-end;margin-top:10px}
+.trace-card{border:1px solid var(--line);border-radius:11px;padding:14px;background:#fff}
+.trace-steps{display:flex;gap:0;overflow:auto;margin-top:10px}
+.trace-step{min-width:145px;flex:1;padding:11px;border:1px solid var(--line);border-right:0;background:#fafafa;position:relative}
+.trace-step:last-child{border-right:1px solid var(--line)}.trace-step.done{background:#f0fdf4}.trace-step.active{background:#eff6ff}.trace-step.wait{background:#fafafa;color:#94a3b8}
+.trace-step b{display:block;margin-bottom:5px}.trace-step small{display:block;line-height:1.45}
+.trace-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+@media(max-width:1000px){.captain-work-grid{grid-template-columns:1fr}}
+
+
+/* v20 포장완료 입고·설비 현황 */
+.machine-current-work{margin-top:8px;padding:7px 8px;border-radius:7px;background:rgba(37,99,235,.07);font-size:12px;line-height:1.45}
+.machine-current-work.busy{background:#fff1e8;color:#9a3412}
+.machine-current-work.idle{background:#f1f5f9;color:#64748b}
+.warehouse-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.warehouse-option{border:1px solid var(--line);border-radius:9px;padding:12px;cursor:pointer;background:#fff}
+.warehouse-option:hover{border-color:#93c5fd;background:#eff6ff}
+.warehouse-option input{margin-right:7px}
+
+
+/* v22 생산현황 설비표·작업지시 검색 */
+.work-search-bar{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+.work-search-bar .field{min-width:280px;flex:1}
+
+
+/* v23 설비 카드 클릭 상세 모달 */
+.machine-detail-modal .modal-box{max-width:1180px}
+.machine-modal-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.machine-modal-header{padding:14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff}
+.machine-modal-header h3{margin:0 0 8px}
+@media(max-width:850px){.machine-modal-layout{grid-template-columns:1fr}}
+
+
+/* v24 작업 오배정 대응 */
+.recovery-note{padding:10px 12px;border:1px solid #fecaca;background:#fef2f2;color:#991b1b;border-radius:8px;font-size:12px;margin-top:10px}
+
+
+/* v27 전문 사원관리 */
+.employee-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.employee-kpi{padding:14px;border:1px solid var(--line);background:#fff;border-radius:10px}
+.employee-kpi b{display:block;font-size:22px;margin-top:5px}
+.employee-tools{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+.employee-tools .field{min-width:220px;flex:1}
+.emp-name-cell{display:flex;align-items:center;gap:10px}
+.emp-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#e0ecff;color:#1d4ed8;font-weight:800}
+.emp-sub{font-size:11px;color:#64748b;margin-top:2px}
+.emp-tag{display:inline-block;padding:3px 7px;border-radius:999px;background:#f1f5f9;font-size:11px;margin:2px 3px 0 0}
+.emp-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.emp-detail-item{padding:10px;border:1px solid var(--line);border-radius:8px;background:#fafafa}
+.emp-detail-item span{display:block;font-size:11px;color:#64748b;margin-bottom:4px}
+@media(max-width:800px){.employee-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.emp-detail-grid{grid-template-columns:1fr}}
+
+
+/* v28 역할 기반 권한관리 */
+.permission-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.permission-option{border:1px solid var(--line);border-radius:8px;padding:9px;background:#fff;font-size:13px}
+.permission-option input{margin-right:6px}
+.role-pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:700}
+.permission-summary{font-size:12px;color:#64748b;line-height:1.5}
+@media(max-width:800px){.permission-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* v32 전문가형 매출분석 */
+.analysis-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.analysis-card{padding:16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.analysis-card .label{font-size:12px;color:#64748b}.analysis-card .value{font-size:24px;font-weight:800;margin-top:6px}
+.analysis-card .sub{font-size:12px;color:#64748b;margin-top:6px}
+.analysis-layout{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+.analysis-insight{padding:13px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;line-height:1.6}
+.analysis-insight.warn{border-color:#fde68a;background:#fffbeb}
+.analysis-insight.danger{border-color:#fecaca;background:#fef2f2}
+.bar-list{display:grid;gap:10px}.bar-row{display:grid;grid-template-columns:120px 1fr 95px;gap:8px;align-items:center;font-size:13px}
+.bar-track{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden}.bar-fill{height:100%;background:#2563eb;border-radius:999px}
+@media(max-width:900px){.analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.analysis-layout{grid-template-columns:1fr}.bar-row{grid-template-columns:100px 1fr 85px}}
+
+
+/* v34 UI polish */
+:root{--navy:#172554;--blue:#2563eb;--blue-soft:#eff6ff;--ink:#0f172a;--muted:#64748b;--surface:#fff;--line:#e2e8f0;--bg:#f6f8fc}
+*{box-sizing:border-box}
+body{background:var(--bg)!important;color:var(--ink)!important;font-family:"Pretendard","Noto Sans KR","Malgun Gothic",Arial,sans-serif!important;letter-spacing:-.15px}
+.sidebar{background:linear-gradient(180deg,#0f1f44 0%,#172554 45%,#1e3a8a 100%)!important;box-shadow:10px 0 30px rgba(15,23,42,.08)}
+.brand{padding:24px 20px 18px!important;border-bottom:1px solid rgba(255,255,255,.12)}
+.brand h1{font-size:20px!important;font-weight:850!important;letter-spacing:-.8px}
+.brand:after{content:"통합 생산 · 영업 · 재고 관리";display:block;margin-top:7px;color:rgba(255,255,255,.66);font-size:11px;letter-spacing:0}
+#nav{padding:14px 10px 20px!important}
+#nav button{position:relative;border-radius:10px!important;margin:3px 0!important;padding:11px 12px!important;transition:.18s ease!important;color:rgba(255,255,255,.78)!important;font-size:13px!important;text-align:left!important}
+#nav button:hover{background:rgba(255,255,255,.11)!important;color:#fff!important;transform:translateX(2px)}
+#nav button.active{background:#fff!important;color:#1d4ed8!important;font-weight:800!important;box-shadow:0 7px 16px rgba(15,23,42,.16)}
+#nav button.active:before{content:"";position:absolute;left:-10px;top:10px;bottom:10px;width:3px;border-radius:5px;background:#60a5fa}
+.main{padding:26px 30px 40px!important}
+.topbar{background:transparent!important;margin-bottom:18px!important}
+.topbar h2{font-size:26px!important;font-weight:850!important;letter-spacing:-1px}
+.topbar p{color:var(--muted)!important;margin-top:5px!important}
+#userChip{background:#fff!important;border:1px solid var(--line)!important;border-radius:999px!important;padding:9px 12px!important;box-shadow:0 3px 10px rgba(15,23,42,.04)}
+.card,.trace-card,.analysis-card,.employee-kpi{border:1px solid rgba(226,232,240,.95)!important;box-shadow:0 5px 16px rgba(15,23,42,.045)!important;border-radius:14px!important}
+.card{background:#fff!important;padding:18px!important}
+.section-title{font-size:16px!important;font-weight:850!important;display:flex;align-items:center;gap:8px}
+.section-title:before{content:"";width:4px;height:18px;border-radius:99px;background:var(--blue);display:inline-block}
+.notice{background:linear-gradient(90deg,#eff6ff,#f8fbff)!important;border:1px solid #bfdbfe!important;color:#1e3a8a!important;border-radius:10px!important;padding:12px 14px!important}
+.btn{border-radius:9px!important;font-weight:750!important;padding:9px 13px!important;transition:.16s ease!important}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(15,23,42,.1)!important}
+.btn.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8)!important}
+.btn.green{background:linear-gradient(135deg,#16a34a,#15803d)!important}
+.btn.danger{background:linear-gradient(135deg,#dc2626,#b91c1c)!important}
+.btn.small{padding:6px 9px!important;font-size:12px!important}
+input,select,textarea{border:1px solid #cbd5e1!important;border-radius:9px!important;background:#fff!important;transition:.16s ease!important}
+input:focus,select:focus,textarea:focus{outline:none!important;border-color:#2563eb!important;box-shadow:0 0 0 3px rgba(37,99,235,.12)!important}
+label{font-size:12px!important;font-weight:750!important;color:#334155!important}
+.table-wrap{border:1px solid var(--line)!important;border-radius:11px!important;overflow:auto!important}
+table{border-collapse:separate!important;border-spacing:0!important}
+th{background:#f8fafc!important;color:#475569!important;font-size:11px!important;padding:12px!important;border-bottom:1px solid var(--line)!important}
+td{padding:12px!important;border-bottom:1px solid #eef2f7!important;font-size:13px!important}
+tbody tr{transition:.14s ease}tbody tr:hover{background:#f8fbff!important}
+.badge{border-radius:999px!important;padding:4px 8px!important;font-size:11px!important;font-weight:800!important}
+.metric{position:relative;overflow:hidden}.metric:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-32px;top:-32px;background:rgba(37,99,235,.07)}
+.metric .num{font-size:26px!important;font-weight:900!important;letter-spacing:-1px}
+.equip-box{border-radius:13px!important;border:1px solid var(--line)!important;background:linear-gradient(180deg,#fff,#fbfdff)!important;box-shadow:0 4px 12px rgba(15,23,42,.04)!important;transition:.18s ease!important}
+.equip-box:hover{transform:translateY(-3px);border-color:#93c5fd!important;box-shadow:0 12px 24px rgba(37,99,235,.12)!important}
+.machine-group{border:1px solid var(--line)!important;border-radius:14px!important;background:#fff!important;padding:14px!important;box-shadow:0 4px 12px rgba(15,23,42,.03)}
+.modal-box{border-radius:16px!important;box-shadow:0 24px 60px rgba(15,23,42,.25)!important}
+.empty{padding:30px 20px!important;color:#94a3b8!important}
+@media(max-width:900px){.main{padding:18px!important}.topbar h2{font-size:22px!important}}
+
+
+/* v35 상세 생산현황 */
+.production-filter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+.production-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.production-summary{padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.production-summary .label{font-size:12px;color:#64748b}.production-summary b{display:block;font-size:22px;margin-top:6px}
+.production-group-title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:4px 0 10px}
+.production-group-title h3{margin:0;font-size:16px}
+@media(max-width:950px){.production-filter-grid,.production-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* v36 인쇄 계획표 */
+.print-plan-toolbar{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.print-plan-toolbar .field{min-width:190px}
+.print-plan-board{display:grid;grid-template-columns:280px repeat(3,minmax(260px,1fr));gap:14px;align-items:start}
+.print-plan-lane{border:1px solid var(--line);background:#fff;border-radius:14px;min-height:430px;overflow:hidden;box-shadow:0 4px 12px rgba(15,23,42,.035)}
+.print-plan-lane-header{padding:14px 14px 11px;border-bottom:1px solid var(--line);background:#f8fafc}
+.print-plan-lane-header h3{margin:0;font-size:15px}.print-plan-lane-header span{display:block;font-size:11px;color:#64748b;margin-top:4px}
+.print-plan-dropzone{padding:10px;min-height:355px}
+.print-plan-dropzone.drag-over{background:#eff6ff;outline:2px dashed #60a5fa;outline-offset:-5px}
+.print-job-card{padding:11px;border:1px solid #dbeafe;border-radius:10px;background:#fff;cursor:grab;margin-bottom:9px;box-shadow:0 3px 8px rgba(15,23,42,.04);transition:.15s ease}
+.print-job-card:hover{transform:translateY(-2px);border-color:#60a5fa;box-shadow:0 8px 16px rgba(37,99,235,.12)}
+.print-job-card:active{cursor:grabbing}.print-job-card .job-title{font-weight:850;font-size:13px}.print-job-card .job-meta{font-size:11px;color:#64748b;line-height:1.5;margin-top:5px}
+.print-job-card .job-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px}
+.plan-status{font-size:11px;font-weight:800;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#1d4ed8}
+.plan-empty{padding:26px 10px;text-align:center;color:#94a3b8;font-size:12px}
+.plan-help{padding:12px 14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1e3a8a;font-size:12px;line-height:1.55}
+@media(max-width:1100px){.print-plan-board{grid-template-columns:1fr 1fr}.print-plan-lane:first-child{grid-column:1/-1}}@media(max-width:700px){.print-plan-board{grid-template-columns:1fr}}
+
+
+/* v38 인쇄 계획 카드 상세 표기 */
+.print-job-card .job-title{line-height:1.45}
+.print-job-card .job-title .paper-due{font-size:11px;font-weight:750;color:#1d4ed8}
+.print-job-card .job-spec{font-size:11px;color:#475569;line-height:1.55;margin-top:6px}
+.print-job-card .job-owner{font-size:11px;color:#7c2d12;background:#fff7ed;border:1px solid #fed7aa;padding:5px 7px;border-radius:7px;margin-top:7px}
+.plan-field-note{font-size:11px;color:#64748b;line-height:1.5;margin-top:5px}
+
+
+/* v39 납기 임박 사이렌 · 코팅 사양 표기 */
+.due-siren{display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border-radius:999px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:11px;font-weight:850;white-space:nowrap}
+.due-siren.today{background:#fff7ed;border-color:#fed7aa;color:#c2410c}
+.due-siren.safe{display:none}
+.print-job-card.urgent{border-color:#fca5a5!important;background:linear-gradient(180deg,#fff,#fffafa)!important}
+.print-job-card .job-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+
+
+/* v40 인쇄 계획 수동순서 · 자동정렬 · 완료처리 */
+.print-plan-toolbar .btn{white-space:nowrap}
+.print-job-card.drag-target{border-color:#2563eb!important;background:#eff6ff!important}
+.plan-order-hint{font-size:11px;color:#64748b;margin-top:4px}
+
+
+/* v41 인쇄 계획 수정 버튼 정렬 */
+.print-plan-actions{
+  grid-column:1 / -1;
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px!important;
+  align-items:stretch!important;
+  margin-top:4px;
+}
+.print-plan-actions .btn{
+  min-height:44px;
+  display:flex!important;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  padding:9px 12px!important;
+  line-height:1.2;
+}
+.print-plan-actions.new{
+  grid-template-columns:minmax(180px,260px);
+  justify-content:end;
+}
+@media(max-width:620px){
+  .print-plan-actions{grid-template-columns:1fr!important}
+  .print-plan-actions.new{grid-template-columns:1fr!important}
+}
+
+
+/* v43 인쇄계획표 출력 */
+.print-plan-toolbar .toolbar-spacer{flex:1 1 auto}
+
+</style>
+</head>
+<body data-default-page="orders">
+<div class="app">
+<aside class="sidebar">
+  <div class="brand">성은지기인쇄 ERP</div>
+  <nav class="nav" id="nav"></nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <div class="page-title"><h1 id="title">수주오더등록</h1><p id="subtitle">고객 주문과 납기 관리</p></div>
+    <div class="actions"><span class="user-chip" id="userChip"></span><button class="btn" onclick="exportData()">데이터 백업</button><button class="btn" onclick="document.getElementById('importFile').click()">데이터 불러오기</button><input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)"><button class="btn danger" onclick="logout()">로그아웃</button></div>
+  </div>
+
+  <section class="view active" id="dashboard"></section>
+  <section class="view" id="products"></section>
+  <section class="view" id="orders"></section>
+  <section class="view" id="work"></section>
+  <section class="view" id="printplan"></section>
+  <section class="view" id="machine"></section>
+  <section class="view" id="trace"></section>
+  <section class="view" id="production"></section>
+  <section class="view" id="shipping"></section>
+  <section class="view" id="inventory"></section>
+  <section class="view" id="materials"></section>
+  <section class="view" id="sales"></section>
+  <section class="view" id="salesanalysis"></section>
+  <section class="view" id="employees"></section>
+  <section class="view" id="users"></section>
+  <section class="view" id="closing"></section>
+</main>
+</div>
+
+<div class="modal" id="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle">등록</h2><button class="btn small" onclick="closeModal()">닫기</button></div><div id="modalBody"></div></div></div>
+
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <h1>성은지기인쇄 ERP</h1>
+    
+    <form onsubmit="login();return false;">
+      <div class="field"><label>사원 아이디</label><input id="loginId" autocomplete="username" placeholder="예: admin"></div>
+      <div class="field"><label>비밀번호</label><input id="loginPw" type="password" autocomplete="current-password" placeholder="비밀번호"></div>
+      <button class="btn primary" style="width:100%" type="submit">로그인</button>
+    </form>
+    <div class="audit-box">로그인 계정 정보는 시스템 관리자에게 문의하세요.</div>
+  </div>
+</div>
+
+<script>
+const appName="printflow_erp_v1";
+const ERP_STATE_API=new URL("/api/erp_state.php", window.location.origin).toString();
+let syncTimer=null;
+let syncInFlight=false;
+let syncQueued=false;
+const menus=[
+  ["dashboard","대시보드","전체 현황과 오늘의 업무"],
+
+  ["products","제품사양서","규격·원지·후가공·포장 사양"],
+  ["orders","수주오더등록","고객 주문과 납기 관리"],
+  ["work","작업지시","공정별 작업지시서 발행"],
+  ["printplan","인쇄 계획표","인쇄 1·2·3호기 일정 편성"],
+  ["machine","작업배정","설비별 기장·파트너·대기풀 관리"],
+  ["trace","제품 공정추적","제품별 공정 진행·완료 이력"],
+  ["shipping","출고 / 납품","출고·납품 이력 관리"],
+  ["inventory","재고관리","완제품 재고 및 창고 관리"],
+  ["materials","부자재관리","원지·원단·부자재 재고 관리"],
+  ["sales","매출관리","거래처별 매출 및 수금"],
+  ["salesanalysis","매출분석","전문가형 매출·수금·거래처 분석"],
+  ["employees","사원관리","부서·직책·인력 현황"],
+  ["users","권한관리","가입 계정·역할·메뉴 권한 관리"],
+  ["closing","월마감","월별 생산·매출 마감"]
+];
+const processList=["인쇄","코팅","합지","톰슨","금박","형압","접착","포장"];
+function demo(){
+ return {
+ users:[
+  {id:"김명섭",password:"100200",name:"김명섭",dept:"개발자",role:"관리자",leaderOf:["인쇄","코팅","금박","형압","합지","톰슨","접착","포장"]}
+ ],
+ customers:[],
+ paperTypes:["SC","RIV","IV","AB","AB라이트","BV"],
+ stockTypes:["B골","E골","F골","G골","단면","양면","기타"],
+ warehouses:["미래정밀창고","기숙사창고","가족사랑창고","기타"],
+ products:[],
+ orders:[],
+ work:[],
+ production:[],
+ shipping:[],
+ inventory:[],
+ sales:[],
+ employees:[],
+ closing:[]
+ }}
+function persistLocal(state){localStorage.setItem(appName,JSON.stringify(state))}
+function getDB(){let raw=localStorage.getItem(appName);if(!raw){let d=demo();persistLocal(d);return d}try{return JSON.parse(raw)}catch(e){return demo()}}
+function ensureDbShape(state){
+ const sample=demo();
+ const keys=Object.keys(sample);
+ keys.forEach((key)=>{if(state[key]===undefined)state[key]=sample[key]});
+ return state;
+}
+function saveDB(db){persistLocal(db);scheduleServerSync()}
+function scheduleServerSync(){
+ if(syncTimer)clearTimeout(syncTimer);
+ syncTimer=setTimeout(()=>{void pushStateToServer()},500);
+}
+function flushServerSync(){
+ if(syncTimer){
+  clearTimeout(syncTimer);
+  syncTimer=null;
+ }
+ if(syncInFlight){
+  syncQueued=true;
+  return;
+ }
+ void pushStateToServer();
+}
+function sendStateByBeacon(){
+ if(!db||!navigator.sendBeacon)return false;
+ try{
+  const body=JSON.stringify({state:db});
+  const blob=new Blob([body],{type:"application/json"});
+  return navigator.sendBeacon(ERP_STATE_API,blob);
+ }catch(e){
+  return false;
+ }
+}
+async function pushStateToServer(){
+ if(syncInFlight){syncQueued=true;return;}
+ syncInFlight=true;
+ try{
+  await fetch(ERP_STATE_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({state:db})});
+ }catch(e){
+  console.warn("ERP 상태 저장 실패",e);
+ }finally{
+  syncInFlight=false;
+  if(syncQueued){syncQueued=false;scheduleServerSync();}
+ }
+}
+async function pullStateFromServer(){
+ try{
+  const res=await fetch(`${ERP_STATE_API}?_=${Date.now()}`,{cache:"no-store"});
+  if(!res.ok)return;
+  const payload=await res.json();
+  if(payload&&payload.ok&&payload.state&&typeof payload.state==="object"){
+   if(Object.keys(payload.state).length===0)return;
+   db=ensureDbShape(payload.state);
+   persistLocal(db);
+   nav();
+   render();
+  }
+ }catch(e){
+  console.warn("ERP 상태 조회 실패",e);
+ }
+}
+window.addEventListener("pagehide",()=>{
+ if(sendStateByBeacon())return;
+ flushServerSync();
+});
+window.addEventListener("beforeunload",()=>{
+ if(sendStateByBeacon())return;
+ flushServerSync();
+});
+function resolveInitialPage(){
+ const allowed=menus.map(x=>x[0]);
+ const byBody=(document.body?.dataset?.defaultPage||"").trim();
+ if(byBody&&allowed.includes(byBody))return byBody;
+ const qp=new URLSearchParams(location.search).get("page");
+ if(qp&&allowed.includes(qp))return qp;
+ const file=(location.pathname.split("/").pop()||"index.html").toLowerCase();
+ const byFile={
+  "dashboard.html":"dashboard",
+  "production.html":"dashboard",
+  "products.html":"products",
+  "orders.html":"orders",
+  "work.html":"work",
+  "printplan.html":"printplan",
+  "machine.html":"machine",
+  "trace.html":"trace",
+  "shipping.html":"shipping",
+  "inventory.html":"inventory",
+  "materials.html":"materials",
+  "sales.html":"sales",
+  "salesanalysis.html":"salesanalysis",
+  "employees.html":"employees",
+  "users.html":"users",
+  "closing.html":"closing"
+ };
+ return byFile[file]||"dashboard";
+}
+let db=ensureDbShape(getDB()), active=resolveInitialPage();
+
+const ROLE_PRESETS={
+ "관리자":{menus:"ALL",label:"전체 관리 권한"},
+ "경영관리자":{menus:["dashboard","trace","shipping","inventory","materials","sales","salesanalysis","employees","closing"],label:"현황·마감·조회 관리"},
+ "영업관리자":{menus:["dashboard","products","orders","work","trace","shipping","inventory","sales","salesanalysis"],label:"제품·수주·매출·납품 관리"},
+ "생산관리자":{menus:["dashboard","work","printplan","machine","trace","inventory","materials"],label:"생산·설비·재고 관리"},
+ "인쇄 기장":{menus:["dashboard","work","printplan","machine","trace"],label:"인쇄 공정 작업 처리"},
+ "코팅 기장":{menus:["dashboard","work","machine","trace"],label:"코팅 · 금박 · 형압 공정 작업 처리"},
+ "합지 기장":{menus:["dashboard","work","machine","trace"],label:"합지 공정 작업 처리"},
+ "톰슨 기장":{menus:["dashboard","work","machine","trace"],label:"톰슨 공정 작업 처리"},
+ "접착 기장":{menus:["dashboard","work","machine","trace"],label:"접착 · 포장 공정 작업 처리"},
+ "물류관리자":{menus:["dashboard","shipping","inventory","materials","trace"],label:"입출고·창고 관리"},
+ "조회전용":{menus:["dashboard","trace","inventory","materials","shipping","sales","salesanalysis"],label:"조회만 가능"}
+};
+const CAPTAIN_ROLE_PROCESSES={
+ "인쇄 기장":["인쇄"],
+ "코팅 기장":["코팅","금박","형압"],
+ "합지 기장":["합지"],
+ "톰슨 기장":["톰슨"],
+ "접착 기장":["접착","포장"]
+};
+function captainProcessesForRole(role){return CAPTAIN_ROLE_PROCESSES[role]||[];}
+
+const MENU_LABELS={
+ dashboard:"대시보드",products:"제품사양서",orders:"수주오더등록",
+ work:"작업지시",printplan:"인쇄 계획표",machine:"작업배정",trace:"제품 공정추적",shipping:"출고 / 납품",
+ inventory:"재고관리",materials:"부자재관리",sales:"매출관리",salesanalysis:"매출분석",employees:"사원관리",
+ users:"권한관리",closing:"월마감"
+};
+function getUserPermissions(user){
+ if(!user)return [];
+ if(user.role==="관리자") return menus.map(x=>x[0]);
+ if(Array.isArray(user.permissions)&&user.permissions.length) return user.permissions;
+ return ROLE_PRESETS[user.role]?.menus==="ALL"?menus.map(x=>x[0]):(ROLE_PRESETS[user.role]?.menus||["dashboard"]);
+}
+function canAccessMenu(menuId){
+ const u=currentUser();
+ return !!u && getUserPermissions(u).includes(menuId);
+}
+function canEditSystem(){
+ const u=currentUser(); return !!u && ["관리자","경영관리자","영업관리자","생산관리자","물류관리자"].includes(u.role);
+}
+function canManageUsers(){return currentUser()?.role==="관리자";}
+function isReadOnly(){return currentUser()?.role==="조회전용";}
+function permissionLabel(user){
+ const p=getUserPermissions(user);
+ return user.role==="관리자"?"전체 메뉴":`${p.length}개 메뉴`;
+}
+
+function currentUser(){try{return JSON.parse(sessionStorage.getItem("printflow_current_user")||"null")}catch(e){return null}}
+function currentUserDisplayName(){const u=currentUser();return u?`${u.id}(${u.dept})-${u.role}`:"미로그인"}
+function currentUserName(){const u=currentUser();return u?.id||"미로그인"}
+function updateUserChip(){const el=document.getElementById("userChip");if(el)el.textContent="👤 "+currentUserDisplayName()}
+function auditNew(obj){const now=new Date().toLocaleString("ko-KR");const u=currentUserName();obj.createdBy=u;obj.createdAt=now;obj.updatedBy=u;obj.updatedAt=now;return obj}
+function auditUpdate(obj,old){const now=new Date().toLocaleString("ko-KR");const u=currentUserName();obj.createdBy=(old&&old.createdBy)||u;obj.createdAt=(old&&old.createdAt)||now;obj.updatedBy=u;obj.updatedAt=now;return obj}
+function defaultUsers(){
+ return [
+  {id:"김명섭",password:"100200",name:"김명섭",dept:"개발자",role:"관리자",leaderOf:["인쇄","코팅","금박","형압","합지","톰슨","접착","포장"]}
+ ];
+}
+function login(){
+ const id=(document.getElementById("loginId").value||"").trim();
+ const pw=document.getElementById("loginPw").value||"";
+ if(!db.users || !db.users.length){
+   db.users=defaultUsers();
+   saveDB(db);
+ }
+ const user=db.users.find(x=>x.id===id&&x.password===pw);
+ if(!user){alert("아이디 또는 비밀번호가 올바르지 않습니다.");return}
+ if(user.status==="중지"){alert("중지된 계정입니다. 관리자에게 문의하세요.");return}
+ sessionStorage.setItem("printflow_current_user",JSON.stringify({id:user.id,name:user.name,dept:user.dept,role:user.role,permissions:getUserPermissions(user),leaderOf:user.leaderOf||[]}));
+ document.getElementById("loginOverlay").classList.remove("show");
+ if(!canAccessMenu(active)) active="dashboard";
+ updateUserChip();
+ nav();
+ render();
+}
+function logout(){
+ sessionStorage.removeItem("printflow_current_user");
+ document.getElementById("loginOverlay").classList.add("show");
+ updateUserChip();
+ document.getElementById("nav").innerHTML="";
+}
+function ensureLogin(){if(!currentUser()){document.getElementById("loginOverlay").classList.add("show");return false}return true}
+const fmt=n=>Number(n||0).toLocaleString("ko-KR");
+const money=n=>fmt(n)+"원";
+function statusBadge(s){let c=s.includes("완료")||s==="재직"?"ok":s.includes("대기")||s.includes("미수")||s.includes("부분")?"warn":s.includes("지연")?"danger":"";return `<span class="badge ${c}">${s}</span>`}
+
+const WORKFLOW_ORDER=["인쇄","코팅","금박","형압","합지","톰슨","접착","포장"];
+function productWorkflow(productName){
+ const product=db.products.find(x=>x.name===productName)||{};
+ const p=product.process||{};
+ const map={인쇄:"print",코팅:"coating",금박:"foil",형압:"emboss",합지:"lamination",톰슨:"diecut",접착:"glue"};
+ let flow=WORKFLOW_ORDER.filter(n=>n!=="포장" && !!p[map[n]]);
+ if(!flow.length){
+   const legacy=[product.finish,product.processText,product.note].filter(Boolean).join(" ").toLowerCase();
+   const match={인쇄:["인쇄","옵셋","uv"],코팅:["코팅","cr","라미","z코팅"],금박:["금박","박"],형압:["형압"],합지:["합지"],톰슨:["톰슨"],접착:["접착"]};
+   flow=WORKFLOW_ORDER.filter(n=>n!=="포장" && match[n].some(word=>legacy.includes(word)));
+ }
+ return flow.length?[...flow,"포장"]:[];
+}
+function canManageProcess(process){
+ const u=currentUser(); if(!u)return false;
+ const captainProcesses=captainProcessesForRole(u.role);
+ return ["관리자","생산관리자"].includes(u.role) || captainProcesses.includes(process) || (u.leaderOf||[]).includes(process);
+}
+function stageBadge(s){return `<span class="badge ${s==="완료"?"ok":s==="준비"?"warn":""}">${s}</span>`}
+function normalizeWorkflow(order){
+ const desired=productWorkflow(order.product);
+ if(!desired.length){order.workflow=[];return order.workflow;}
+ const existing=Object.fromEntries((order.workflow||[]).map(x=>[x.process,x]));
+ const baseQty=Number(order.sheetQty||order.qty||0);
+ order.workflow=desired.map((process,i)=>existing[process]||({process,stage:i===0?"준비":"대기",inputQty:i===0?baseQty:0,completedQty:0,completedBy:"",completedAt:"",note:""}));
+ const firstOpen=order.workflow.findIndex(x=>x.stage!=="완료");
+ order.workflow.forEach((step,i)=>{if(i>firstOpen && step.stage!=="완료")step.stage="대기";});
+ if(firstOpen>=0 && order.workflow[firstOpen].stage==="대기")order.workflow[firstOpen].stage="준비";
+ return order.workflow;
+}
+function ensureWorkflow(order){return normalizeWorkflow(order);}
+function openStep(orderIndex,stepIndex){
+ const order=db.orders[orderIndex], flow=ensureWorkflow(order), step=flow[stepIndex];
+ const first=flow.findIndex(x=>x.stage!=="완료");
+ if(!canManageProcess(step.process)){alert(`${step.process} 공정 부서장 또는 관리자만 변경할 수 있습니다.`);return}
+ if(stepIndex!==first&&step.stage!=="완료"){alert("이전 공정 완료 후 진행할 수 있습니다.");return}
+ openModal(`${order.id} · ${step.process} 공정`, `<form class="form" onsubmit="saveStep(${orderIndex},${stepIndex});return false">
+ <div class="field"><label>공정</label><input value="${step.process}" readonly></div>
+ <div class="field"><label>현재 상태</label><input value="${step.stage}" readonly></div>
+ <div class="field"><label>변경 상태</label><select id="wfStage"><option>준비</option><option>진행</option><option>완료</option></select></div>
+ <div class="field"><label>완료 수량</label><input id="wfQty" type="number" min="0" value="${step.completedQty||""}" placeholder="완료 시 필수"></div>
+ <div class="field wide"><label>인계 메모</label><textarea id="wfNote" placeholder="불량, 특이사항, 다음 공정 전달사항"></textarea></div>
+ <div class="role-note wide">완료 시 완료수량을 반드시 입력해야 하며, 수량은 다음 공정 투입수량으로 자동 인계됩니다.</div>
+ <div class="form-actions"><button class="btn primary" type="submit">저장</button></div></form>`);
+}
+function saveStep(orderIndex,stepIndex){
+ const order=db.orders[orderIndex], flow=ensureWorkflow(order), step=flow[stepIndex];
+ const stage=v("wfStage"), qty=Number(v("wfQty"))||0;
+ if(stage==="완료"&&qty<=0){alert("완료 처리 시 완료수량을 입력하세요.");return}
+ step.stage=stage;
+ if(stage==="완료"){
+  step.completedQty=qty; step.completedBy=currentUserName(); step.completedAt=new Date().toLocaleString("ko-KR"); step.note=v("wfNote");
+  const next=flow[stepIndex+1];
+  auditUpdate(order,order);saveDB(db);closeModal();
+  if(next){next.stage="준비";next.inputQty=qty;saveDB(db);render();}
+  else openWarehouseReceive(order,qty,"work");
+  return;
+ }
+ auditUpdate(order,order);saveDB(db);closeModal();render();
+}
+function workflowMarkup(order,orderIndex){
+ const flow=ensureWorkflow(order), first=flow.findIndex(x=>x.stage!=="완료");
+ return `<div class="workflow-card"><div class="workflow-head"><b>${order.id} · ${order.product}</b><span>${statusBadge(order.status||"작업지시")}</span></div><div class="workflow-steps">${flow.map((s,i)=>`<div class="workflow-step ${s.stage==="완료"?"done":i===first?"active":"locked"}"><div class="step-name">${i+1}. ${s.process}</div><div>${stageBadge(s.stage)}</div><div class="step-meta">투입 ${fmt(s.inputQty||0)}<br>완료 ${fmt(s.completedQty||0)}</div><button class="btn small ${canManageProcess(s.process)?"primary":""}" onclick="openStep(${orderIndex},${i})" ${(!canManageProcess(s.process)||(i!==first&&s.stage!=="완료"))?"disabled":""}>상태 변경</button>${i<flow.length-1?'<span class="arrow">›</span>':""}</div>`).join("")}</div></div>`;
+}
+
+
+
+function printPlans(){db.printPlans=db.printPlans||[];return db.printPlans;}
+function printMachineList(){return machines().filter(m=>["PRINT-1","PRINT-2","PRINT-3"].includes(m.id));}
+function currentPrintPlanDate(){return window.printPlanDate||new Date().toISOString().slice(0,10);}
+function printableQueue(){
+ return db.orders.filter(o=>o.status!=="입고완료"&&o.status!=="납품완료").map((order,orderIndex)=>{
+   const flow=ensureWorkflow(order);
+   const stepIndex=flow.findIndex(s=>s.stage!=="완료");
+   return {order,orderIndex,step:flow[stepIndex],stepIndex};
+ }).filter(x=>x.step&&x.step.process==="인쇄"&&["준비","대기"].includes(x.step.stage));
+}
+function planForOrder(orderId){return printPlans().find(p=>p.orderId===orderId&&p.status==="계획");}
+function planDateLabel(date){return date||"일자 미지정";}
+function plansInLane(machineId,planDate=currentPrintPlanDate(),excludeId=""){
+ return printPlans().filter(p=>p.status==="계획"&&p.machineId===machineId&&(p.planDate||planDate)===planDate&&p.id!==excludeId)
+  .sort((a,b)=>{
+   const ao=Number(a.sortOrder||0),bo=Number(b.sortOrder||0);
+   if(ao&&bo&&ao!==bo)return ao-bo;
+   if(ao&&!bo)return -1;
+   if(!ao&&bo)return 1;
+   return String(a.createdAt||a.id||"").localeCompare(String(b.createdAt||b.id||""));
+  });
+}
+function resequencePrintLane(machineId,planDate,plans){
+ const lane=plans||plansInLane(machineId,planDate);
+ lane.forEach((p,i)=>{p.sortOrder=(i+1)*10;});
+ return lane;
+}
+function appendPlanToLane(plan,machineId,planDate){
+ const machine=machines().find(m=>m.id===machineId);
+ if(!machine)return;
+ plan.machineId=machine.id;
+ plan.machineName=machine.name;
+ plan.planDate=planDate;
+ const lane=plansInLane(machineId,planDate,plan.id);
+ lane.push(plan);
+ resequencePrintLane(machineId,planDate,lane);
+}
+function insertPlanBefore(plan,machineId,planDate,beforeOrderId){
+ const machine=machines().find(m=>m.id===machineId);
+ if(!machine)return;
+ plan.machineId=machine.id;
+ plan.machineName=machine.name;
+ plan.planDate=planDate;
+ const lane=plansInLane(machineId,planDate,plan.id);
+ const targetIndex=lane.findIndex(p=>p.orderId===beforeOrderId);
+ if(targetIndex<0)lane.push(plan);else lane.splice(targetIndex,0,plan);
+ resequencePrintLane(machineId,planDate,lane);
+}
+function printPostProcessSummary(order){
+ const flow=ensureWorkflow(order);
+ const product=db.products.find(p=>p.name===order.product)||{};
+ const p=product.process||{};
+ const printIndex=flow.findIndex(s=>s.process==="인쇄");
+ const after=flow.slice(printIndex>=0?printIndex+1:0).map(s=>{
+   if(s.process==="코팅") return p.coatingType||"코팅";
+   if(s.process==="금박") return p.foilSize?`금박(${p.foilSize})`:"금박";
+   if(s.process==="형압") return p.embossSize?`형압(${p.embossSize})`:"형압";
+   if(s.process==="합지") return p.laminationType||"합지";
+   if(s.process==="톰슨") return p.diecutType||"톰슨";
+   if(s.process==="접착") return p.glueType||"접착";
+   return s.process;
+ });
+ return after.length?after.join(" · "):"후공정 없음";
+}
+function printDueAlert(due){
+ if(!due) return {text:"",className:"safe",urgent:false};
+ const base=new Date(); base.setHours(0,0,0,0);
+ const target=new Date(`${due}T00:00:00`);
+ if(Number.isNaN(target.getTime())) return {text:"",className:"safe",urgent:false};
+ const diff=Math.round((target-base)/86400000);
+ if(diff<0) return {text:`🚨 납기 경과 ${Math.abs(diff)}일`,className:"",urgent:true};
+ if(diff===0) return {text:"🚨 납기 오늘",className:"today",urgent:true};
+ if(diff<=3) return {text:`🚨 납기 D-${diff}`,className:"",urgent:true};
+ return {text:"",className:"safe",urgent:false};
+}
+function printOrderOwner(order){
+ const user=(db.users||[]).find(u=>u.id===order.ownerId);
+ if(user) return {id:user.id,label:`${user.name} · ${user.role||"직책 미지정"}`};
+ const fallback=order.ownerName||order.createdBy||"등록자 정보 없음";
+ return {id:order.ownerId||"",label:fallback};
+}
+function inspectionLabel(type){return type==="사진감리"||type==="현장감리"?type:"";}
+function planPaperQty(order,item,planned){return Number(planned?item.qty:(item.step?.inputQty||order.sheetQty||order.qty||0));}
+function printPlanCard(item,planned=false){
+ const order=planned?db.orders.find(o=>o.id===item.orderId):item.order;
+ if(!order)return "";
+ const plan=planned?item:planForOrder(order.id);
+ const paperQty=planPaperQty(order,item,planned);
+ const productType=plan?.productType||"신규";
+ const inspection=inspectionLabel(plan?.inspectionType||"");
+ const postProcess=plan?.postProcessSummary||printPostProcessSummary(order);
+ const netQty=Number(plan?.netQty||0);
+ const owner=plan?.inspectionOwner||printOrderOwner(order).label;
+ const due=printDueAlert(order.due);
+ const details=[productType,inspection,postProcess,`정미 : ${netQty?fmt(netQty)+"매":"-"}`].filter(Boolean).join(" · ");
+ const orderHint=planned?`순서 ${Math.max(1,Math.round(Number(plan.sortOrder||10)/10))}`:"드래그";
+ return `<div class="print-job-card ${due.urgent?"urgent":""}" draggable="true" ondragstart="printPlanDragStart(event,'${order.id}')" ondragover="printPlanCardDragOver(event)" ondragleave="printPlanCardDragLeave(event)" ondrop="printPlanDropBefore(event,'${planned?plan.machineId:""}','${order.id}')" onclick="openPrintPlanEdit('${order.id}')">
+  <div class="job-title-row"><div class="job-title">${order.product} <span class="paper-due">- ${fmt(paperQty)}매 [${order.due||"납기 미지정"}]</span></div><span class="due-siren ${due.className}">${due.text}</span></div>
+  <div class="job-spec">${details}</div>
+  ${inspection?`<div class="job-owner">감리 담당: ${owner}</div>`:""}
+  <div class="job-foot"><span class="plan-status">${plan?`${planDateLabel(plan.planDate)} · ${plan.priority||"일반"}`:"미편성"}</span><span class="footer-note">${orderHint}</span></div>
+ </div>`;
+}
+function printPlanDragStart(e,orderId){
+ e.stopPropagation();
+ e.dataTransfer.setData("text/plain",orderId);
+ e.dataTransfer.effectAllowed="move";
+}
+function printPlanAllowDrop(e){e.preventDefault();e.currentTarget.classList.add("drag-over");}
+function printPlanDragLeave(e){e.currentTarget.classList.remove("drag-over");}
+function printPlanCardDragOver(e){e.preventDefault();e.stopPropagation();e.currentTarget.classList.add("drag-target");}
+function printPlanCardDragLeave(e){e.currentTarget.classList.remove("drag-target");}
+function printPlanDropBefore(e,machineId,targetOrderId){
+ e.preventDefault();e.stopPropagation();e.currentTarget.classList.remove("drag-target");
+ const orderId=e.dataTransfer.getData("text/plain"); if(!orderId||orderId===targetOrderId)return;
+ const targetPlan=planForOrder(targetOrderId);
+ const order=db.orders.find(o=>o.id===orderId);
+ if(!order||!targetPlan)return;
+ const existing=planForOrder(orderId);
+ const planDate=targetPlan.planDate||currentPrintPlanDate();
+ if(existing){
+   insertPlanBefore(existing,targetPlan.machineId,planDate,targetOrderId);
+   existing.updatedAt=new Date().toLocaleString("ko-KR");existing.updatedBy=currentUserName();
+   db.auditLog=db.auditLog||[];
+   db.auditLog.unshift({action:"인쇄계획순서변경",menu:"인쇄 계획표",item:`${orderId} → ${targetPlan.machineName} ${targetOrderId} 앞`,by:currentUserName(),at:existing.updatedAt});
+   saveDB(db);render();
+ }else{
+   window.printPlanPendingInsert={machineId:targetPlan.machineId,beforeOrderId:targetOrderId,planDate};
+   openPrintPlanAssign(orderId,targetPlan.machineId);
+ }
+}
+function printPlanDrop(e,machineId){
+ e.preventDefault();e.currentTarget.classList.remove("drag-over");
+ const orderId=e.dataTransfer.getData("text/plain"); if(!orderId)return;
+ const order=db.orders.find(o=>o.id===orderId);if(!order)return;
+ const queue=printableQueue().find(x=>x.order.id===orderId);
+ const existing=planForOrder(orderId);
+ if(!queue&&!existing){alert("현재 인쇄 공정 대기 대상이 아닌 오더입니다.");return;}
+ const planDate=currentPrintPlanDate();
+ if(existing){
+   appendPlanToLane(existing,machineId,planDate);
+   existing.updatedAt=new Date().toLocaleString("ko-KR");existing.updatedBy=currentUserName();
+   db.auditLog=db.auditLog||[];
+   db.auditLog.unshift({action:"인쇄계획이동",menu:"인쇄 계획표",item:`${orderId} → ${existing.machineName} (후순위)`,by:currentUserName(),at:existing.updatedAt});
+   saveDB(db);render();
+ }else{
+   window.printPlanPendingInsert=null;
+   openPrintPlanAssign(orderId,machineId);
+ }
+}
+function printPlanReturn(e){
+ e.preventDefault();e.currentTarget.classList.remove("drag-over");
+ const orderId=e.dataTransfer.getData("text/plain");const plan=planForOrder(orderId);if(!plan)return;
+ if(!confirm(`${plan.orderId} 인쇄 계획을 미편성 대기풀로 되돌릴까요?`))return;
+ plan.status="취소";plan.cancelledAt=new Date().toLocaleString("ko-KR");plan.cancelledBy=currentUserName();
+ db.auditLog=db.auditLog||[];db.auditLog.unshift({action:"인쇄계획해제",menu:"인쇄 계획표",item:plan.orderId,by:currentUserName(),at:plan.cancelledAt});
+ saveDB(db);render();
+}
+function toggleInspectionOwner(){
+ const type=document.getElementById("ppInspection")?.value||"";
+ const wrap=document.getElementById("ppInspectionOwnerWrap");
+ const input=document.getElementById("ppInspectionOwner");
+ if(!wrap||!input)return;
+ const show=type==="사진감리"||type==="현장감리";
+ wrap.style.display=show?"":"none";
+}
+function openPrintPlanAssign(orderId,targetMachineId){
+ const order=db.orders.find(o=>o.id===orderId);
+ const plan=planForOrder(orderId);
+ const queue=printableQueue().find(x=>x.order.id===orderId);
+ if(!order)return;
+ const owner=printOrderOwner(order);
+ const defaultQty=plan?.qty||queue?.step?.inputQty||order.sheetQty||order.qty||0;
+ const machineId=targetMachineId||plan?.machineId||"PRINT-1";
+ const machinesOpt=printMachineList().map(m=>`<option value="${m.id}" ${m.id===machineId?"selected":""}>${m.name}</option>`).join("");
+ const inspection=plan?.inspectionType||"";
+ const pending=window.printPlanPendingInsert||null;
+ openModal(`${plan?"인쇄 계획 수정":"인쇄 호기 계획 배정"} · ${order.id}`, `<form class="form" onsubmit="savePrintPlanAssignment('${order.id}');return false">
+  <input id="ppInsertBefore" type="hidden" value="${pending?.beforeOrderId||""}">
+  <input id="ppAppendAfterDrop" type="hidden" value="0">
+  <div class="field wide"><label>제품 표현 미리보기</label><div class="role-note">${order.product} - ${fmt(defaultQty)}매 [${order.due||"납기 미지정"}]<br>신규 / 감리 / ${printPostProcessSummary(order)} / 정미</div></div>
+  <div class="field"><label>제품</label><input value="${order.product}" readonly></div>
+  <div class="field"><label>오더번호</label><input value="${order.id}" readonly></div>
+  <div class="field"><label>계획일자</label><input id="ppDate" type="date" value="${plan?.planDate||pending?.planDate||currentPrintPlanDate()}"></div>
+  <div class="field"><label>배정 호기</label><select id="ppMachine">${machinesOpt}</select></div>
+  <div class="field"><label>제품 구분</label><select id="ppProductType"><option ${(plan?.productType||"신규")==="신규"?"selected":""}>신규</option><option ${plan?.productType==="기존제품"?"selected":""}>기존제품</option></select></div>
+  <div class="field"><label>감리 구분</label><select id="ppInspection" onchange="toggleInspectionOwner()"><option value="" ${!inspection?"selected":""}>공백</option><option ${inspection==="사진감리"?"selected":""}>사진감리</option><option ${inspection==="현장감리"?"selected":""}>현장감리</option></select></div>
+  <div class="field wide" id="ppInspectionOwnerWrap" style="${inspectionLabel(inspection)?"":"display:none"}"><label>감리 담당</label><input id="ppInspectionOwner" value="${plan?.inspectionOwner||owner.label}" readonly><div class="plan-field-note">사진감리 또는 현장감리를 선택하면 수주오더 등록 담당자의 성명과 직책이 자동 표시됩니다.</div></div>
+  <div class="field"><label>계획 투입 용지수</label><input id="ppQty" type="number" min="1" value="${defaultQty}"></div>
+  <div class="field"><label>정미</label><input id="ppNetQty" type="number" min="0" value="${plan?.netQty||""}" placeholder="정미 수량 입력"></div>
+  <div class="field"><label>우선순위</label><select id="ppPriority">${["긴급","높음","일반","낮음"].map(x=>`<option ${(plan?.priority||"일반")===x?"selected":""}>${x}</option>`).join("")}</select><div class="plan-field-note">우선순위는 자동정렬 버튼을 누를 때만 순서에 반영됩니다.</div></div>
+  <div class="field wide"><label>계획 메모</label><textarea id="ppNote">${plan?.note||""}</textarea></div>
+  <div class="form-actions print-plan-actions ${plan?"edit":"new"}"><button class="btn primary" type="submit">${plan?"계획 수정 저장":"인쇄 계획 배정"}</button>${plan?`<button class="btn green" type="button" onclick="openPrintPlanComplete('${plan.id}')">인쇄 작업 완료</button><button class="btn danger" type="button" onclick="cancelPrintPlan('${plan.id}')">계획 해제</button>`:""}</div>
+ </form>`);
+ toggleInspectionOwner();
+}
+function savePrintPlanAssignment(orderId){
+ const order=db.orders.find(o=>o.id===orderId);
+ const machine=machines().find(x=>x.id===v("ppMachine"));
+ if(!order||!machine)return;
+ const existing=planForOrder(orderId);
+ const owner=printOrderOwner(order);
+ const inspectionType=v("ppInspection");
+ const now=new Date().toLocaleString("ko-KR");
+ const planDate=v("ppDate")||currentPrintPlanDate();
+ const data={
+  orderId,product:order.product,customer:order.customer||"",machineId:machine.id,machineName:machine.name,
+  planDate,priority:v("ppPriority"),qty:Number(v("ppQty"))||0,netQty:Number(v("ppNetQty"))||0,
+  productType:v("ppProductType"),inspectionType,inspectionOwner:inspectionLabel(inspectionType)?owner.label:"",
+  inspectionOwnerId:inspectionLabel(inspectionType)?owner.id:"",postProcessSummary:printPostProcessSummary(order),
+  note:v("ppNote"),status:"계획",updatedAt:now,updatedBy:currentUserName()
+ };
+ const beforeOrderId=v("ppInsertBefore");
+ if(existing){
+  const from=existing.machineName;
+  const oldSort=existing.sortOrder;
+  const oldMachineId=existing.machineId;
+  const oldPlanDate=existing.planDate;
+  Object.assign(existing,data);
+  if(beforeOrderId) insertPlanBefore(existing,machine.id,planDate,beforeOrderId);
+  else if(oldMachineId!==machine.id || oldPlanDate!==planDate) appendPlanToLane(existing,machine.id,planDate);
+  else existing.sortOrder=oldSort||existing.sortOrder||10;
+  db.auditLog=db.auditLog||[];
+  db.auditLog.unshift({action:"인쇄계획수정",menu:"인쇄 계획표",item:`${orderId} / ${from} → ${machine.name}`,by:currentUserName(),at:now});
+ }else{
+  data.id="PP-"+Date.now().toString().slice(-8);
+  const newPlan=auditNew(data);
+  printPlans().push(newPlan);
+  if(beforeOrderId) insertPlanBefore(newPlan,machine.id,planDate,beforeOrderId);
+  else appendPlanToLane(newPlan,machine.id,planDate);
+  db.auditLog=db.auditLog||[];
+  db.auditLog.unshift({action:"인쇄계획배정",menu:"인쇄 계획표",item:`${orderId} → ${machine.name} (후순위)`,by:currentUserName(),at:now});
+ }
+ window.printPlanPendingInsert=null;
+ saveDB(db);closeModal();render();
+}
+function orderRegistrationTime(order, plan){
+ const raw=order?.date||order?.createdAt||plan?.createdAt||"";
+ const match=String(raw).match(/(\d{4})[.\-/]\s*(\d{1,2})[.\-/]\s*(\d{1,2})/);
+ if(match)return new Date(Number(match[1]),Number(match[2])-1,Number(match[3])).getTime();
+ const parsed=Date.parse(raw);
+ return Number.isNaN(parsed)?Number.MAX_SAFE_INTEGER:parsed;
+}
+function autoSortPrintPlans(){
+ const planDate=currentPrintPlanDate();
+ const active=printPlans().filter(p=>p.status==="계획"&&(p.planDate||planDate)===planDate);
+ if(!active.length){alert("자동정렬할 인쇄 계획이 없습니다.");return;}
+ const message=`${planDate} 인쇄 계획을 자동정렬할까요?\n\n정렬 기준\n1. 납기일이 빠른 순\n2. 수주오더 등록일이 빠른 순\n3. 우선순위: 긴급 → 높음 → 일반 → 낮음\n\n현재 수동으로 정리한 순서는 변경됩니다.`;
+ if(!confirm(message))return;
+ const priority={긴급:0,높음:1,일반:2,낮음:3};
+ printMachineList().forEach(machine=>{
+  const lane=plansInLane(machine.id,planDate).sort((a,b)=>{
+   const oa=db.orders.find(o=>o.id===a.orderId)||{},ob=db.orders.find(o=>o.id===b.orderId)||{};
+   const dueA=oa.due?new Date(`${oa.due}T00:00:00`).getTime():Number.MAX_SAFE_INTEGER;
+   const dueB=ob.due?new Date(`${ob.due}T00:00:00`).getTime():Number.MAX_SAFE_INTEGER;
+   if(dueA!==dueB)return dueA-dueB;
+   const registeredA=orderRegistrationTime(oa,a),registeredB=orderRegistrationTime(ob,b);
+   if(registeredA!==registeredB)return registeredA-registeredB;
+   const priorityA=priority[a.priority||"일반"]??2,priorityB=priority[b.priority||"일반"]??2;
+   if(priorityA!==priorityB)return priorityA-priorityB;
+   return Number(a.sortOrder||0)-Number(b.sortOrder||0);
+  });
+  resequencePrintLane(machine.id,planDate,lane);
+ });
+ const now=new Date().toLocaleString("ko-KR");
+ db.auditLog=db.auditLog||[];
+ db.auditLog.unshift({action:"인쇄계획자동정렬",menu:"인쇄 계획표",item:`${planDate} / 납기·수주등록일·우선순위 기준`,by:currentUserName(),at:now});
+ saveDB(db);render();
+}
+function openPrintPlanComplete(planId){
+ const plan=printPlans().find(p=>p.id===planId);
+ if(!plan)return;
+ if(!canManageProcess("인쇄")){alert("인쇄 기장, 생산관리자 또는 관리자만 완료 처리할 수 있습니다.");return;}
+ const order=db.orders.find(o=>o.id===plan.orderId);
+ const flow=order?ensureWorkflow(order):[];
+ const step=flow.find(s=>s.process==="인쇄"&&s.stage!=="완료");
+ if(!order||!step){alert("이미 인쇄 완료 처리되었거나 인쇄 공정을 찾을 수 없습니다.");return;}
+ const defaultQty=Number(plan.netQty||plan.qty||step.inputQty||0);
+ openModal(`${plan.machineName} · 인쇄 작업 완료`, `<form class="form" onsubmit="savePrintPlanComplete('${planId}');return false">
+  <div class="field"><label>오더번호</label><input value="${order.id}" readonly></div>
+  <div class="field"><label>제품</label><input value="${order.product}" readonly></div>
+  <div class="field"><label>계획 투입 용지수</label><input value="${fmt(plan.qty||0)}매" readonly></div>
+  <div class="field"><label>인쇄 완료 수량</label><input id="ppCompleteQty" type="number" min="1" value="${defaultQty||""}" required></div>
+  <div class="field wide"><label>완료 메모</label><textarea id="ppCompleteNote" placeholder="불량, 재인쇄, 다음 공정 전달사항 등을 기록"></textarea></div>
+  <div class="role-note wide">완료 처리하면 인쇄 공정은 완료되고, 완료수량이 다음 공정 대기풀로 자동 인계됩니다.</div>
+  <div class="form-actions"><button class="btn green" type="submit">인쇄 완료 처리</button></div>
+ </form>`);
+}
+function savePrintPlanComplete(planId){
+ const plan=printPlans().find(p=>p.id===planId);
+ const qty=Number(v("ppCompleteQty"))||0;
+ if(!plan||!qty){alert("인쇄 완료 수량을 입력하세요.");return;}
+ const order=db.orders.find(o=>o.id===plan.orderId);
+ const flow=order?ensureWorkflow(order):[];
+ const stepIndex=flow.findIndex(s=>s.process==="인쇄"&&s.stage!=="완료");
+ if(!order||stepIndex<0){alert("인쇄 공정을 찾을 수 없거나 이미 완료되었습니다.");return;}
+ const now=new Date().toLocaleString("ko-KR");
+ const note=v("ppCompleteNote");
+ const step=flow[stepIndex];
+ step.stage="완료";step.completedQty=qty;step.completedBy=currentUserName();step.completedAt=now;step.note=note;
+ const next=flow[stepIndex+1];
+ if(next){next.stage="준비";next.inputQty=qty;}
+ order.status="생산중";
+ plan.status="완료";plan.completedQty=qty;plan.completedAt=now;plan.completedBy=currentUserName();plan.completeMemo=note;
+ const crew=(db.machineCrews||{})[plan.machineId]||{};
+ const assigned=(db.machineAssignments||[]).find(a=>a.planId===plan.id&&a.status==="완료");
+ const assignmentData={planId:plan.id,orderId:order.id,product:order.product,process:"인쇄",machineId:plan.machineId,machineName:plan.machineName,captainName:crew.captain||currentUserName(),partners:crew.partners||[],inputQty:Number(plan.qty||step.inputQty||0),completedQty:qty,status:"완료",startedAt:plan.createdAt||now,completedAt:now,completeMemo:note};
+ if(assigned) Object.assign(assigned,assignmentData);
+ else machineAssignments().push(auditNew({id:"MA-"+Date.now().toString().slice(-8),...assignmentData}));
+ auditUpdate(order,order);
+ db.auditLog=db.auditLog||[];
+ db.auditLog.unshift({action:"인쇄작업완료",menu:"인쇄 계획표",item:`${order.id} / ${plan.machineName} / ${qty}매`,by:currentUserName(),at:now});
+ saveDB(db);closeModal();render();
+}
+function openPrintPlanEdit(orderId){
+ const plan=planForOrder(orderId); if(!plan){alert("미편성 작업입니다. 인쇄 1·2·3호기 칸으로 드래그해 배정하세요.");return;}
+ window.printPlanPendingInsert=null;
+ openPrintPlanAssign(orderId,plan.machineId);
+}
+function cancelPrintPlan(planId){
+ const plan=printPlans().find(p=>p.id===planId);if(!plan)return;
+ if(!confirm("이 인쇄 계획을 해제하고 미편성 대기풀로 돌릴까요?"))return;
+ plan.status="취소";plan.cancelledAt=new Date().toLocaleString("ko-KR");plan.cancelledBy=currentUserName();
+ db.auditLog=db.auditLog||[];db.auditLog.unshift({action:"인쇄계획해제",menu:"인쇄 계획표",item:plan.orderId,by:currentUserName(),at:plan.cancelledAt});
+ saveDB(db);closeModal();render();
+}
+
+function parseYMD(dateStr){
+ if(!dateStr) return null;
+ const m=String(dateStr).match(/(\d{4})-(\d{2})-(\d{2})/);
+ if(!m) return null;
+ return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+}
+function printWeekRange(dateStr){
+ const d=parseYMD(dateStr)||new Date();
+ const day=d.getDay();
+ const mondayOffset = day===0 ? -6 : 1-day;
+ const start=new Date(d); start.setDate(d.getDate()+mondayOffset);
+ const end=new Date(start); end.setDate(start.getDate()+4);
+ return {start,end};
+}
+function fmtWeekDate(d){
+ return `${String(d.getFullYear()).slice(2)}년${String(d.getMonth()+1).padStart(2,"0")}월${String(d.getDate()).padStart(2,"0")}일`;
+}
+function fmtDueShort(dateStr){
+ const d=parseYMD(dateStr);
+ if(!d) return "납기미정";
+ return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}납품`;
+}
+function isDateInRange(dateStr,start,end){
+ const d=parseYMD(dateStr);
+ if(!d) return false;
+ return d.getTime()>=start.getTime() && d.getTime()<=end.getTime();
+}
+function planPrintBody(plan){
+ const order=db.orders.find(o=>o.id===plan.orderId)||{};
+ const detailParts=[];
+ detailParts.push(plan.productType||"신규");
+ if(plan.inspectionType) detailParts.push(plan.inspectionType);
+ detailParts.push(plan.postProcessSummary||printPostProcessSummary(order));
+ detailParts.push(`정미:${fmt(plan.netQty||0)}매`);
+ return `${plan.product} - ${fmt(plan.qty||0)}매[${fmtDueShort(order.due)}]`;
+}
+function planPrintSub(plan){
+ const order=db.orders.find(o=>o.id===plan.orderId)||{};
+ const parts=[];
+ if(plan.inspectionType && plan.inspectionOwner) parts.push(`감리:${plan.inspectionOwner}`);
+ parts.push(plan.postProcessSummary||printPostProcessSummary(order));
+ parts.push(`정미:${fmt(plan.netQty||0)}매`);
+ if(plan.note) parts.push(`메모:${plan.note}`);
+ return parts.join(" / ");
+}
+function printPlanHighlight(plan){
+ const order=db.orders.find(o=>o.id===plan.orderId)||{};
+ const due=printDueAlert(order.due);
+ return due.urgent || plan.priority==="긴급";
+}
+function openPrintPlanSheet(){
+ const selected=currentPrintPlanDate();
+ const week=printWeekRange(selected);
+ const allWeekly=printPlans().filter(p=>p.status==="계획" && isDateInRange(p.planDate||selected, week.start, week.end));
+ const byMachine={};
+ printMachineList().forEach(m=>{
+   byMachine[m.id]=allWeekly.filter(p=>p.machineId===m.id)
+     .sort((a,b)=>{
+       const da=parseYMD(a.planDate||selected)?.getTime()||0;
+       const dbb=parseYMD(b.planDate||selected)?.getTime()||0;
+       if(da!==dbb) return da-dbb;
+       return Number(a.sortOrder||0)-Number(b.sortOrder||0);
+     });
+ });
+ const maxRows=Math.max(15,...Object.values(byMachine).map(arr=>arr.length));
+ const machineHeaders=printMachineList().map(m=>m.name);
+ const tableRows=Array.from({length:maxRows},(_,i)=>{
+   const cols=printMachineList().map(m=>{
+     const plan=byMachine[m.id][i];
+     if(!plan) return '<td class="sheet-cell empty"></td>';
+     return `<td class="sheet-cell ${printPlanHighlight(plan)?'alert':''}">
+       <div class="sheet-main">${planPrintBody(plan)}</div>
+       <div class="sheet-sub">${planPrintSub(plan)}</div>
+     </td>`;
+   }).join("");
+   return `<tr><td class="sheet-num">${i+1}</td>${cols}</tr>`;
+ }).join("");
+ const title=`인쇄주간계획표 ${fmtWeekDate(week.start)} - ${fmtWeekDate(week.end)} [인쇄작업 : 1호, 2호, 3호]`;
+ const htmlDoc=`<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>${title}</title>
+<style>
+ body{font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;margin:0;background:#f5f5f5;color:#111}
+ .sheet-wrap{max-width:1400px;margin:0 auto;padding:12px}
+ .sheet-toolbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px}
+ .sheet-toolbar button{border:none;border-radius:6px;padding:8px 12px;font-weight:700;cursor:pointer}
+ .sheet-toolbar .print{background:#2563eb;color:#fff}.sheet-toolbar .close{background:#e5e7eb}
+ .sheet{background:#fff;border:1px solid #bdbdbd}
+ .sheet-title{font-size:18px;font-weight:800;text-align:center;padding:8px 6px;border-bottom:1px solid #cfcfcf}
+ table{width:100%;border-collapse:collapse;table-layout:fixed}
+ th,td{border:1px solid #cfcfcf;vertical-align:top}
+ thead th{background:#dbeaf3;font-size:13px;font-weight:800;padding:5px}
+ .sheet-num{width:40px;text-align:center;font-weight:700;background:#fafafa}
+ .sheet-cell{padding:5px 6px;min-height:58px;font-size:12px;line-height:1.28}
+ .sheet-cell.alert{background:#fff59d}
+ .sheet-cell.empty{background:#fcfcfc;height:52px}
+ .sheet-main{font-weight:700}
+ .sheet-sub{margin-top:3px;font-size:11px}
+ @media print{
+   body{background:#fff}
+   .sheet-wrap{padding:0}
+   .sheet-toolbar{display:none}
+   .sheet{border:none}
+   @page{size:A4 landscape;margin:8mm}
+ }
+</style></head>
+<body><div class="sheet-wrap">
+<div class="sheet-toolbar"><button class="print" onclick="window.print()">출력</button><button class="close" onclick="window.close()">닫기</button></div>
+<div class="sheet">
+  <div class="sheet-title">${title}</div>
+  <table>
+    <thead><tr><th class="sheet-num"></th>${machineHeaders.map(h=>`<th>[${h}]</th>`).join("")}</tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+</div></div></body></html>`;
+ const win=window.open("","printPlanSheet","width=1500,height=900");
+ if(!win){alert("팝업이 차단되었습니다. 팝업 허용 후 다시 시도하세요.");return;}
+ win.document.open(); win.document.write(htmlDoc); win.document.close();
+}
+function printPlan(){
+ const printable=printableQueue();
+ const f=currentPrintPlanDate();
+ const plans=printPlans().filter(p=>p.status==="계획"&&(p.planDate||f)===f);
+ const unplanned=printable.filter(x=>!planForOrder(x.order.id));
+ document.getElementById("printplan").innerHTML=`<div class="stack">
+  <div class="card"><h3 class="section-title">인쇄 계획표</h3><div class="plan-help">미편성 작업을 호기 빈 공간에 드래그하면 <b>해당 호기의 가장 마지막 순서</b>로 계획이 추가됩니다. 카드 위에 드래그하면 해당 카드 <b>앞 순서</b>로 이동합니다. 수동으로 바꾼 순서는 계속 저장되며, <b>자동정렬</b> 버튼을 눌러 확인한 경우에만 납기·우선순위 기준으로 다시 정렬됩니다. 실제 작업 완료는 카드 수정 화면의 <b>인쇄 작업 완료</b> 버튼으로 처리합니다.</div></div>
+  <div class="card"><div class="print-plan-toolbar"><div class="field"><label>계획일자</label><input type="date" value="${f}" onchange="window.printPlanDate=this.value;render()"></div><button class="btn primary" onclick="autoSortPrintPlans()">자동정렬</button><button class="btn" onclick="openPrintPlanSheet()">인쇄계획표 출력</button><div class="toolbar-spacer"></div><div class="footer-note">자동정렬 기준: 납기일 → 수주오더 등록일 → 우선순위. 출력은 선택일자가 포함된 주간 계획표 형식으로 생성됩니다.</div></div></div>
+  <div class="print-plan-board">
+   <div class="print-plan-lane"><div class="print-plan-lane-header"><h3>미편성 인쇄 작업</h3><span>드래그하여 호기에 계획 배정 · ${unplanned.length}건</span></div><div class="print-plan-dropzone" ondragover="printPlanAllowDrop(event)" ondragleave="printPlanDragLeave(event)" ondrop="printPlanReturn(event)">${unplanned.length?unplanned.map(x=>printPlanCard(x,false)).join(""):'<div class="plan-empty">미편성 인쇄 작업이 없습니다.</div>'}</div></div>
+   ${printMachineList().map(m=>{const list=plansInLane(m.id,f);const crew=(db.machineCrews||{})[m.id]||{};return `<div class="print-plan-lane"><div class="print-plan-lane-header"><h3>${m.name}</h3><span>기장 ${crew.captain||"미편성"} · 계획 ${list.length}건</span><div class="plan-order-hint">빈 공간 드롭: 맨 뒤 추가 · 카드 위 드롭: 앞 순서 삽입</div></div><div class="print-plan-dropzone" ondragover="printPlanAllowDrop(event)" ondragleave="printPlanDragLeave(event)" ondrop="printPlanDrop(event,'${m.id}')">${list.length?list.map(p=>printPlanCard(p,true)).join(""):'<div class="plan-empty">이 호기 계획이 없습니다.<br>작업을 이곳으로 드래그하세요.</div>'}</div></div>`}).join("")}
+  </div>
+ </div>`;
+}
+
+function machines(){
+  const required=["인쇄 1호기","인쇄 2호기","인쇄 3호기","톰슨 1호기","톰슨 2호기","톰슨 3호기","톰슨 4호기","톰슨 5호기","오버코팅 1호기","오버코팅 2호기","오버코팅 3호기","라미네이팅기","유잉 1호기","유잉 2호기","하이델베르그","접착 1호기","접착 2호기","접착 3호기","접착 4호기","접착 5호기","접착 6호기","합지기","합지톰슨기"];
+  const hasAll=db.machines && required.every(name=>db.machines.some(x=>x.name===name));
+  if(!hasAll){
+    db.machines=[
+      {id:"PRINT-1",name:"인쇄 1호기",process:"인쇄",group:"인쇄"},
+      {id:"PRINT-2",name:"인쇄 2호기",process:"인쇄",group:"인쇄"},
+      {id:"PRINT-3",name:"인쇄 3호기",process:"인쇄",group:"인쇄"},
+
+      {id:"COAT-1",name:"오버코팅 1호기",process:"코팅",group:"코팅"},
+      {id:"COAT-2",name:"오버코팅 2호기",process:"코팅",group:"코팅"},
+      {id:"COAT-3",name:"오버코팅 3호기",process:"코팅",group:"코팅"},
+
+      {id:"DIECUT-1",name:"톰슨 1호기",process:"톰슨",group:"톰슨"},
+      {id:"DIECUT-2",name:"톰슨 2호기",process:"톰슨",group:"톰슨"},
+      {id:"DIECUT-3",name:"톰슨 3호기",process:"톰슨",group:"톰슨"},
+      {id:"DIECUT-4",name:"톰슨 4호기",process:"톰슨",group:"톰슨"},
+      {id:"DIECUT-5",name:"톰슨 5호기",process:"톰슨",group:"톰슨"},
+
+      {id:"LAMI-1",name:"라미네이팅기",process:"코팅",group:"코팅"},
+      {id:"LAMI-2",name:"합지기",process:"합지",group:"합지"},
+      {id:"LAMI-3",name:"합지톰슨기",process:"합지",group:"합지"},
+
+      {id:"FOIL-1",name:"유잉 1호기",process:"금박 / 형압",group:"기타"},
+      {id:"FOIL-2",name:"유잉 2호기",process:"금박 / 형압",group:"기타"},
+      {id:"FOIL-3",name:"하이델베르그",process:"금박 / 형압",group:"기타"},
+
+      {id:"GLUE-1",name:"접착 1호기",process:"접착",group:"접착"},
+      {id:"GLUE-2",name:"접착 2호기",process:"접착",group:"접착"},
+      {id:"GLUE-3",name:"접착 3호기",process:"접착",group:"접착"},
+      {id:"GLUE-4",name:"접착 4호기",process:"접착",group:"접착"},
+      {id:"GLUE-5",name:"접착 5호기",process:"접착",group:"접착"},
+      {id:"GLUE-6",name:"접착 6호기",process:"접착",group:"접착"}
+    ];
+    saveDB(db);
+  }
+  return db.machines;
+}
+function machineAssignments(){db.machineAssignments=db.machineAssignments||[];return db.machineAssignments;}
+function compatible(machine, process){
+  return machine.process===process || (machine.process==="금박 / 형압" && ["금박","형압"].includes(process));
+}
+function queueItems(){
+ const rows=[];
+ db.orders.filter(order=>order.status!=="입고완료").forEach((order,orderIndex)=>{
+   const flow=ensureWorkflow(order);
+   const i=flow.findIndex(x=>x.stage!=="완료");
+   if(i>=0 && ["준비","대기"].includes(flow[i].stage)) rows.push({order,orderIndex,step:flow[i],stepIndex:i});
+ });
+ return rows;
+}
+function assignmentForMachine(machineId){return machineAssignments().find(x=>x.machineId===machineId&&x.status==="진행중");}
+function machineRoleOptions(){
+ return db.employees.map(e=>`<option value="${e.name}">${e.name} · ${e.dept} · ${e.role}</option>`).join("");
+}
+function editMachineCrew(machineId){
+ const m=machines().find(x=>x.id===machineId); if(!m)return;
+ const crew=(db.machineCrews||{})[machineId]||{};
+ openModal(`${m.name} 편성`, `<form class="form" onsubmit="saveMachineCrew('${machineId}');return false">
+ <div class="field"><label>호기</label><input value="${m.name}" readonly></div><div class="field"><label>담당 공정</label><input value="${m.process}" readonly></div>
+ <div class="field"><label>기장 선택</label><select id="crewCaptain"><option value="">선택</option>${machineRoleOptions()}</select></div>
+ <div class="field wide"><label>파트너(조수) 선택</label><select id="crewPartners" multiple size="5">${machineRoleOptions()}</select><div class="footer-note">Ctrl / Shift로 여러 명을 선택하세요.</div></div>
+ <div class="role-note wide">근무 시작과 종료 시간은 호기 화면의 버튼으로 실제 시각이 자동 기록됩니다.</div>
+ <div class="form-actions"><button class="btn primary" type="submit">호기 편성 저장</button></div></form>`);
+ document.getElementById("crewCaptain").value=crew.captain||"";
+ [...document.getElementById("crewPartners").options].forEach(o=>o.selected=(crew.partners||[]).includes(o.value));
+}
+function saveMachineCrew(machineId){
+ const crew=db.machineCrews=db.machineCrews||{};
+ const old=crew[machineId]||{};
+ const partners=[...document.getElementById("crewPartners").selectedOptions].map(o=>o.value);
+ crew[machineId]={captain:document.getElementById("crewCaptain").value,partners,shiftStart:old.shiftStart||"",shiftEnd:old.shiftEnd||"",updatedBy:currentUserName(),updatedAt:new Date().toLocaleString("ko-KR")};
+ saveDB(db);closeModal();render();
+}
+function registerMachineShift(machineId, type){
+ const crew=(db.machineCrews||{})[machineId];
+ const m=machines().find(x=>x.id===machineId);
+ if(!crew?.captain){alert("먼저 기장과 파트너를 편성하세요.");return;}
+ const now=new Date().toLocaleString("ko-KR");
+ if(type==="start"){
+   if(crew.shiftStart && !crew.shiftEnd){alert("이미 작업 시작이 등록되어 있습니다.");return;}
+   crew.shiftStart=now;
+   crew.shiftEnd="";
+   alert(`${m.name} 작업 시작이 등록되었습니다.\n${now}`);
+ }else{
+   if(!crew.shiftStart){alert("작업 시작 버튼을 먼저 눌러주세요.");return;}
+   if(crew.shiftEnd){alert("이미 작업 종료가 등록되어 있습니다.");return;}
+   crew.shiftEnd=now;
+   alert(`${m.name} 작업 종료가 등록되었습니다.\n${now}`);
+ }
+ crew.updatedBy=currentUserName();
+ crew.updatedAt=now;
+ db.auditLog=db.auditLog||[];
+ db.auditLog.unshift({action:type==="start"?"호기 작업시작":"호기 작업종료",menu:"호기 작업배정",item:m.name,by:currentUserName(),at:now});
+ saveDB(db);render();
+}
+function assignQueuedWork(machineId,orderIndex,stepIndex){
+ const m=machines().find(x=>x.id===machineId), order=db.orders[orderIndex], flow=ensureWorkflow(order), step=flow[stepIndex];
+ if(!m||!step)return;
+ if(!compatible(m,step.process)){alert(`${m.name}는 ${step.process} 공정을 수행할 수 없습니다.`);return;}
+ if(assignmentForMachine(machineId)){alert("선택한 호기에 진행 중인 작업이 있습니다.");return;}
+ const crew=(db.machineCrews||{})[machineId];
+ if(!crew?.captain){alert("먼저 호기에서 기장과 파트너를 편성하세요.");return;}
+ if(!canManageProcess(step.process)){alert(`${step.process} 공정 부서장 또는 관리자만 작업을 편성할 수 있습니다.`);return;}
+ const now=new Date().toLocaleString("ko-KR");
+ machineAssignments().push(auditNew({id:"MA-"+Date.now().toString().slice(-7),orderId:order.id,product:order.product,process:step.process,machineId,machineName:m.name,captainName:crew.captain,partners:crew.partners||[],shiftStart:crew.shiftStart||"",shiftEnd:crew.shiftEnd||"",inputQty:Number(step.inputQty)||0,status:"진행중",startedAt:now}));
+ step.stage="진행";step.startedBy=currentUserName();step.startedAt=now;
+ auditUpdate(order,order);saveDB(db);render();
+}
+function completeMachineAssignment(assignIndex){
+ const a=machineAssignments()[assignIndex];if(!a)return;
+ if(!canManageProcess(a.process)){alert(`${a.process} 공정 부서장 또는 관리자만 완료할 수 있습니다.`);return;}
+ openModal(`${a.machineName} · 작업 완료`, `<form class="form" onsubmit="saveMachineComplete(${assignIndex});return false">
+ <div class="field"><label>오더</label><input value="${a.orderId}" readonly></div><div class="field"><label>공정</label><input value="${a.process}" readonly></div>
+ <div class="field"><label>투입 수량</label><input value="${fmt(a.inputQty)}" readonly></div><div class="field"><label>완료 수량</label><input id="machineCompletedQty" type="number" min="1" value="${a.inputQty}" required></div>
+ <div class="field wide"><label>완료 메모</label><textarea id="machineCompleteMemo"></textarea></div><div class="form-actions"><button class="btn green" type="submit">완료 및 다음 공정 인계</button></div></form>`);
+}
+function saveMachineComplete(assignIndex){
+ const a=machineAssignments()[assignIndex], qty=Number(v("machineCompletedQty"))||0;
+ if(!qty){alert("완료 수량을 입력하세요.");return;}
+ const order=db.orders.find(o=>o.id===a.orderId), flow=ensureWorkflow(order), i=flow.findIndex(s=>s.process===a.process&&s.stage!=="완료");
+ if(!order||i<0){alert("현재 공정을 찾을 수 없습니다.");return;}
+ const step=flow[i],now=new Date().toLocaleString("ko-KR");a.status="완료";a.completedQty=qty;a.completedAt=now;a.completeMemo=v("machineCompleteMemo");
+ step.stage="완료";step.completedQty=qty;step.completedBy=currentUserName();step.completedAt=now;step.note=a.completeMemo;
+ const next=flow[i+1];
+ auditUpdate(order,order);
+ saveDB(db);
+ closeModal();
+ if(next){
+   next.stage="준비";
+   next.inputQty=qty;
+   saveDB(db);
+   render();
+ }else{
+   // 포장 완료는 재고관리 입고로 처리하며 작업지시/배정/추적에서는 제외됩니다.
+   openWarehouseReceive(order,qty,"machine");
+ }
+}
+
+
+function releaseMachineAssignment(assignIndex){
+ const assignments=machineAssignments();
+ const a=assignments[assignIndex];
+ if(!a)return;
+ if(!confirm(`${a.machineName}에 편성된 ${a.orderId} 작업을 대기풀로 되돌릴까요?\n완료수량이 없는 작업만 되돌릴 수 있습니다.`))return;
+ const order=db.orders.find(o=>o.id===a.orderId);
+ if(!order){alert("연결된 수주오더를 찾을 수 없습니다.");return;}
+ const flow=ensureWorkflow(order);
+ const stepIndex=flow.findIndex(s=>s.process===a.process && s.stage!=="완료");
+ if(stepIndex<0 || (Number(a.completedQty)||0)>0){
+   alert("완료수량이 기록된 작업은 대기풀로 되돌릴 수 없습니다.");
+   return;
+ }
+ const now=new Date().toLocaleString("ko-KR");
+ flow[stepIndex].stage="준비";
+ flow[stepIndex].startedBy="";
+ flow[stepIndex].startedAt="";
+ a.status="작업취소";
+ a.cancelledAt=now;
+ a.cancelledBy=currentUserName();
+ a.cancelReason="오배정 대기풀 복귀";
+ auditUpdate(order,order);
+ db.auditLog=db.auditLog||[];
+ db.auditLog.unshift({action:"작업오배정취소",menu:"작업배정",item:`${a.orderId} / ${a.process} / ${a.machineName}`,by:currentUserName(),at:now});
+ saveDB(db);
+ closeModal();
+ render();
+}
+function moveMachineAssignment(assignIndex){
+ const a=machineAssignments()[assignIndex];
+ if(!a)return;
+ const order=db.orders.find(o=>o.id===a.orderId);
+ const flow=order?ensureWorkflow(order):[];
+ const step=flow.find(s=>s.process===a.process && s.stage!=="완료");
+ if(!order||!step){alert("이동할 현재 공정을 찾을 수 없습니다.");return;}
+ const options=machines().filter(m=>compatible(m,a.process)&&m.id!==a.machineId&&!assignmentForMachine(m.id));
+ if(!options.length){alert("이동 가능한 빈 호기가 없습니다.");return;}
+ openModal(`${a.orderId} 작업 호기 변경`, `<form class="form" onsubmit="saveMoveMachineAssignment(${assignIndex});return false">
+  <div class="field"><label>현재 호기</label><input value="${a.machineName}" readonly></div>
+  <div class="field"><label>공정</label><input value="${a.process}" readonly></div>
+  <div class="field wide"><label>이동할 빈 호기</label><select id="moveMachine">${options.map(m=>`<option value="${m.id}">${m.name}</option>`).join("")}</select></div>
+  <div class="field wide"><label>변경 사유</label><textarea id="moveReason" placeholder="예: 잘못 선택, 설비 점검, 우선순위 변경"></textarea></div>
+  <div class="form-actions"><button class="btn primary" type="submit">호기 변경</button></div>
+ </form>`);
+}
+function saveMoveMachineAssignment(assignIndex){
+ const a=machineAssignments()[assignIndex];
+ const m=machines().find(x=>x.id===v("moveMachine"));
+ if(!a||!m)return;
+ if(assignmentForMachine(m.id)){alert("선택한 호기에 진행 중인 작업이 있습니다.");return;}
+ const now=new Date().toLocaleString("ko-KR");
+ const oldMachine=a.machineName;
+ a.machineId=m.id;
+ a.machineName=m.name;
+ a.movedAt=now;
+ a.movedBy=currentUserName();
+ a.moveReason=v("moveReason");
+ const crew=(db.machineCrews||{})[m.id]||{};
+ if(crew.captain){
+   a.captainName=crew.captain;
+   a.partners=crew.partners||[];
+   a.shiftStart=crew.shiftStart||"";
+   a.shiftEnd=crew.shiftEnd||"";
+ }
+ db.auditLog=db.auditLog||[];
+ db.auditLog.unshift({action:"작업호기변경",menu:"작업배정",item:`${a.orderId} / ${a.process} / ${oldMachine} → ${m.name}`,by:currentUserName(),at:now});
+ saveDB(db);
+ closeModal();
+ render();
+}
+
+function openMachineDetail(machineId){
+ const ms=machines();
+ const m=ms.find(x=>x.id===machineId);
+ if(!m)return;
+ const crews=db.machineCrews||{};
+ const crew=crews[machineId]||{};
+ const assignments=machineAssignments();
+ const current=assignmentForMachine(machineId);
+ const pool=queueItems().filter(x=>compatible(m,x.step.process));
+ openModal(`${m.name} 작업배정`, `<div class="machine-detail-modal">
+   <div class="machine-modal-header">
+     <h3>${m.name}</h3>
+     <div>담당 공정: <b>${m.process}</b></div>
+     <div style="margin-top:6px">기장: <b>${crew.captain||"미편성"}</b> · 파트너: <b>${(crew.partners||[]).join(", ")||"미편성"}</b></div>
+     <div style="margin-top:6px">작업시간: <b>${crew.shiftStart||"시작 전"} ~ ${crew.shiftEnd||"진행 중 / 미등록"}</b></div>
+   </div>
+   <div class="machine-actions" style="margin:12px 0">
+    <button class="btn primary" onclick="editMachineCrew('${m.id}')">기장 / 파트너 편성</button>
+    <button class="btn green" onclick="registerMachineShift('${m.id}','start')" ${crew.shiftStart&&!crew.shiftEnd?'disabled':''}>작업 시작</button>
+    <button class="btn danger" onclick="registerMachineShift('${m.id}','end')" ${!crew.shiftStart||crew.shiftEnd?'disabled':''}>작업 종료</button>
+   </div>
+   <div class="machine-modal-layout">
+     <div class="card">
+      <h3 class="section-title">현재 진행 작업</h3>
+      ${current?`<div class="work-info-list">
+        <div class="work-info-item"><span>오더</span><b>${current.orderId}</b></div>
+        <div class="work-info-item"><span>제품</span><b>${current.product}</b></div>
+        <div class="work-info-item"><span>공정</span><b>${current.process}</b></div>
+        <div class="work-info-item"><span>투입수량</span><b>${fmt(current.inputQty||0)}</b></div>
+        <div class="work-info-item"><span>시작시각</span><b>${current.startedAt||"-"}</b></div>
+      </div><div class="machine-actions"><button class="btn green" onclick="completeMachineAssignment(${assignments.indexOf(current)})">현재 작업 완료</button><button class="btn" onclick="moveMachineAssignment(${assignments.indexOf(current)})">다른 호기로 변경</button><button class="btn danger" onclick="releaseMachineAssignment(${assignments.indexOf(current)})">대기풀로 되돌리기</button></div><div class="recovery-note">오배정 대응: 완료수량이 없는 작업만 대기풀로 복귀할 수 있습니다. 완료수량이 입력된 경우에는 공정 정정 절차가 필요합니다.</div>`:'<div class="empty">현재 진행 중인 작업이 없습니다.</div>'}
+     </div>
+     <div class="card">
+      <h3 class="section-title">${m.name} 대기풀</h3>
+      ${current?'<div class="role-note">현재 작업을 완료하면 다음 작업을 선택할 수 있습니다.</div>':table(["오더","제품","공정","투입수량","편성"],pool.map(x=>`<tr><td><b>${x.order.id}</b></td><td>${x.order.product}</td><td>${statusBadge(x.step.process)}</td><td>${fmt(x.step.inputQty||0)}</td><td><button class="btn small primary" onclick="assignQueuedWork('${m.id}',${x.orderIndex},${x.stepIndex});closeModal();">이 호기에 편성</button></td></tr>`))}
+     </div>
+   </div>
+ </div>`);
+}
+
+function machine(){
+ const ms=machines(), crews=db.machineCrews||{};
+ document.getElementById("machine").innerHTML=`<div class="stack">
+ <div class="card">
+  <h3 class="section-title">작업배정</h3>
+  <div class="notice">설비 카드를 선택하면 기장·파트너 편성, 작업 시작/종료, 현재 작업, 해당 설비 공정의 대기풀을 팝업에서 확인하고 처리할 수 있습니다.</div>
+ </div>
+ <div class="card">
+  <h3 class="section-title">설비 선택</h3>
+  <div class="machine-group-board">${["인쇄","코팅","톰슨","합지","접착","기타"].map(group=>{const groupMachines=ms.filter(x=>(x.group||"기타")===group);if(!groupMachines.length)return "";return `<div class="machine-group"><div class="machine-group-title"><h3>${group}</h3><span>${groupMachines.length}대</span></div><div class="equip-board">${groupMachines.map(x=>{const c=crews[x.id]||{},a=assignmentForMachine(x.id);return `<div class="equip-box ${a?'busy':''}" onclick="openMachineDetail('${x.id}')"><div class="machine-name">${x.name}</div><div class="machine-process">${x.process}</div><div class="machine-worker">${c.captain?`기장: ${c.captain}`:"기장 미편성"}<br>${(c.partners||[]).length?`파트너: ${(c.partners||[]).join(", ")}`:"파트너 미편성"}</div><div class="shift-line">${c.shiftStart?`${c.shiftStart} ~ ${c.shiftEnd||"진행 중"}`:"작업시간 미등록"}</div><div class="machine-current-work ${a?'busy':'idle'}">${a?`<b>현재 작업</b><br>${a.orderId} · ${a.product}<br>${a.process} · 투입 ${fmt(a.inputQty||0)} EA`:'현재 진행 작업 없음'}</div></div>`}).join("")}</div></div>`}).join("")}</div>
+ </div>
+ </div>`;
+}
+
+function activeMachineForCurrentUser(){
+  const user=currentUserName();
+  const crewMap=db.machineCrews||{};
+  const machine=machines().find(m=>{
+    const crew=crewMap[m.id]||{};
+    return crew.captain===user || crew.captain===((currentUser()||{}).name||"");
+  });
+  return machine||null;
+}
+function currentCrewForMachine(machineId){return (db.machineCrews||{})[machineId]||{};}
+function currentAssignmentForMachine(machineId){return assignmentForMachine(machineId);}
+function queueForMachine(machine){
+  if(!machine)return [];
+  return queueItems().filter(x=>compatible(machine,x.step.process));
+}
+function assignFromWorkTab(machineId,orderIndex,stepIndex){
+  assignQueuedWork(machineId,orderIndex,stepIndex);
+}
+function workCaptainView(){
+  const me=currentUser();
+  const machine=activeMachineForCurrentUser();
+  if(!machine){
+    return `<div class="card"><div class="role-note">현재 로그인 계정이 기장으로 편성된 호기가 없습니다. 먼저 <b>호기 작업배정</b> 탭에서 호기를 선택하고 기장으로 편성하세요.</div></div>`;
+  }
+  const crew=currentCrewForMachine(machine.id);
+  const current=currentAssignmentForMachine(machine.id);
+  const pool=queueForMachine(machine);
+  return `<div class="captain-work-grid">
+    <div class="stack">
+      <div class="current-machine-panel">
+        <h3>내 호기: ${machine.name}</h3>
+        <div class="work-info-list">
+          <div class="work-info-item"><span>담당 공정</span><b>${machine.process}</b></div>
+          <div class="work-info-item"><span>기장</span><b>${crew.captain||"-"}</b></div>
+          <div class="work-info-item"><span>파트너</span><b>${(crew.partners||[]).join(", ")||"-"}</b></div>
+          <div class="work-info-item"><span>작업 시작</span><b>${crew.shiftStart||"미등록"}</b></div>
+          <div class="work-info-item"><span>작업 종료</span><b>${crew.shiftEnd||"진행 중 / 미등록"}</b></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 class="section-title">현재 호기 작업</h3>
+        ${current?`<div class="work-info-list">
+          <div class="work-info-item"><span>오더</span><b>${current.orderId}</b></div>
+          <div class="work-info-item"><span>제품</span><b>${current.product}</b></div>
+          <div class="work-info-item"><span>공정</span><b>${current.process}</b></div>
+          <div class="work-info-item"><span>투입수량</span><b>${fmt(current.inputQty)}</b></div>
+          <div class="work-info-item"><span>시작시각</span><b>${current.startedAt||"-"}</b></div>
+        </div><div class="queue-action"><button class="btn green" onclick="completeMachineAssignment(${machineAssignments().indexOf(current)})">작업 완료 / 수량 인계</button></div>`:'<div class="empty">현재 이 호기에 배정된 작업이 없습니다.</div>'}
+      </div>
+    </div>
+    <div class="card">
+      <h3 class="section-title">${machine.name} 작업 대기풀</h3>
+      <div class="footer-note">현재 호기가 수행할 수 있는 공정 중, 이전 공정이 완료되어 준비 상태가 된 작업만 표시됩니다.</div><br>
+      ${current?`<div class="role-note">현재 작업이 진행 중이므로 완료 후 다음 작업을 선택할 수 있습니다.</div>`:
+        table(["오더","제품","공정","투입수량","이전 공정 완료","선택"],pool.map(x=>`<tr><td><b>${x.order.id}</b></td><td>${x.order.product}</td><td>${statusBadge(x.step.process)}</td><td>${fmt(x.step.inputQty||0)}</td><td>${x.stepIndex>0?`${x.order.workflow[x.stepIndex-1].completedBy||"-"} · ${x.order.workflow[x.stepIndex-1].completedAt||"-"}`:"수주 등록"}</td><td><button class="btn small primary" onclick="assignFromWorkTab('${machine.id}',${x.orderIndex},${x.stepIndex})">내 호기에 편성</button></td></tr>`))
+      }
+    </div>
+  </div>`;
+}
+function traceStepClass(step, index, flow){
+  if(step.stage==="완료") return "done";
+  const first=flow.findIndex(x=>x.stage!=="완료");
+  return index===first?"active":"wait";
+}
+function trace(){
+  const products=[...new Set(db.orders.filter(o=>o.status!=="입고완료" && o.status!=="납품완료").map(o=>o.product))];
+  const selected=(window.traceProductName&&products.includes(window.traceProductName))?window.traceProductName:(products[0]||"");
+  window.traceProductName=selected;
+  const orders=db.orders.filter(o=>o.product===selected && o.status!=="입고완료" && o.status!=="납품완료");
+  document.getElementById("trace").innerHTML=`<div class="stack">
+   <div class="card">
+    <h3 class="section-title">제품 공정추적</h3>
+    <div class="trace-filter">
+      <div class="field" style="min-width:260px"><label>제품 선택</label><select onchange="window.traceProductName=this.value;render()">${products.map(p=>`<option ${p===selected?"selected":""}>${p}</option>`).join("")}</select></div>
+    </div>
+    <div class="footer-note">제품별로 공정 진행상태, 투입·완료수량, 완료자와 완료시각, 인계 내용을 추적합니다.</div>
+   </div>
+   ${orders.length?orders.map(o=>{const flow=ensureWorkflow(o);return `<div class="trace-card">
+     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b>${o.id}</b> · ${o.customer} · 납기 ${o.due||"-"}</div><div>${statusBadge(o.status||"작업지시")}</div></div>
+     <div class="trace-steps">${flow.map((s,i)=>`<div class="trace-step ${traceStepClass(s,i,flow)}"><b>${i+1}. ${s.process}</b><small>상태: ${s.stage}</small><small>투입: ${fmt(s.inputQty||0)}</small><small>완료: ${fmt(s.completedQty||0)}</small><small>완료자: ${s.completedBy||"-"}</small><small>완료시각: ${s.completedAt||"-"}</small>${s.note?`<small>메모: ${s.note}</small>`:""}</div>`).join("")}</div>
+   </div>`}).join(""):'<div class="card empty">등록된 수주오더가 없습니다.</div>'}
+  </div>`;
+}
+
+
+function warehouses(){
+  if(!db.warehouses || !db.warehouses.length){
+    db.warehouses=["미래정밀창고","기숙사창고","가족사랑창고","기타"];
+    saveDB(db);
+  }
+  return db.warehouses;
+}
+function openWarehouseReceive(order, completedQty, source){
+  openModal(`${order.id} · 포장 완료 입고`, `<form class="form" onsubmit="receiveFinishedGoods('${order.id}',${completedQty},'${source}');return false">
+    <div class="field"><label>오더번호</label><input value="${order.id}" readonly></div>
+    <div class="field"><label>제품</label><input value="${order.product}" readonly></div>
+    <div class="field"><label>완료수량</label><input value="${fmt(completedQty)} EA" readonly></div>
+    <div class="field wide"><label>처리 방법 선택</label><div class="warehouse-choice">
+      ${warehouses().map((w,i)=>`<label class="warehouse-option"><input type="radio" name="warehouse" value="${w}" ${i===0?'checked':''}>${w} 입고</label>`).join("")}
+      <label class="warehouse-option"><input type="radio" name="warehouse" value="즉시 납품">즉시 납품</label>
+    </div></div>
+    <div class="field wide"><label>처리 비고</label><textarea id="warehouseNote" placeholder="입고 위치, 납품처 전달사항, 팔레트, 특이사항 등을 기록"></textarea></div>
+    <div class="form-actions"><button class="btn green" type="submit">처리 완료</button></div>
+  </form>`);
+}
+function receiveFinishedGoods(orderId, qty, source){
+  const order=db.orders.find(o=>o.id===orderId);
+  if(!order){alert("수주오더를 찾을 수 없습니다.");return;}
+  const destination=(document.querySelector('input[name="warehouse"]:checked')||{}).value;
+  if(!destination){alert("처리 방법을 선택하세요.");return;}
+  const note=document.getElementById("warehouseNote").value||"";
+  const now=new Date().toLocaleString("ko-KR");
+
+  if(destination==="즉시 납품"){
+    db.shipping=db.shipping||[];
+    db.shipping.push(auditNew({
+      date:new Date().toISOString().slice(0,10),
+      customer:order.customer||"",
+      order:order.id,
+      product:order.product,
+      qty:Number(qty),
+      vehicle:"",
+      status:"납품완료",
+      note:`포장완료 즉시 납품${note?` / ${note}`:""}`
+    }));
+    order.status="납품완료";
+    order.deliveryType="즉시 납품";
+    order.finishedQty=Number(qty);
+    order.finishedAt=now;
+    order.finishedBy=currentUserName();
+    order.finishedWarehouse="";
+    auditUpdate(order,order);
+    db.auditLog=db.auditLog||[];
+    db.auditLog.unshift({action:"포장완료즉시납품",menu:"출고 / 납품",item:`${orderId} / ${qty}EA`,by:currentUserName(),at:now});
+    saveDB(db);
+    closeModal();
+    render();
+    return;
+  }
+
+  db.inventory=db.inventory||[];
+  const existing=db.inventory.find(x=>x.type==="완제품" && x.name===order.product && x.location===destination);
+  if(existing){
+    existing.stock=(Number(existing.stock)||0)+Number(qty);
+    existing.updatedBy=currentUserName();
+    existing.updatedAt=now;
+    existing.note=(existing.note?existing.note+" / ":"")+`${orderId} 입고 ${qty}EA ${note}`.trim();
+  }else{
+    db.inventory.push(auditNew({
+      type:"완제품",
+      name:order.product,
+      spec:(db.products.find(p=>p.name===order.product)||{}).size||"완제품",
+      stock:Number(qty),
+      unit:"EA",
+      min:0,
+      location:destination,
+      note:`${orderId} 포장완료 입고 ${note}`.trim()
+    }));
+  }
+  order.status="입고완료";
+  order.finishedWarehouse=destination;
+  order.finishedQty=Number(qty);
+  order.finishedAt=now;
+  order.finishedBy=currentUserName();
+  auditUpdate(order,order);
+  db.auditLog=db.auditLog||[];
+  db.auditLog.unshift({action:"포장완료입고",menu:"재고관리",item:`${orderId} / ${destination} / ${qty}EA`,by:currentUserName(),at:now});
+  saveDB(db);
+  closeModal();
+  render();
+}
+
+const MENU_ICONS={dashboard:"▦",products:"▤",orders:"✦",work:"✓",machine:"▣",trace:"⌁",shipping:"↗",inventory:"◈",materials:"▧",sales:"₩",salesanalysis:"◔",employees:"♙",users:"⚿",closing:"◷"};
+function nav(){
+ const allowed=menus.filter(([id])=>canAccessMenu(id));
+ document.getElementById("nav").innerHTML=allowed.map(([id,label])=>`<button class="${active===id?'active':''}" onclick="go('${id}')"><span style="display:inline-block;width:20px;font-weight:900">${MENU_ICONS[id]||"•"}</span>${label}</button>`).join("");
+}
+function go(id){
+ if(!canAccessMenu(id)){alert("이 메뉴에 접근 권한이 없습니다.");return;}
+ active=id;menus.forEach(([m])=>document.getElementById(m).classList.toggle("active",m===id));
+ let item=menus.find(x=>x[0]===id);document.getElementById("title").textContent=item[1];document.getElementById("subtitle").textContent=item[2];nav();render();
+}
+function table(headers,rows){return `<div class="table-wrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.length?rows.join(""):`<tr><td colspan="${headers.length}" class="empty">등록된 데이터가 없습니다.</td></tr>`}</tbody></table></div>`}
+function render(){
+ if(!canAccessMenu(active)){active="dashboard";}
+ if(active==="dashboard") dashboard();
+ if(active==="products") products();
+ if(active==="orders") orders();
+ if(active==="work") work();
+ if(active==="printplan") printPlan();
+ if(active==="machine") machine();
+ if(active==="trace") trace();
+ if(active==="shipping") shipping();
+ if(active==="inventory") inventory();
+ if(active==="materials") materials();
+ if(active==="sales") sales();
+ if(active==="salesanalysis") salesAnalysis();
+ if(active==="employees") employees();
+ if(active==="users") users();
+ if(active==="closing") closing();
+}
+function dashboard(){
+ const totalSales=db.sales.reduce((a,x)=>a+Number(x.amount),0), receivable=db.sales.reduce((a,x)=>a+Number(x.receivable),0);
+ const running=db.work.filter(x=>x.status==="진행중").length, low=db.inventory.filter(x=>x.type!=="완제품" && Number(x.stock)<=Number(x.min)).length;
+ document.getElementById("dashboard").innerHTML=`<div class="stack">
+ <div class="card" style="background:linear-gradient(135deg,#eff6ff 0%,#ffffff 70%)!important;border-color:#bfdbfe!important">
+   <div style="display:flex;justify-content:space-between;gap:18px;align-items:center;flex-wrap:wrap">
+    <div><div style="font-size:20px;font-weight:900;color:#172554">성은지기인쇄 ERP 시작 안내</div><div class="footer-note" style="margin-top:6px">처음 사용하는 분은 아래 순서대로 진행하면 업무 흐름을 빠르게 이해할 수 있습니다.</div></div>
+    <div class="actions"><button class="btn primary" onclick="go('products')">제품사양서 등록</button><button class="btn" onclick="go('orders')">수주오더 등록</button></div>
+   </div>
+   <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:15px">
+    <div style="padding:12px;border:1px solid #dbeafe;border-radius:10px;background:#fff"><b>1. 제품사양서</b><div class="footer-note">규격·공정 등록</div></div>
+    <div style="padding:12px;border:1px solid #dbeafe;border-radius:10px;background:#fff"><b>2. 수주오더</b><div class="footer-note">수량·납기 등록</div></div>
+    <div style="padding:12px;border:1px solid #dbeafe;border-radius:10px;background:#fff"><b>3. 작업배정</b><div class="footer-note">설비·기장 배정</div></div>
+    <div style="padding:12px;border:1px solid #dbeafe;border-radius:10px;background:#fff"><b>4. 재고·납품</b><div class="footer-note">완제품 입고·출고</div></div>
+   </div>
+ </div>
+ <div class="grid four">
+ <div class="card metric"><div class="label">이번 달 수주금액</div><div class="num">${money(totalSales)}</div><div class="hint">등록된 수주 기준</div></div>
+ <div class="card metric"><div class="label">진행 중 작업지시</div><div class="num">${running}건</div><div class="hint">공정별 작업지시 현황</div></div>
+ <div class="card metric"><div class="label">재고 부족 품목</div><div class="num">${low}건</div><div class="hint">최소재고 이하 항목</div></div>
+ <div class="card metric"><div class="label">매출 미수금</div><div class="num">${money(receivable)}</div><div class="hint">수금 예정 포함</div></div>
+ </div>
+ <div class="card"><h3 class="section-title">설비별 현재 작업</h3>${table(["호기","공정","기장 / 파트너","현재 작업","상태"],machines().map(m=>{const c=(db.machineCrews||{})[m.id]||{},a=assignmentForMachine(m.id);return `<tr><td><b>${m.name}</b></td><td>${m.process}</td><td>${c.captain||"-"}${(c.partners||[]).length?` / ${(c.partners||[]).join(", ")}`:""}</td><td>${a?`${a.orderId} · ${a.product}`:"-"}</td><td>${a?statusBadge("진행중"):'<span class="badge ok">대기</span>'}</td></tr>`}))}</div>
+ <div class="grid two">
+ <div class="card"><h3 class="section-title">오늘의 공정 진행</h3>${table(["오더","제품","공정","진행률","양품","최종 갱신"],db.production.map(x=>`<tr><td>${x.order}</td><td>${x.product}</td><td>${statusBadge(x.process)}</td><td><div class="kpi-row"><div class="progress"><span style="width:${x.progress}%"></span></div>${x.progress}%</div></td><td>${fmt(x.good)}</td><td>${x.updated}</td></tr>`))}</div>
+ <div class="card"><h3 class="section-title">주의가 필요한 재고</h3>${table(["구분","품목","현재고","최소재고","보관위치"],db.inventory.filter(x=>x.type!=="완제품" && x.stock<=x.min).map(x=>`<tr><td>${x.type}</td><td>${x.name}</td><td><b style="color:#dc2626">${fmt(x.stock)} ${x.unit}</b></td><td>${fmt(x.min)} ${x.unit}</td><td>${x.location}</td></tr>`))}</div>
+ </div></div>`;
+}
+function processSummary(p){
+ const arr=[]; if(!p) return "-";
+ if(p.print) arr.push(p.printType||"인쇄");
+ if(p.coating) arr.push(p.coatingType||"코팅");
+ if(p.foil) arr.push("금박");
+ if(p.emboss) arr.push("형압");
+ if(p.lamination) arr.push(p.laminationType||"합지");
+ if(p.diecut) arr.push(p.diecutType||"톰슨 일반");
+ if(p.glue) arr.push(p.glueType||"접착");
+ return arr.join(" · ")||"-";
+}
+function paperSummary(p){return p.paperType?`${p.paperType} ${p.paperWeight||""}g`:(p.paper||"-")}
+function printSummary(p){return p.printColors!==undefined?`${p.printColors}도 + 별색 ${p.spotColors||0}도${(p.spotNames||[]).length?` (${p.spotNames.join(", ")})`:""}`:(p.print||"-")}
+let selectedProductIndex=0;
+function selectProduct(i){selectedProductIndex=i; render();}
+function products(){
+ if(selectedProductIndex>=db.products.length) selectedProductIndex=Math.max(0,db.products.length-1);
+ const x=db.products[selectedProductIndex]||{};
+ const p=x.process||{};
+ const hist=db.orders.filter(o=>o.product===x.name).slice(0,4);
+ document.getElementById("products").innerHTML=`<div class="spec-shell">
+   <aside class="spec-left">
+    <div class="card spec-filter">
+      <div class="section-title">제품 검색</div>
+      <div class="field"><label>거래처 / 제품명</label><input id="productSearch" placeholder="예: 롯, 건강, 커피" oninput="filterProductList()"></div>
+      <div class="actions"><button class="btn small primary" onclick="openProduct()">+ 신규 사양 등록</button></div>
+    </div>
+    <div class="card spec-list">
+      <div class="spec-list-head"><span>제품목록</span><small>${db.products.length}건</small></div>
+      <div id="productList">${db.products.map((item,i)=>`<div class="spec-item ${i===selectedProductIndex?'active':''}" data-name="${(item.name+' '+item.customer).toLowerCase()}" onclick="selectProduct(${i})"><b>${item.id} · ${item.name}</b><small>${item.customer} · ${paperSummary(item)} · ${item.size||'-'}</small></div>`).join("")}</div>
+    </div>
+    <div class="card spec-history">
+      <h3 class="section-title">최근 수주 이력</h3>
+      ${hist.length?hist.map(o=>`<div class="spec-item"><b>${o.id}</b><small>${o.date} · ${fmt(o.qty)} EA · ${o.status}</small></div>`).join(""):'<div class="empty">해당 제품의 수주 이력이 없습니다.</div>'}
+    </div>
+   </aside>
+   <section class="spec-main">
+    <div class="card">
+      <div class="spec-head">
+       <div class="field"><label>거래처</label><input value="${x.customer||''}" readonly></div>
+       <div class="field"><label>제품명</label><input value="${x.name||''}" readonly></div>
+       <div class="field"><label>등록일</label><input value="${x.createdAt||'2026-06-22'}" readonly></div>
+       <div class="field"><label>제품번호</label><input value="${x.id||''}" readonly></div>
+       <div class="field full"><label>비고</label><input value="${x.note||''}" readonly></div>
+       <div class="field"><label>매출단가</label><input value="${money(x.unit||0)}" readonly></div>
+       <div class="field"><label>상태</label><input value="진행중" readonly></div>
+      </div>
+    </div>
+    <div class="spec-body">
+      <div class="card spec-process-card">
+        <div class="spec-process-title">등록된 공정</div>
+        <div class="process-grid">
+          <div class="proc-row"><label>인쇄</label><span>${p.print?`${p.printType||'-'} / ${printSummary(x)}`:'미적용'}</span></div>
+          <div class="proc-row"><label>코팅</label><span>${p.coating?p.coatingType||'-':'미적용'}</span></div>
+          <div class="proc-row"><label>합지</label><span>${p.lamination?p.laminationType||'합지 일반':'미적용'}</span></div>
+          <div class="proc-row"><label>금박</label><span>${p.foil?`적용 ${p.foilSize?'/ '+p.foilSize:''}`:'미적용'}</span></div>
+          <div class="proc-row"><label>형압</label><span>${p.emboss?`적용 ${p.embossSize?'/ '+p.embossSize:''}`:'미적용'}</span></div>
+          <div class="proc-row"><label>톰슨</label><span>${p.diecut?p.diecutType||'톰슨 일반':'미적용'}</span></div>
+          <div class="proc-row"><label>접착</label><span>${p.glue?p.glueType||'-':'미적용'}</span></div>
+          <div class="proc-row"><label>공정순서</label><span>${processSummary(p)}</span></div>
+        </div>
+      </div>
+      <div class="spec-side">
+        <div class="preview-box">NO IMAGE<br>AVAILABLE</div>
+        <button class="btn primary" onclick="openProduct(${selectedProductIndex})">제품사양 수정</button>
+        <button class="btn" onclick="alert('이미지 첨부 기능은 서버 연동 단계에서 추가됩니다.')">이미지 첨부</button>
+      </div>
+    </div>
+    <div class="spec-bottom">
+     <div class="spec-section"><h3>용지 / 원단</h3>
+      <div class="compact-field"><label>용지</label><span>${paperSummary(x)}</span></div>
+      <div class="compact-field"><label>용지규격</label><span>${x.sheet||'-'}</span></div>
+      <div class="compact-field"><label>절 수</label><span>${x.jeol||'-'}절</span></div>
+      <div class="compact-field"><label>원단</label><span>${x.stockType||'-' } · ${x.stock||'-'}</span></div>
+     </div>
+     <div class="spec-section"><h3>인쇄 상세</h3>
+      <div class="compact-field"><label>도수</label><span>${x.printColors??'-'}도</span></div>
+      <div class="compact-field"><label>별색</label><span>${x.spotColors??0}도</span></div>
+      <div class="compact-field"><label>별색정보</label><span>${(x.spotNames||[]).join(', ')||'-'}</span></div>
+     </div>
+     <div class="spec-section"><h3>포장 / 납품</h3>
+      <div class="compact-field"><label>포장단위</label><span>${x.pack||'-'}</span></div>
+      <div class="compact-field"><label>제품규격</label><span>${x.size||'-'}</span></div>
+      <div class="compact-field"><label>완제품</label><span>재고 연동 예정</span></div>
+     </div>
+     <div class="spec-section"><h3>관리 정보</h3>
+      <div class="compact-field"><label>사양상태</label><span>${statusBadge('진행중')}</span></div>
+      <div class="compact-field"><label>등록자</label><span>${x.createdBy||'-'}</span></div>
+      <div class="compact-field"><label>최종 수정</label><span>${x.updatedBy||'-'} · ${x.updatedAt||'-'}</span></div>
+      <div class="compact-field"><label>작업지시</label><span>${db.work.filter(w=>w.product===x.name).length}건</span></div>
+     </div>
+    </div>
+   </section>
+ </div>`;
+}
+function filterProductList(){
+ const q=document.getElementById('productSearch').value.toLowerCase().trim();
+ document.querySelectorAll('.spec-item[data-name]').forEach(el=>el.style.display=el.dataset.name.includes(q)?'block':'none');
+}
+function orders(){document.getElementById("orders").innerHTML=`<div class="stack"><div class="actions"><button class="btn primary" onclick="openOrder()">+ 수주오더 등록</button></div><div class="card">${table(["오더번호","수주일","거래처","제품","단가","수량","예상 매출","절 수","여유분","필요 용지수","납기일","상태","비고","관리"],db.orders.map((x,i)=>`<tr><td><b>${x.id}</b></td><td>${x.date}</td><td>${x.customer}</td><td>${x.productCode?`<b>${x.productCode}</b><br><span style="font-size:12px;color:#64748b">${x.product}</span>`:x.product}</td><td>${money(x.unit||0)}</td><td>${fmt(x.qty)} EA</td><td><b>${money(x.amount||((x.unit||0)*(x.qty||0)))}</b></td><td>${x.jeol||'-'}절</td><td>${fmt(x.extra||0)}매</td><td><b>${fmt(x.sheetQty||0)}매</b></td><td>${x.due}</td><td>${statusBadge(x.status)}</td><td>${x.note||"-"}</td><td><button class="btn small green" onclick="makeWork(${i})">작업지시</button> <button class="btn small danger" onclick="del('orders',${i})">삭제</button></td></tr>`))}</div></div>`}
+
+function filterWorkOrders(){
+ const q=(document.getElementById("workOrderSearch")?.value||"").trim().toLowerCase();
+ const cards=[...document.querySelectorAll("[data-work-product]")];
+ cards.forEach(card=>{
+   const text=(card.dataset.workProduct||"").toLowerCase();
+   card.style.display=!q || text.includes(q) ? "" : "none";
+ });
+ if(q){
+   cards.sort((a,b)=>{
+     const aMatch=(a.dataset.workProduct||"").toLowerCase().startsWith(q)?0:1;
+     const bMatch=(b.dataset.workProduct||"").toLowerCase().startsWith(q)?0:1;
+     return aMatch-bMatch;
+   }).forEach(card=>card.parentElement.appendChild(card));
+ }
+}
+
+function work(){
+ const list=db.orders.filter(o=>productWorkflow(o.product).length && o.status!=="입고완료" && o.status!=="납품완료");
+ const noProcess=db.orders.filter(o=>!productWorkflow(o.product).length && o.status!=="입고완료" && o.status!=="납품완료");
+ document.getElementById("work").innerHTML=`<div class="stack">
+ <div class="card"><h3 class="section-title">기장 작업지시</h3><div class="notice">기장이 호기를 선택·편성하면 이 화면에는 해당 호기가 할 수 있는 공정의 미처리 작업만 표시됩니다. 작업을 선택해 호기에 편성하고, 완료 시 완료수량을 입력해 다음 공정 대기풀로 인계합니다.</div><div class="footer-note">현재 로그인: <b>${currentUserName()}</b></div></div>
+ ${workCaptainView()}
+ <div class="card">
+   <div class="work-search-bar">
+    <div class="field"><label>제품명 검색</label><input id="workOrderSearch" placeholder="제품명을 입력하면 해당 오더가 최상단으로 이동합니다." oninput="filterWorkOrders()"></div>
+   </div>
+   <div class="footer-note">검색 결과와 일치하는 제품 오더는 맨 위로 정렬되며, 일치하지 않는 오더는 아래에 유지됩니다.</div>
+ </div>
+ <div class="card"><h3 class="section-title">전체 작업지시 공정 흐름</h3><div class="notice">고정 순서: 인쇄 → 코팅 → 금박 → 형압 → 합지 → 톰슨 → 접착 → 포장. 제품사양서에서 체크된 공정만 순서대로 생성됩니다.</div></div>
+ ${noProcess.length?`<div class="role-note">공정이 미등록된 오더 ${noProcess.length}건은 작업지시를 생성하지 않았습니다. 제품사양서에서 공정을 먼저 체크해 주세요.</div>`:""}
+ <div id="workOrderCards">${list.map(o=>`<div data-work-product="${o.product}">${workflowMarkup(o,db.orders.indexOf(o))}</div>`).join("")||'<div class="card empty">작업 가능한 수주오더가 없습니다.</div>'}</div>
+ </div>`;
+}
+function processDepartment(process){
+ const map={인쇄:"인쇄팀",코팅:"후가공팀",금박:"후가공팀",형압:"후가공팀",합지:"합지팀",톰슨:"톰슨팀",접착:"접착·포장팀",포장:"접착·포장팀"};
+ return map[process]||"생산관리";
+}
+function dateOnly(value){
+ if(!value)return "";
+ const m=String(value).match(/(\d{4})[.\-]\s?(\d{1,2})[.\-]\s?(\d{1,2})/);
+ if(m)return `${m[1]}-${String(m[2]).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;
+ return String(value).slice(0,10);
+}
+function productionMachineFor(orderId,process){
+ const found=(db.machineAssignments||[]).slice().reverse().find(a=>a.orderId===orderId&&a.process===process&&a.status==="완료");
+ return found?{name:found.machineName||"-",captain:found.captainName||found.completedBy||"-",startedAt:found.startedAt||"",completedAt:found.completedAt||""}:null;
+}
+function productionRowsDetailed(){
+ const rows=[];
+ db.orders.filter(o=>o.status!=="입고완료"&&o.status!=="납품완료").forEach(o=>{
+  ensureWorkflow(o).forEach(s=>{
+   const machine=productionMachineFor(o.id,s.process);
+   rows.push({
+    date:dateOnly(s.completedAt||machine?.completedAt||s.startedAt||o.date),
+    order:o, step:s, process:s.process, department:processDepartment(s.process),
+    machine:machine?.name||"-", captain:machine?.captain||s.completedBy||"-",
+    startedAt:machine?.startedAt||s.startedAt||"-", completedAt:s.completedAt||machine?.completedAt||"-",
+    inputQty:Number(s.inputQty||0), completedQty:Number(s.completedQty||0),
+    status:s.stage, memo:s.note||""
+   });
+  });
+ });
+ (db.production||[]).forEach(p=>{
+  const has=rows.some(r=>r.order.id===p.order&&r.process===p.process&&r.completedQty===Number(p.good||0));
+  if(!has){
+   const machine=productionMachineFor(p.order,p.process);
+   rows.push({date:dateOnly(p.updated||p.createdAt),order:{id:p.order,product:p.product||"-",customer:"-"},step:{},process:p.process,department:processDepartment(p.process),machine:machine?.name||"-",captain:machine?.captain||"-",startedAt:machine?.startedAt||"-",completedAt:p.updated||"-",inputQty:Number(p.good||0)+Number(p.bad||0),completedQty:Number(p.good||0),badQty:Number(p.bad||0),status:Number(p.progress)>=100?"완료":"진행",memo:p.note||""});
+  }
+ });
+ return rows;
+}
+function setProductionFilter(key,value){window.productionFilters=window.productionFilters||{};window.productionFilters[key]=value;render();}
+function production(){
+ const rows=productionRowsDetailed();
+ const f=window.productionFilters||{};
+ const dates=[...new Set(rows.map(r=>r.date).filter(Boolean))].sort().reverse();
+ const depts=[...new Set(rows.map(r=>r.department))].sort();
+ const machinesList=[...new Set(rows.map(r=>r.machine).filter(x=>x&&x!=="-"))].sort();
+ const selectedDate=f.date||"전체",selectedDept=f.dept||"전체",selectedMachine=f.machine||"전체",selectedStatus=f.status||"전체";
+ const filtered=rows.filter(r=>(selectedDate==="전체"||r.date===selectedDate)&&(selectedDept==="전체"||r.department===selectedDept)&&(selectedMachine==="전체"||r.machine===selectedMachine)&&(selectedStatus==="전체"||r.status===selectedStatus));
+ const completed=filtered.filter(r=>r.status==="완료").reduce((a,r)=>a+r.completedQty,0);
+ const input=filtered.reduce((a,r)=>a+r.inputQty,0);
+ const bad=filtered.reduce((a,r)=>a+(r.badQty||0),0);
+ const activeMachines=machines().filter(m=>assignmentForMachine(m.id)).length;
+ const groupBy=(arr,key)=>Object.entries(arr.reduce((acc,x)=>{const k=x[key]||"미분류";(acc[k]=acc[k]||[]).push(x);return acc;},{})).sort((a,b)=>String(b[0]).localeCompare(String(a[0])));
+ const daily=groupBy(filtered,"date");
+ const deptSummary=Object.entries(filtered.reduce((a,r)=>{const x=a[r.department]||(a[r.department]={input:0,completed:0,bad:0,orders:new Set(),machines:new Set()});x.input+=r.inputQty;x.completed+=r.completedQty;x.bad+=r.badQty||0;x.orders.add(r.order.id);if(r.machine!=="-")x.machines.add(r.machine);return a;},{}));
+ document.getElementById("production").innerHTML=`<div class="stack">
+  <div class="card"><h3 class="section-title">상세 생산현황</h3><div class="notice">일자 → 부서 → 설비 단위로 생산 진행과 완료수량을 추적합니다. 작업배정으로 완료된 실적은 자동 연결되며, 수기 생산실적도 함께 표시됩니다.</div></div>
+  <div class="card"><div class="production-filter-grid">
+   <div class="field"><label>작업일자</label><select onchange="setProductionFilter('date',this.value)"><option>전체</option>${dates.map(d=>`<option ${selectedDate===d?"selected":""}>${d}</option>`).join("")}</select></div>
+   <div class="field"><label>부서</label><select onchange="setProductionFilter('dept',this.value)"><option>전체</option>${depts.map(d=>`<option ${selectedDept===d?"selected":""}>${d}</option>`).join("")}</select></div>
+   <div class="field"><label>설비</label><select onchange="setProductionFilter('machine',this.value)"><option>전체</option>${machinesList.map(m=>`<option ${selectedMachine===m?"selected":""}>${m}</option>`).join("")}</select></div>
+   <div class="field"><label>진행상태</label><select onchange="setProductionFilter('status',this.value)"><option>전체</option><option ${selectedStatus==="준비"?"selected":""}>준비</option><option ${selectedStatus==="진행"?"selected":""}>진행</option><option ${selectedStatus==="완료"?"selected":""}>완료</option><option ${selectedStatus==="대기"?"selected":""}>대기</option></select></div>
+  </div></div>
+  <div class="production-summary-grid">
+   <div class="production-summary"><span class="label">조회 작업 건수</span><b>${filtered.length}건</b></div>
+   <div class="production-summary"><span class="label">총 투입수량</span><b>${fmt(input)} EA</b></div>
+   <div class="production-summary"><span class="label">완료수량</span><b>${fmt(completed)} EA</b></div>
+   <div class="production-summary"><span class="label">가동 설비</span><b>${activeMachines}대</b><span class="footer-note">불량 ${fmt(bad)} EA</span></div>
+  </div>
+  <div class="card"><h3 class="section-title">설비별 현재 작업</h3>${table(["부서","호기","공정","기장 / 파트너","현재 작업","투입수량","시작시각","상태"],machines().map(m=>{const c=(db.machineCrews||{})[m.id]||{},a=assignmentForMachine(m.id);return `<tr><td>${processDepartment(m.process==="금박 / 형압"?"금박":m.process)}</td><td><b>${m.name}</b></td><td>${m.process}</td><td>${c.captain||"-"}${(c.partners||[]).length?` / ${(c.partners||[]).join(", ")}`:""}</td><td>${a?`${a.orderId} · ${a.product}`:"-"}</td><td>${a?fmt(a.inputQty||0):"-"}</td><td>${a?(a.startedAt||"-"):"-"}</td><td>${a?statusBadge("진행중"):'<span class="badge ok">대기</span>'}</td></tr>`}).join(""))}</div>
+  <div class="card"><div class="production-group-title"><h3 class="section-title">부서별 생산 요약</h3><span class="footer-note">선택한 조건 기준</span></div>${table(["부서","작업건수","오더수","설비수","투입수량","완료수량","불량수량","완료율"],deptSummary.map(([dept,s])=>`<tr><td><b>${dept}</b></td><td>${s.orders.size?filtered.filter(r=>r.department===dept).length:0}</td><td>${s.orders.size}</td><td>${s.machines.size}</td><td>${fmt(s.input)} EA</td><td>${fmt(s.completed)} EA</td><td>${fmt(s.bad)} EA</td><td>${s.input?Math.round(s.completed/s.input*100):0}%</td></tr>`).join(""))}</div>
+  <div class="card"><h3 class="section-title">일자별 · 부서별 · 설비별 생산이력</h3>${daily.length?daily.map(([date,dayRows])=>`<div class="production-group-title" style="margin-top:20px"><h3>${date||"일자 미등록"}</h3><span class="badge ok">완료 ${fmt(dayRows.filter(r=>r.status==="완료").reduce((a,r)=>a+r.completedQty,0))} EA</span></div>${table(["부서","설비","공정","오더","제품","기장","상태","투입","완료","불량","시작","완료시각","인계 메모"],dayRows.map(r=>`<tr><td>${r.department}</td><td>${r.machine}</td><td>${statusBadge(r.process)}</td><td>${r.order.id}</td><td>${r.order.product}</td><td>${r.captain}</td><td>${stageBadge(r.status)}</td><td>${fmt(r.inputQty)} EA</td><td>${fmt(r.completedQty)} EA</td><td>${fmt(r.badQty||0)} EA</td><td>${r.startedAt}</td><td>${r.completedAt}</td><td>${r.memo||"-"}</td></tr>`) )}`).join(""):'<div class="empty">조건에 맞는 생산 이력이 없습니다.</div>'}</div>
+  <div class="card"><div class="actions"><button class="btn primary" onclick="openProduction()">+ 생산실적 입력</button></div><br>${table(["작업일자","부서","설비","오더","제품","공정","양품","불량","진행률","최종 갱신","관리"],db.production.map((x,i)=>`<tr><td>${dateOnly(x.updated||x.createdAt)||"-"}</td><td>${processDepartment(x.process)}</td><td>${x.machine||productionMachineFor(x.order,x.process)?.name||"-"}</td><td>${x.order}</td><td>${x.product}</td><td>${statusBadge(x.process)}</td><td>${fmt(x.good)} EA</td><td>${fmt(x.bad)} EA</td><td>${x.progress}%</td><td>${x.updated}</td><td><button class="btn small danger" onclick="del('production',${i})">삭제</button></td></tr>`).join(""))}</div>
+ </div>`;
+}
+function shipping(){document.getElementById("shipping").innerHTML=`<div class="stack"><div class="actions"><button class="btn primary" onclick="openShipping()">+ 출고 / 납품 등록</button></div><div class="card">${table(["출고일","거래처","오더","제품","수량","차량","상태","비고","관리"],db.shipping.map((x,i)=>`<tr><td>${x.date}</td><td>${x.customer}</td><td>${x.order}</td><td>${x.product}</td><td>${fmt(x.qty)} EA</td><td>${x.vehicle}</td><td>${statusBadge(x.status)}</td><td>${x.note||"-"}</td><td><button class="btn small danger" onclick="del('shipping',${i})">삭제</button></td></tr>`))}</div></div>`}
+function inventory(){
+ const finished=db.inventory.filter(x=>x.type==="완제품");
+ document.getElementById("inventory").innerHTML=`<div class="stack">
+  <div class="card">
+   <h3 class="section-title">완제품 재고관리</h3>
+   <div class="notice">포장 완료 후 창고 입고 처리된 완제품만 표시됩니다. 원지·원단·부자재는 부자재관리 탭에서 관리합니다.</div>
+  </div>
+  <div class="actions"><button class="btn primary" onclick="openInventory('finished')">+ 완제품 재고 등록</button></div>
+  <div class="card">${table(["품목명","규격","현재고","최소재고","보관위치","입고/비고","상태","관리"],finished.map((x,i)=>{
+   const realIndex=db.inventory.indexOf(x);
+   return `<tr><td><b>${x.name}</b></td><td>${x.spec}</td><td>${fmt(x.stock)} ${x.unit}</td><td>${fmt(x.min)} ${x.unit}</td><td>${x.location}</td><td title="${x.note||''}">${x.note||'-'}</td><td>${x.stock<=x.min?'<span class="badge danger">재고 부족</span>':'<span class="badge ok">정상</span>'}</td><td><button class="btn small danger" onclick="del('inventory',${realIndex})">삭제</button></td></tr>`;
+  }))}</div>
+ </div>`
+}
+function materials(){
+ const materialRows=db.inventory.filter(x=>x.type!=="완제품");
+ document.getElementById("materials").innerHTML=`<div class="stack">
+  <div class="card">
+   <h3 class="section-title">부자재관리</h3>
+   <div class="notice">원지, 원단, 부자재 재고를 관리합니다. 완제품은 재고관리 탭에서 별도로 확인합니다.</div>
+  </div>
+  <div class="actions"><button class="btn primary" onclick="openInventory('material')">+ 원지 / 원단 / 부자재 등록</button></div>
+  <div class="card">${table(["구분","품목명","규격","현재고","최소재고","보관위치","비고","상태","관리"],materialRows.map((x,i)=>{
+   const realIndex=db.inventory.indexOf(x);
+   return `<tr><td>${x.type}</td><td><b>${x.name}</b></td><td>${x.spec}</td><td>${fmt(x.stock)} ${x.unit}</td><td>${fmt(x.min)} ${x.unit}</td><td>${x.location}</td><td title="${x.note||''}">${x.note||'-'}</td><td>${x.stock<=x.min?'<span class="badge danger">발주 필요</span>':'<span class="badge ok">정상</span>'}</td><td><button class="btn small danger" onclick="del('inventory',${realIndex})">삭제</button></td></tr>`;
+  }))}</div>
+ </div>`
+}
+
+function canViewAllSales(){
+ const role=currentUser()?.role||"";
+ return ["관리자","대표","경영관리자"].includes(role);
+}
+function salesOwnerId(row){
+ if(row.ownerId) return row.ownerId;
+ const linked=(db.orders||[]).find(o=>o.id===row.order);
+ return linked?.ownerId||"";
+}
+function isMySalesRow(row){
+ if(canViewAllSales()) return true;
+ const u=currentUser();
+ if(!u) return false;
+ const ownerId=salesOwnerId(row);
+ if(ownerId) return ownerId===u.id;
+ return (row.createdBy||"")===currentUserName();
+}
+function isMyOrder(order){
+ if(canViewAllSales()) return true;
+ const u=currentUser();
+ if(!u) return false;
+ if(order.ownerId) return order.ownerId===u.id;
+ return (order.createdBy||"")===currentUserName();
+}
+function salesOwnerName(row){
+ const linked=(db.orders||[]).find(o=>o.id===row.order);
+ return row.ownerName||linked?.ownerName||row.createdBy||"-";
+}
+
+function sales(){
+ const visible=(db.sales||[]).filter(isMySalesRow);
+ const total=visible.reduce((a,x)=>a+Number(x.amount||0),0);
+ const receivable=visible.reduce((a,x)=>a+Number(x.receivable||0),0);
+ const showAll=canViewAllSales();
+ document.getElementById("sales").innerHTML=`<div class="stack">
+  <div class="card"><h3 class="section-title">${showAll?"전체 영업사원 매출 현황":"내 수주오더 매출 현황"}</h3><div class="notice">${showAll?"대표/경영관리자는 전체 영업사원의 매출을 확인합니다.":"수주오더를 직접 등록한 담당자의 매출만 표시됩니다."}</div></div>
+  <div class="grid two"><div class="card metric"><div class="label">${showAll?"전체 등록 매출":"내 등록 매출"}</div><div class="num">${money(total)}</div></div><div class="card metric"><div class="label">미수금</div><div class="num">${money(receivable)}</div></div></div>
+  <div class="actions"><button class="btn primary" onclick="openSales()">+ 매출 등록</button></div>
+  <div class="card">${table([...(showAll?["담당자"]:[]),"월","거래처","오더","제품","수량","매출액","수금액","미수금","상태","관리"],visible.map(x=>`<tr>${showAll?`<td>${salesOwnerName(x)}</td>`:""}<td>${x.month}</td><td>${x.customer}</td><td>${x.order}</td><td>${x.product||'-'}</td><td>${x.qty?fmt(x.qty)+' EA':'-'}</td><td>${money(x.amount)}</td><td>${money(x.received)}</td><td>${money(x.receivable)}</td><td>${statusBadge(x.status)}</td><td><button class="btn small danger" onclick="del('sales',${db.sales.indexOf(x)})">삭제</button></td></tr>`))}</div>
+ </div>`;
+}
+
+function empCode(e,i){return e.code||`SE-${String(i+1).padStart(3,"0")}`;}
+function employeeSearch(){
+ const q=(document.getElementById("employeeSearch")?.value||"").trim().toLowerCase();
+ const status=document.getElementById("employeeStatusFilter")?.value||"전체";
+ document.querySelectorAll("[data-employee-row]").forEach(row=>{
+  const text=row.dataset.employeeRow||"";
+  const empStatus=row.dataset.employeeStatus||"";
+  row.style.display=((!q||text.includes(q))&&(status==="전체"||empStatus===status))?"":"none";
+ });
+}
+function employeeDetail(i){
+ const e=db.employees[i];if(!e)return;
+ const assigned=machines().filter(m=>{const c=(db.machineCrews||{})[m.id]||{};return c.captain===e.name||(c.partners||[]).includes(e.name)}).map(m=>m.name);
+ openModal(`${e.name} 사원 상세`, `<div class="stack">
+  <div class="emp-detail-grid">
+   <div class="emp-detail-item"><span>사번</span><b>${empCode(e,i)}</b></div>
+   <div class="emp-detail-item"><span>재직상태</span><b>${statusBadge(e.status||"재직")}</b></div>
+   <div class="emp-detail-item"><span>부서</span><b>${e.dept||"-"}</b></div>
+   <div class="emp-detail-item"><span>직책 / 담당</span><b>${e.role||"-"}</b></div>
+   <div class="emp-detail-item"><span>연락처</span><b>${e.phone||"-"}</b></div>
+   <div class="emp-detail-item"><span>입사일</span><b>${e.joinDate||"-"}</b></div>
+   <div class="emp-detail-item"><span>고용형태</span><b>${e.employmentType||"-"}</b></div>
+   <div class="emp-detail-item"><span>근무조</span><b>${e.shift||"-"}</b></div>
+   <div class="emp-detail-item"><span>담당 가능 공정</span><b>${(e.skills||[]).join(", ")||"-"}</b></div>
+   <div class="emp-detail-item"><span>배정 설비</span><b>${assigned.join(", ")||"미배정"}</b></div>
+  </div>
+  <div class="field wide"><label>비고</label><textarea readonly>${e.note||"-"}</textarea></div>
+  <div class="form-actions"><button class="btn primary" onclick="openEmployee(${i})">정보 수정</button><button class="btn danger" onclick="del('employees',${i});closeModal()">삭제</button></div>
+ </div>`);
+}
+
+
+function users(){
+ if(!canManageUsers()){document.getElementById("users").innerHTML='<div class="card"><div class="role-note">권한관리는 관리자만 사용할 수 있습니다.</div></div>';return;}
+ document.getElementById("users").innerHTML=`<div class="stack">
+  <div class="card"><h3 class="section-title">권한관리</h3><div class="notice">가입 계정별 역할, 접근 메뉴, 담당 공정을 관리합니다. 역할을 선택하면 기본 권한이 자동 적용되며 필요 시 메뉴 권한을 개별 조정할 수 있습니다.</div></div>
+  <div class="card"><h3 class="section-title">역할 기준</h3>${table(["역할","기본 권한"],Object.entries(ROLE_PRESETS).map(([role,data])=>`<tr><td><span class="role-pill">${role}</span></td><td>${data.label}</td></tr>`))}</div>
+  <div class="actions"><button class="btn primary" onclick="openUser()">+ 계정 등록</button></div>
+  <div class="card">${table(["아이디","성명 / 부서","역할","담당 공정","접근 권한","계정 상태","최종 수정","관리"],(db.users||[]).map((u,i)=>`<tr><td><b>${u.id}</b></td><td>${u.name||"-"}<div class="emp-sub">${u.dept||"-"}</div></td><td><span class="role-pill">${u.role||"조회전용"}</span></td><td>${(u.leaderOf||[]).join(", ")||"-"}</td><td><span class="permission-summary">${permissionLabel(u)}</span></td><td>${statusBadge(u.status||"사용")}</td><td>${u.updatedAt||u.createdAt||"-"}</td><td><button class="btn small primary" onclick="openUser(${i})">권한 수정</button>${u.id!=="admin"?` <button class="btn small danger" onclick="disableUser(${i})">${u.status==="중지"?"사용":"중지"}</button>`:""}</td></tr>`))}</div>
+ </div>`;
+}
+function openUser(index=null){
+ const u=index!==null?(db.users||[])[index]:{role:"조회전용",status:"사용",permissions:["dashboard"]};
+ const allMenus=menus.filter(([id])=>id!=="users");
+ openModal(index!==null?`${u.id} 권한 수정`:"계정 등록", `<form class="form" onsubmit="saveUser(${index===null?"null":index});return false">
+  <div class="field"><label>아이디</label><input id="uid" value="${u.id||""}" ${index!==null?'readonly':''} required></div>
+  <div class="field"><label>${index!==null?"비밀번호 변경":"비밀번호"}</label><input id="upw" type="password" placeholder="${index!==null?"변경 시에만 입력":""}" ${index===null?"required":""}></div>
+  <div class="field"><label>성명</label><input id="uname" value="${u.name||""}" required></div>
+  <div class="field"><label>부서</label><input id="udept" value="${u.dept||""}" required></div>
+  <div class="field"><label>역할</label><select id="urole" onchange="applyRolePreset()">${Object.keys(ROLE_PRESETS).map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}</select></div>
+  <div class="field"><label>계정 상태</label><select id="ustatus">${["사용","중지"].map(s=>`<option ${(u.status||"사용")===s?"selected":""}>${s}</option>`).join("")}</select></div>
+  <div class="field wide"><label>담당 공정 / 기장 권한</label><div class="permission-grid">${processList.map(p=>`<label class="permission-option"><input type="checkbox" name="leaderProcess" value="${p}" ${(u.leaderOf||[]).includes(p)?"checked":""}>${p}</label>`).join("")}</div></div>
+  <div class="field wide"><label>접근 메뉴 권한</label><div id="permissionGrid" class="permission-grid">${allMenus.map(([id])=>`<label class="permission-option"><input type="checkbox" name="userPermission" value="${id}" ${getUserPermissions(u).includes(id)?"checked":""}>${MENU_LABELS[id]}</label>`).join("")}</div><div class="footer-note">관리자는 모든 메뉴 접근 권한이 자동 적용됩니다. 공정별 기장 역할을 선택하면 해당 공정 권한이 자동 연결됩니다.</div></div>
+  <div class="form-actions"><button class="btn primary" type="submit">${index!==null?"권한 저장":"계정 등록"}</button></div>
+ </form>`);
+ if(captainProcessesForRole(u.role||"").length) applyRolePreset();
+}
+function applyRolePreset(){
+ const role=v("urole"), preset=ROLE_PRESETS[role];
+ const allowed=preset?.menus==="ALL"?menus.filter(([id])=>id!=="users").map(x=>x[0]):(preset?.menus||[]);
+ document.querySelectorAll('input[name="userPermission"]').forEach(x=>{x.checked=allowed.includes(x.value);x.disabled=role==="관리자";});
+ const captainProcesses=captainProcessesForRole(role);
+ if(captainProcesses.length){
+   document.querySelectorAll('input[name="leaderProcess"]').forEach(x=>{
+     x.checked=captainProcesses.includes(x.value);
+     x.disabled=!captainProcesses.includes(x.value);
+   });
+ }else{
+   document.querySelectorAll('input[name="leaderProcess"]').forEach(x=>x.disabled=false);
+ }
+}
+function saveUser(index=null){
+ const id=v("uid").trim(), password=v("upw"), role=v("urole");
+ if(!id){alert("아이디를 입력하세요.");return;}
+ if(index===null && (db.users||[]).some(u=>u.id===id)){alert("이미 사용 중인 아이디입니다.");return;}
+ const perms=[...document.querySelectorAll('input[name="userPermission"]:checked')].map(x=>x.value);
+ let leaderOf=[...document.querySelectorAll('input[name="leaderProcess"]:checked')].map(x=>x.value);
+ const captainProcesses=captainProcessesForRole(role);
+ if(captainProcesses.length) leaderOf=captainProcesses;
+ const data={id,name:v("uname"),dept:v("udept"),role,status:v("ustatus"),permissions:role==="관리자"?menus.map(x=>x[0]):perms,leaderOf};
+ if(index===null){data.password=password;db.users.push(auditNew(data));}
+ else {if(password)data.password=password;Object.assign(db.users[index],data);auditUpdate(db.users[index],db.users[index]);}
+ saveDB(db);closeModal();render();
+}
+function disableUser(index){
+ const u=db.users[index];if(!u)return;
+ u.status=u.status==="중지"?"사용":"중지";
+ auditUpdate(u,u);saveDB(db);render();
+}
+
+
+function analysisScopeSales(){
+ return (db.sales||[]).filter(isMySalesRow);
+}
+function analysisScopeOrders(){
+ return (db.orders||[]).filter(isMyOrder);
+}
+function monthKey(v){return (v||"").slice(0,7)||"미분류";}
+function pct(n,d){return d?Math.round((n/d)*100):0;}
+function salesAnalysis(){
+ const all=canViewAllSales();
+ const salesRows=analysisScopeSales();
+ const orderRows=analysisScopeOrders();
+ const total=salesRows.reduce((a,x)=>a+Number(x.amount||0),0);
+ const received=salesRows.reduce((a,x)=>a+Number(x.received||0),0);
+ const receivable=salesRows.reduce((a,x)=>a+Number(x.receivable||0),0);
+ const collectionRate=pct(received,total);
+ const byCustomer={};
+ const byMonth={};
+ const byOwner={};
+ salesRows.forEach(x=>{
+   const customer=x.customer||"미지정 거래처";
+   byCustomer[customer]=byCustomer[customer]||{amount:0,received:0,receivable:0,count:0};
+   byCustomer[customer].amount+=Number(x.amount||0);
+   byCustomer[customer].received+=Number(x.received||0);
+   byCustomer[customer].receivable+=Number(x.receivable||0);
+   byCustomer[customer].count+=1;
+   const month=monthKey(x.month);
+   byMonth[month]=(byMonth[month]||0)+Number(x.amount||0);
+   const owner=salesOwnerName(x)||"미지정";
+   byOwner[owner]=(byOwner[owner]||0)+Number(x.amount||0);
+ });
+ const customers=Object.entries(byCustomer).sort((a,b)=>b[1].amount-a[1].amount);
+ const months=Object.entries(byMonth).sort((a,b)=>a[0].localeCompare(b[0]));
+ const owners=Object.entries(byOwner).sort((a,b)=>b[1]-a[1]);
+ const topCustomer=customers[0];
+ const biggestReceivable=customers.slice().sort((a,b)=>b[1].receivable-a[1].receivable)[0];
+ const lastMonth=months[months.length-1];
+ const prevMonth=months[months.length-2];
+ const growth=lastMonth&&prevMonth&&prevMonth[1] ? Math.round(((lastMonth[1]-prevMonth[1])/prevMonth[1])*100) : null;
+ const maxCustomer=Math.max(1,...customers.map(x=>x[1].amount));
+ const maxMonth=Math.max(1,...months.map(x=>x[1]));
+ const maxOwner=Math.max(1,...owners.map(x=>x[1]));
+ const insights=[];
+ if(total===0) insights.push({type:"warn",title:"매출 데이터 부족",text:"분석 가능한 매출 데이터가 아직 없습니다. 수주오더 또는 매출을 등록하면 거래처·수금·담당자 분석이 자동으로 생성됩니다."});
+ else{
+  if(receivable>0) insights.push({type:receivable/total>=0.3?"danger":"warn",title:"수금 리스크",text:`현재 미수금은 ${money(receivable)}으로, 등록 매출의 ${pct(receivable,total)}%입니다. ${biggestReceivable?`${biggestReceivable[0]} 거래처의 미수금 ${money(biggestReceivable[1].receivable)}을 우선 관리하세요.`:""}`});
+  if(topCustomer && topCustomer[1].amount/total>=0.5) insights.push({type:"warn",title:"거래처 집중도",text:`${topCustomer[0]} 거래처 매출 비중이 ${pct(topCustomer[1].amount,total)}%입니다. 핵심 거래처 관리와 함께 신규 고객 다변화가 필요합니다.`});
+  else if(topCustomer) insights.push({type:"",title:"핵심 거래처",text:`최대 매출 거래처는 ${topCustomer[0]}이며 매출 ${money(topCustomer[1].amount)}입니다. 재주문 주기와 수익성 검토 대상으로 관리하세요.`});
+  if(growth!==null) insights.push({type:growth<0?"danger":"",title:"월별 매출 추세",text:`최근 월 매출은 전월 대비 ${growth>=0?"+":""}${growth}%입니다. ${growth<0?"감소 원인을 거래처·납기·수금 기준으로 점검하세요.":"상승 흐름이 유지되도록 핵심 거래처 후속 수주를 관리하세요."}`});
+  const delayed=orderRows.filter(o=>o.status!=="입고완료"&&o.status!=="납품완료"&&o.due&&new Date(o.due)<new Date()).length;
+  if(delayed) insights.push({type:"danger",title:"납기 리스크",text:`현재 납기 경과 생산 오더가 ${delayed}건입니다. 생산 일정 지연이 매출 인식 및 수금 지연으로 이어질 수 있어 우선 점검이 필요합니다.`});
+ }
+ document.getElementById("salesanalysis").innerHTML=`<div class="stack">
+  <div class="card"><h3 class="section-title">${all?"회사 매출 전문가 분석":"내 수주오더 매출 분석"}</h3><div class="notice">${all?"대표·경영관리자 기준 전체 회사 매출, 거래처, 수금 및 영업 담당자 현황을 분석합니다.":"본인이 등록한 수주오더 및 매출만 기준으로 분석합니다."}</div></div>
+  <div class="analysis-grid">
+   <div class="analysis-card"><div class="label">등록 매출</div><div class="value">${money(total)}</div><div class="sub">분석 범위 기준</div></div>
+   <div class="analysis-card"><div class="label">수금액</div><div class="value">${money(received)}</div><div class="sub">수금률 ${collectionRate}%</div></div>
+   <div class="analysis-card"><div class="label">미수금</div><div class="value">${money(receivable)}</div><div class="sub">미수 비중 ${pct(receivable,total)}%</div></div>
+   <div class="analysis-card"><div class="label">활성 거래처</div><div class="value">${customers.length}곳</div><div class="sub">등록 매출 기준</div></div>
+  </div>
+  <div class="analysis-layout">
+   <div class="card"><h3 class="section-title">거래처별 매출 비중</h3><div class="bar-list">${customers.length?customers.slice(0,8).map(([name,d])=>`<div class="bar-row"><div>${name}</div><div class="bar-track"><div class="bar-fill" style="width:${pct(d.amount,maxCustomer)}%"></div></div><b>${money(d.amount)}</b></div>`).join(""):'<div class="empty">분석할 매출 데이터가 없습니다.</div>'}</div></div>
+   <div class="card"><h3 class="section-title">전문가 진단</h3><div class="stack">${insights.map(x=>`<div class="analysis-insight ${x.type||""}"><b>${x.title}</b><br>${x.text}</div>`).join("")}</div></div>
+  </div>
+  <div class="analysis-layout">
+   <div class="card"><h3 class="section-title">월별 매출 추이</h3><div class="bar-list">${months.length?months.map(([month,value])=>`<div class="bar-row"><div>${month}</div><div class="bar-track"><div class="bar-fill" style="width:${pct(value,maxMonth)}%"></div></div><b>${money(value)}</b></div>`).join(""):'<div class="empty">월별 매출 데이터가 없습니다.</div>'}</div></div>
+   <div class="card"><h3 class="section-title">미수금 우선관리 거래처</h3>${table(["거래처","매출","미수금","수금률"],customers.slice().sort((a,b)=>b[1].receivable-a[1].receivable).slice(0,6).map(([name,d])=>`<tr><td><b>${name}</b></td><td>${money(d.amount)}</td><td>${money(d.receivable)}</td><td>${pct(d.received,d.amount)}%</td></tr>`))}</div>
+  </div>
+  ${all?`<div class="card"><h3 class="section-title">영업 담당자별 매출</h3><div class="bar-list">${owners.length?owners.map(([name,value])=>`<div class="bar-row"><div>${name}</div><div class="bar-track"><div class="bar-fill" style="width:${pct(value,maxOwner)}%"></div></div><b>${money(value)}</b></div>`).join(""):'<div class="empty">담당자별 데이터가 없습니다.</div>'}</div></div>`:""}
+ </div>`;
+}
+
+function employees(){
+ const total=db.employees.length;
+ const active=db.employees.filter(e=>(e.status||"재직")==="재직").length;
+ const leave=db.employees.filter(e=>["휴직","퇴사"].includes(e.status)).length;
+ const leaders=db.employees.filter(e=>/(반장|기장|팀장|부장|과장|차장|대표)/.test(e.role||"")).length;
+ document.getElementById("employees").innerHTML=`<div class="stack">
+  <div class="card"><h3 class="section-title">사원관리</h3><div class="notice">사원 기본정보, 근무상태, 담당 공정, 근무조와 설비 배정 현황을 통합 관리합니다.</div></div>
+  <div class="employee-kpis">
+   <div class="employee-kpi"><span>전체 사원</span><b>${total}명</b></div>
+   <div class="employee-kpi"><span>재직 사원</span><b>${active}명</b></div>
+   <div class="employee-kpi"><span>휴직 / 퇴사</span><b>${leave}명</b></div>
+   <div class="employee-kpi"><span>관리 / 기장 인력</span><b>${leaders}명</b></div>
+  </div>
+  <div class="card">
+   <div class="employee-tools">
+    <div class="field"><label>사원 검색</label><input id="employeeSearch" placeholder="성명, 부서, 직책, 담당공정 검색" oninput="employeeSearch()"></div>
+    <div class="field"><label>재직 상태</label><select id="employeeStatusFilter" onchange="employeeSearch()"><option>전체</option><option>재직</option><option>휴직</option><option>퇴사</option></select></div>
+    <button class="btn primary" onclick="openEmployee()">+ 사원 등록</button>
+   </div>
+  </div>
+  <div class="card">${table(["사번 / 성명","부서","직책 / 담당","담당 가능 공정","근무조","연락처","입사일","상태","관리"],db.employees.map((x,i)=>`<tr data-employee-row="${[x.name,x.dept,x.role,(x.skills||[]).join(" ")].join(" ").toLowerCase()}" data-employee-status="${x.status||"재직"}"><td><div class="emp-name-cell"><div class="emp-avatar">${(x.name||"?").slice(0,1)}</div><div><b>${x.name}</b><div class="emp-sub">${empCode(x,i)}</div></div></div></td><td>${x.dept||"-"}</td><td>${x.role||"-"}</td><td>${(x.skills||[]).length?(x.skills||[]).map(s=>`<span class="emp-tag">${s}</span>`).join(""):"-"}</td><td>${x.shift||"-"}</td><td>${x.phone||"-"}</td><td>${x.joinDate||"-"}</td><td>${statusBadge(x.status||"재직")}</td><td><button class="btn small" onclick="employeeDetail(${i})">상세</button><button class="btn small primary" onclick="openEmployee(${i})">수정</button></td></tr>`))}</div>
+ </div>`
+}
+function closing(){
+ const all=canViewAllSales();
+ const closeRows=(db.closing||[]).filter(x=>all || x.ownerId===currentUser()?.id || (!x.ownerId && x.createdBy===currentUserName()));
+ document.getElementById("closing").innerHTML=`<div class="stack">
+  <div class="card"><h3 class="section-title">${all?"전체 영업 월마감":"내 수주오더 월마감"}</h3><div class="notice">${all?"대표/경영관리자는 전체 영업사원의 매출 및 월마감 자료를 확인합니다.":"내가 등록한 수주오더와 연결된 매출만 월마감 자료에 반영됩니다."}</div><br><button class="btn primary" onclick="closeMonth()">이번 달 마감자료 생성</button><p class="footer-note">현재 계정의 권한 범위 기준으로 월마감 행이 생성됩니다.</p></div>
+  <div class="card">${table([...(all?["담당자"]:[]),"월","매출","생산수량","출고수량","미수금","상태","관리"],closeRows.map((x,i)=>`<tr>${all?`<td>${x.ownerName||"전체"}</td>`:""}<td>${x.month}</td><td>${money(x.sales)}</td><td>${fmt(x.production)} EA</td><td>${fmt(x.shipping)} EA</td><td>${money(x.receivable)}</td><td>${statusBadge(x.status)}</td><td><button class="btn small danger" onclick="del('closing',${db.closing.indexOf(x)})">삭제</button></td></tr>`))}</div>
+ </div>`;
+}
+function openModal(title,body){document.getElementById("modalTitle").textContent=title;document.getElementById("modalBody").innerHTML=body;document.getElementById("modal").classList.add("show")}
+function closeModal(){document.getElementById("modal").classList.remove("show")}
+function addForm(fields,submitLabel,fn){return `<form class="form" onsubmit="${fn};return false">${fields.map(f=>`<div class="field ${f.wide?'wide':''}"><label>${f.label}</label>${f.type==="select"?`<select id="${f.id}">${f.options.map(o=>`<option>${o}</option>`).join("")}</select>`:f.type==="textarea"?`<textarea id="${f.id}" placeholder="${f.placeholder||''}"></textarea>`:`<input id="${f.id}" type="${f.type||'text'}" value="${f.value||''}" placeholder="${f.placeholder||''}" ${f.required?'required':''}>`}</div>`).join("")}<div class="form-actions"><button class="btn primary" type="submit">${submitLabel}</button></div></form>`}
+const v=id=>document.getElementById(id).value;
+function customerSearchUI(selected=""){
+ return `<div class="field span2"><label>거래처 검색 / 선택</label><div class="inline-control"><input id="pcustomer" list="customerList" value="${selected}" placeholder="예: 롯 입력 후 목록에서 선택" required><button type="button" class="btn small" onclick="addCustomer()">+ 추가</button></div><datalist id="customerList">${(db.customers||[]).map(c=>`<option value="${c}"></option>`).join("")}</datalist></div>`;
+}
+function addCustomer(){
+ const name=prompt("추가할 거래처명을 입력하세요.");
+ if(!name||!name.trim())return;
+ const n=name.trim(); db.customers=db.customers||[];
+ if(!db.customers.includes(n)){db.customers.push(n);db.customers.sort((a,b)=>a.localeCompare(b,"ko"));saveDB(db);}
+ const inp=document.getElementById("pcustomer"), list=document.getElementById("customerList");
+ if(inp)inp.value=n;
+ if(list)list.innerHTML=db.customers.map(c=>`<option value="${c}"></option>`).join("");
+}
+function paperTypeOptions(selected=""){return (db.paperTypes||["SC","RIV","IV","AB","AB라이트","BV"]).map(x=>`<option ${x===selected?"selected":""}>${x}</option>`).join("")}
+function stockTypeOptions(selected=""){return (db.stockTypes||["B골","E골","F골","G골","단면","양면","기타"]).map(x=>`<option ${x===selected?"selected":""}>${x}</option>`).join("")}
+function addPaperType(){
+ const n=prompt("추가할 용지 종류를 입력하세요.");
+ if(!n||!n.trim())return;
+ const v=n.trim();db.paperTypes=db.paperTypes||[];
+ if(!db.paperTypes.includes(v)){db.paperTypes.push(v);saveDB(db);}
+ const sel=document.getElementById("ppaperType"); if(sel)sel.innerHTML=paperTypeOptions(v);
+}
+function addStockType(){
+ const n=prompt("추가할 원단 종류를 입력하세요.");
+ if(!n||!n.trim())return;
+ const v=n.trim();db.stockTypes=db.stockTypes||[];
+ if(!db.stockTypes.includes(v)){db.stockTypes.push(v);saveDB(db);}
+ const sel=document.getElementById("pstockType"); if(sel)sel.innerHTML=stockTypeOptions(v);
+}
+function calcStock(){
+ const input=document.getElementById("psheet");
+ const out=document.getElementById("pstock");
+ if(!input || !out) return;
+ const raw=input.value.trim().replace(/[xX*]/g,"*").replace(/\s+/g,"");
+ const m=raw.match(/^(\d+)\*(\d+)$/);
+ if(!m){out.value="";return;}
+ const width=Number(m[1]), height=Number(m[2]);
+ if(width<=10 || height<=10){out.value="";return;}
+ // 용지 975 * 650 → 원단 640 * 965
+ out.value=`${height-10} * ${width-10} mm`;
+}
+function switchStockMode(){
+ const auto=document.getElementById("stockAuto").checked;
+ const autoSize=document.getElementById("pstock");
+ const manual=document.getElementById("pstockManual");
+ // 원단 종류는 자동계산 여부와 관계없이 항상 직접 선택합니다.
+ if(autoSize) autoSize.disabled=!auto;
+ if(manual) manual.disabled=auto;
+}
+function validateStock5(){
+ const auto=document.getElementById("stockAuto").checked;
+ if(auto)return true;
+ const raw=document.getElementById("pstockManual").value.trim().replace(/[xX*]/g,"*");
+ if(!raw){alert("직접 입력 원단 규격을 입력하세요.");return false}
+ const m=raw.match(/^(\d+)\s*\*\s*(\d+)$/);
+ if(!m){alert("원단 규격은 예: 640 * 965 형식으로 입력하세요.");return false}
+ if(Number(m[1])%5||Number(m[2])%5){alert("원단 규격은 반드시 5mm 단위로 입력해야 합니다.");return false}
+ document.getElementById("pstock").value=`${Number(m[1])} * ${Number(m[2])} mm`;
+ return true;
+}
+function toggleProductProcess(key){const on=document.getElementById("proc_"+key).checked;document.querySelectorAll("[data-proc='"+key+"']").forEach(e=>e.disabled=!on)}
+function spotFields(){
+ const n=Math.max(0,Math.min(6,Number(document.getElementById("pspot").value)||0));
+ document.getElementById("spotFields").innerHTML=Array.from({length:n},(_,i)=>`<div class="field"><label>별색 ${i+1} 명칭</label><input id="spot_${i}" placeholder="예: Pantone 871C"></div>`).join("");
+}
+function addProcessOption(type){
+ const current=document.getElementById("p"+type+"Type");
+ if(!current)return;
+ const label={print:"인쇄 방식",coating:"코팅 방식",lamination:"합지 방식",glue:"접착 방식"}[type]||"공정";
+ const n=prompt(`추가할 ${label}을 입력하세요.`);
+ if(!n||!n.trim())return;
+ const v=n.trim();
+ let key="processOptions";
+ db[key]=db[key]||{};
+ const defaults={
+   print:["옵셋인쇄","UV인쇄"],
+   coating:["무광CR","유광CR","무광라미","유광라미","Z코팅"],
+   lamination:["합지 일반","편면 합지","양면 합지"],
+   glue:["1면 접착","2면 접착","3면 접착","4면 접착"]
+ };
+ db[key][type]=db[key][type]||defaults[type].slice();
+ if(!db[key][type].includes(v))db[key][type].push(v);
+ saveDB(db);
+ current.innerHTML=db[key][type].map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("");
+}
+function processOptions(type, selected, defaults){
+ const a=(db.processOptions&&db.processOptions[type])||defaults;
+ return a.map(x=>`<option ${x===selected?"selected":""}>${x}</option>`).join("");
+}
+function productProcessUI(p={}){
+ const q=k=>p[k]||false, s=(k,d="")=>p[k]||d;
+ return `<div class="span4"><label style="font-size:12px;color:#475569;font-weight:700">전체 공정</label><div style="margin-top:7px;border:1px solid var(--line);border-radius:9px;padding:13px"><div class="product-form-grid">
+ <div class="field"><label><input type="checkbox" id="proc_print" ${q("print")?"checked":""} onchange="toggleProductProcess('print')"> 인쇄</label><div class="dynamic-options"><select data-proc="print" id="pprintType" ${q("print")?"":"disabled"}>${processOptions("print",s("printType","옵셋인쇄"),["옵셋인쇄","UV인쇄"])}</select><button type="button" class="btn small" onclick="addProcessOption('print')">+ 추가</button></div></div>
+ <div class="field"><label><input type="checkbox" id="proc_coating" ${q("coating")?"checked":""} onchange="toggleProductProcess('coating')"> 코팅</label><div class="dynamic-options"><select data-proc="coating" id="pcoatingType" ${q("coating")?"":"disabled"}>${processOptions("coating",s("coatingType","무광CR"),["무광CR","유광CR","무광라미","유광라미","Z코팅"])}</select><button type="button" class="btn small" onclick="addProcessOption('coating')">+ 추가</button></div></div>
+ <div class="field"><label><input type="checkbox" id="proc_foil" ${q("foil")?"checked":""} onchange="toggleProductProcess('foil')"> 금박</label><input data-proc="foil" id="pfoilSize" value="${s("foilSize")}" placeholder="금박 사이즈" ${q("foil")?"":"disabled"}></div>
+ <div class="field"><label><input type="checkbox" id="proc_emboss" ${q("emboss")?"checked":""} onchange="toggleProductProcess('emboss')"> 형압</label><input data-proc="emboss" id="pembossSize" value="${s("embossSize")}" placeholder="형압 사이즈" ${q("emboss")?"":"disabled"}></div>
+ <div class="field"><label><input type="checkbox" id="proc_lamination" ${q("lamination")?"checked":""} onchange="toggleProductProcess('lamination')"> 합지</label><div class="dynamic-options"><select data-proc="lamination" id="plaminationType" ${q("lamination")?"":"disabled"}>${processOptions("lamination",s("laminationType","합지 일반"),["합지 일반","편면 합지","양면 합지"])}</select><button type="button" class="btn small" onclick="addProcessOption('lamination')">+ 추가</button></div></div>
+ <div class="field"><label><input type="checkbox" id="proc_diecut" ${q("diecut")?"checked":""} onchange="toggleProductProcess('diecut')"> 톰슨</label><select data-proc="diecut" id="pdiecutType" ${q("diecut")?"":"disabled"}><option>톰슨 일반</option></select></div>
+ <div class="field"><label><input type="checkbox" id="proc_glue" ${q("glue")?"checked":""} onchange="toggleProductProcess('glue')"> 접착</label><div class="dynamic-options"><select data-proc="glue" id="pglueType" ${q("glue")?"":"disabled"}>${processOptions("glue",s("glueType","1면 접착"),["1면 접착","2면 접착","3면 접착","4면 접착"])}</select><button type="button" class="btn small" onclick="addProcessOption('glue')">+ 추가</button></div></div>
+ </div></div></div>`;
+}
+function openProduct(index=null){
+ const x=index===null?{}:db.products[index], sm=(x.stock||"").replace(" mm","");
+ const stockAuto=x.stockMode!=="manual";
+ openModal(index===null?"제품사양 등록":"제품사양 수정",`<form onsubmit="saveProduct(${index===null?"null":index});return false">
+ <div class="product-form-grid">
+ <div class="field"><label>제품명</label><input id="pname" value="${x.name||""}" required></div>${customerSearchUI(x.customer||"")}
+ <div class="field"><label>제품 규격</label><input id="psize" value="${x.size||""}" placeholder="예: 180 * 70 * 45 mm"></div>
+ <div class="field"><label>절 수</label><input id="pjeol" type="number" min="1" value="${x.jeol||""}" placeholder="예: 2"></div>
+ <div class="field"><label>용지 종류</label><div class="inline-control"><select id="ppaperType">${paperTypeOptions(x.paperType||"SC")}</select><button type="button" class="btn small" onclick="addPaperType()">+ 추가</button></div></div>
+ <div class="field"><label>평량 (g)</label><input id="ppaperWeight" type="number" min="1" value="${x.paperWeight||""}" required></div>
+ <div class="field"><label>용지 규격 (mm)</label><input id="psheet" value="${x.sheet||""}" placeholder="예: 975 * 650" oninput="calcStock()" onblur="calcStock()" required></div>
+ <div class="span4 stock-mode"><label><input type="radio" name="stockMode" id="stockAuto" ${stockAuto?"checked":""} onchange="switchStockMode()"> 원단 규격 자동계산 사용</label><label><input type="radio" name="stockMode" id="stockManualMode" ${!stockAuto?"checked":""} onchange="switchStockMode()"> 원단 규격 직접입력 사용</label></div>
+ <div class="field"><label>원단 종류</label><div class="inline-control"><select id="pstockType">${stockTypeOptions(x.stockType||"B골")}</select><button type="button" class="btn small" onclick="addStockType()">+ 추가</button></div></div>
+ <div class="field"><label>자동계산 원단 규격</label><input id="pstock" value="${x.stock||""}" readonly></div>
+ <div class="field span2"><label>원단 직접수정 (5mm 단위)</label><input id="pstockManual" value="${sm}" placeholder="예: 640 * 965"></div>
+ <div class="field"><label>인쇄 도수</label><select id="pprintColors">${Array.from({length:7},(_,i)=>`<option ${Number(x.printColors||0)===i?"selected":""}>${i}</option>`).join("")}</select></div>
+ <div class="field"><label>별색 도수</label><select id="pspot" onchange="spotFields()">${Array.from({length:7},(_,i)=>`<option ${Number(x.spotColors||0)===i?"selected":""}>${i}</option>`).join("")}</select></div>
+ <div class="span2" id="spotFields" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px"></div>
+ ${productProcessUI(x.process||{})}
+ <div class="field"><label>포장단위</label><input id="ppack" value="${x.pack||""}"></div><div class="field"><label>제품 단가</label><input id="punit" type="number" value="${x.unit||0}"></div>
+ <div class="field span2"><label>비고</label><textarea id="pnote" placeholder="제품별 주의사항, 고객 요청사항, 작업 특이사항">${x.note||""}</textarea></div>
+ <div class="form-actions span4"><button class="btn primary" type="submit">${index===null?"저장":"수정 저장"}</button></div>
+ </div></form>`);
+ spotFields();(x.spotNames||[]).forEach((name,i)=>{const e=document.getElementById("spot_"+i);if(e)e.value=name});
+ switchStockMode();
+}
+function saveProduct(index){
+ if(!validateStock5())return;const n=Number(v("pspot"))||0, spots=Array.from({length:n},(_,i)=>v("spot_"+i)).filter(Boolean);
+ const auto=document.getElementById("stockAuto").checked;
+ const obj={id:index===null?"P-"+Date.now().toString().slice(-6):db.products[index].id,name:v("pname"),customer:v("pcustomer"),size:v("psize"),jeol:+v("pjeol")||0,paperType:v("ppaperType"),paperWeight:+v("ppaperWeight"),sheet:v("psheet"),stock:v("pstock"),stockType:v("pstockType"),stockMode:auto?"auto":"manual",printColors:+v("pprintColors"),spotColors:n,spotNames:spots,process:{print:document.getElementById("proc_print").checked,printType:v("pprintType"),coating:document.getElementById("proc_coating").checked,coatingType:v("pcoatingType"),foil:document.getElementById("proc_foil").checked,foilSize:v("pfoilSize"),emboss:document.getElementById("proc_emboss").checked,embossSize:v("pembossSize"),lamination:document.getElementById("proc_lamination").checked,laminationType:v("plaminationType"),diecut:document.getElementById("proc_diecut").checked,diecutType:v("pdiecutType"),glue:document.getElementById("proc_glue").checked,glueType:v("pglueType")},pack:v("ppack"),unit:+v("punit")||0,note:v("pnote")};
+ if(index===null){auditNew(obj);db.products.push(obj);selectedProductIndex=db.products.length-1;}else{auditUpdate(obj,db.products[index]);db.products[index]=obj;}if(!db.customers.includes(obj.customer))db.customers.push(obj.customer);saveDB(db);closeModal();render();
+}
+function findProductByName(name){
+ const q=(name||"").trim();
+ return db.products.find(x=>x.name===q) || db.products.find(x=>x.name.toLowerCase()===q.toLowerCase()) || null;
+}
+function updateOrderPaperCalc(){
+ const product=findProductByName(document.getElementById("oproduct").value);
+ const qty=Number(document.getElementById("oqty").value)||0;
+ const extra=Number(document.getElementById("oextra").value)||0;
+ const jeol=Number(product?.jeol)||0;
+ const base=jeol>0?Math.ceil(qty/jeol):0;
+ const total=base+extra;
+ const salesAmount=(Number(product?.unit)||0)*qty;
+ const jeolInfo=document.getElementById("ojeolInfo");
+ const sheetInfo=document.getElementById("osheetQty");
+ const salesInfo=document.getElementById("osalesAmount");
+ const paperInfo=document.getElementById("opaperCalcInfo");
+
+ if(product){
+   document.getElementById("oproductCode").value=product.id||"";
+   document.getElementById("ocustomer").value=product.customer||"";
+   document.getElementById("ounit").value=product.unit?Number(product.unit).toLocaleString("ko-KR")+"원":"0원";
+   if(jeolInfo) jeolInfo.value=jeol?`${jeol}절`:"미입력";
+ }else{
+   document.getElementById("oproductCode").value="";
+   document.getElementById("ocustomer").value="";
+   document.getElementById("ounit").value="";
+   if(jeolInfo) jeolInfo.value="";
+ }
+ if(sheetInfo) sheetInfo.value=(product&&total)?`${total.toLocaleString()}매`:"";
+ if(salesInfo) salesInfo.value=product?`${salesAmount.toLocaleString("ko-KR")}원`:"";
+ if(paperInfo){
+   if(!document.getElementById("oproduct").value.trim()) paperInfo.textContent="제품명을 검색해 제품사양서를 불러오세요.";
+   else if(!product) paperInfo.textContent="일치하는 제품사양서가 없습니다. 제품사양서에 먼저 등록해 주세요.";
+   else if(!jeol) paperInfo.textContent="제품사양서에 절 수가 입력되지 않았습니다.";
+   else paperInfo.textContent=`계산: 수량 ${qty.toLocaleString()} EA ÷ ${jeol}절 = ${base.toLocaleString()}매 + 여유 ${extra.toLocaleString()}매 = ${total.toLocaleString()}매`;
+ }
+}
+function searchOrderProduct(){
+ const input=document.getElementById("oproduct");
+ const product=findProductByName(input.value);
+ if(!product){
+   alert("제품사양서에서 일치하는 제품을 찾지 못했습니다. 목록에서 선택하거나 제품사양서를 먼저 등록하세요.");
+   return;
+ }
+ input.value=product.name;
+ updateOrderPaperCalc();
+ document.getElementById("oqty").focus();
+}
+function clearOrderProduct(){
+ document.getElementById("oproduct").value="";
+ document.getElementById("ocustomer").value="";
+ document.getElementById("ojeolInfo").value="";
+ document.getElementById("ounit").value="";
+ document.getElementById("osalesAmount").value="";
+ document.getElementById("osheetQty").value="";
+ document.getElementById("oqty").value="";
+ document.getElementById("oextra").value="0";
+ updateOrderPaperCalc();
+}
+function openOrder(){
+ openModal("수주오더 등록",`<form class="form" onsubmit="saveOrder();return false">
+ <div class="field"><label>수주일</label><input id="odate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+ <div class="field wide"><label>제품명 검색</label><div class="inline-control"><input id="oproduct" list="orderProductList" placeholder="제품명 입력 후 검색" oninput="updateOrderPaperCalc()" onchange="updateOrderPaperCalc()" required><datalist id="orderProductList">${db.products.map(x=>`<option value="${x.name}">${x.id} · ${x.customer}</option>`).join("")}</datalist><button type="button" class="btn small primary" onclick="searchOrderProduct()">검색</button><button type="button" class="btn small" onclick="clearOrderProduct()">초기화</button></div></div>
+ <div class="field"><label>제품번호</label><input id="oproductCode" value="" placeholder="검색 후 확인" readonly></div>
+ <div class="field"><label>거래처</label><input id="ocustomer" readonly placeholder="제품 선택 시 자동입력"></div>
+ <div class="field"><label>절 수</label><input id="ojeolInfo" readonly placeholder="자동입력"></div>
+ <div class="field"><label>단가</label><input id="ounit" readonly placeholder="자동입력"></div>
+ <div class="field"><label>수주수량 (EA)</label><input id="oqty" type="number" min="1" oninput="updateOrderPaperCalc()" required></div>
+ <div class="field"><label>예상 매출</label><input id="osalesAmount" readonly placeholder="단가 * 수량 자동계산"></div>
+ <div class="field"><label>여유분 (매)</label><input id="oextra" type="number" min="0" value="0" oninput="updateOrderPaperCalc()"></div>
+ <div class="field"><label>필요 용지수 (매)</label><input id="osheetQty" readonly></div>
+ <div class="field wide"><label>용지수 계산</label><div id="opaperCalcInfo" class="notice">제품명을 검색해 제품사양서를 불러오세요.</div></div>
+ <div class="field"><label>납기일</label><input id="odue" type="date" required></div>
+ <div class="field"><label>상태</label><select id="ostatus"><option>접수</option><option>작업지시</option><option>생산중</option><option>출고완료</option></select></div>
+ <div class="field wide"><label>비고</label><textarea id="onote"></textarea></div>
+ <div class="form-actions"><button class="btn primary" type="submit">등록</button></div>
+ </form>`);
+ updateOrderPaperCalc();
+}
+function saveOrder(){
+ const product=findProductByName(v("oproduct"));
+ const qty=+v("oqty")||0;
+ const extra=+v("oextra")||0;
+ const jeol=Number(product?.jeol)||0;
+ if(!product){alert("제품사양서에서 제품을 검색해 선택하세요.");return;}
+ if(!jeol){alert("선택한 제품의 절 수가 제품사양서에 입력되어 있지 않습니다.");return;}
+ const sheetBase=Math.ceil(qty/jeol);
+ const sheetQty=sheetBase+extra;
+ const orderId="SO-"+Date.now().toString().slice(-6);
+ const unit=+product.unit||0;
+ const amount=unit*qty;
+ const u=currentUser();
+ const newOrder=auditNew({
+  id:orderId,
+  ownerId:u?.id||"",
+  ownerName:u?`${u.name} (${u.dept})`:"",
+  date:v("odate"),
+  customer:product.customer||"",
+  product:product.name,
+  productCode:product.id,
+  unit,
+  amount,
+  qty,jeol,extra,sheetBase,sheetQty,
+  due:v("odue"),status:"작업지시",note:v("onote")
+ });
+ newOrder.workflow=productWorkflow(product.name).map((process,i)=>({
+   process,
+   stage:i===0?"준비":"대기",
+   inputQty:i===0?sheetQty:0,
+   completedQty:0,
+   completedBy:"",
+   completedAt:"",
+   note:""
+ }));
+ db.orders.push(newOrder);
+ // 수주오더 등록과 동시에 매출관리 표에 예상 매출을 자동 등록합니다.
+ db.sales=db.sales||[];
+ const exists=db.sales.some(x=>x.order===orderId);
+ if(!exists){
+   db.sales.push(auditNew({
+     month:(v("odate")||new Date().toISOString().slice(0,10)).slice(0,7),
+     customer:product.customer||"",
+     order:orderId,
+     product:product.name,
+     unit,
+     qty,
+     amount,
+     received:0,
+     receivable:amount,
+     status:"미수",
+     ownerId:newOrder.ownerId,
+     ownerName:newOrder.ownerName
+   }));
+ }
+ saveDB(db);closeModal();render();
+}
+function openWork(){openModal("작업지시 등록",addForm([{id:"worder",label:"오더번호",type:"select",options:db.orders.map(x=>x.id)},{id:"wproduct",label:"제품명",type:"select",options:db.products.map(x=>x.name)},{id:"wprocess",label:"공정",type:"select",options:processList},{id:"wmachine",label:"설비 / 라인"},{id:"wplan",label:"계획일",type:"date",value:new Date().toISOString().slice(0,10)},{id:"wqty",label:"지시수량",type:"number"},{id:"wmanager",label:"담당자",type:"select",options:db.employees.map(x=>x.name)},{id:"wstatus",label:"상태",type:"select",options:["대기","진행중","완료"]}],"등록","saveWork()"))}
+function saveWork(){db.work.push(auditNew({id:"WO-"+Date.now().toString().slice(-6),order:v("worder"),product:v("wproduct"),process:v("wprocess"),machine:v("wmachine"),plan:v("wplan"),qty:+v("wqty"),manager:v("wmanager"),status:v("wstatus")}));saveDB(db);closeModal();render()}
+function makeWork(i){let o=db.orders[i];openModal("작업지시 빠른 등록",addForm([{id:"worder",label:"오더번호",value:o.id},{id:"wproduct",label:"제품명",value:o.product},{id:"wprocess",label:"공정",type:"select",options:processList},{id:"wmachine",label:"설비 / 라인"},{id:"wplan",label:"계획일",type:"date",value:new Date().toISOString().slice(0,10)},{id:"wqty",label:"지시수량",type:"number",value:o.qty},{id:"wmanager",label:"담당자",type:"select",options:db.employees.map(x=>x.name)},{id:"wstatus",label:"상태",type:"select",options:["대기","진행중","완료"]}],"작업지시 등록","saveWork()"))}
+function openProduction(){openModal("생산실적 입력",addForm([{id:"prodate",label:"작업일자",type:"date",value:new Date().toISOString().slice(0,10)},{id:"proorder",label:"오더번호",type:"select",options:db.orders.map(x=>x.id)},{id:"proproduct",label:"제품명",type:"select",options:db.products.map(x=>x.name)},{id:"proprocess",label:"공정",type:"select",options:processList},{id:"promachine",label:"설비",type:"select",options:["미지정",...machines().map(m=>m.name)]},{id:"progood",label:"양품 수량",type:"number"},{id:"probad",label:"불량 수량",type:"number"},{id:"proprogress",label:"진행률 (%)",type:"number"},{id:"pronote",label:"실적 메모",type:"textarea",wide:true}],"등록","saveProduction()"))}
+function saveProduction(){db.production.push(auditNew({date:v("prodate"),order:v("proorder"),product:v("proproduct"),process:v("proprocess"),machine:v("promachine")==="미지정"?"":v("promachine"),good:+v("progood")||0,bad:+v("probad")||0,progress:Math.min(100,+v("proprogress")||0),note:v("pronote"),updated:new Date().toLocaleString("ko-KR")}));saveDB(db);closeModal();render()}
+function openShipping(){openModal("출고 / 납품 등록",addForm([{id:"sdate",label:"출고일",type:"date",value:new Date().toISOString().slice(0,10)},{id:"scustomer",label:"거래처",required:true},{id:"sorder",label:"오더번호",type:"select",options:db.orders.map(x=>x.id)},{id:"sproduct",label:"제품명",type:"select",options:db.products.map(x=>x.name)},{id:"sqty",label:"출고수량",type:"number"},{id:"svehicle",label:"차량 / 운송정보"},{id:"sstatus",label:"상태",type:"select",options:["출고완료","납품완료"]},{id:"snote",label:"비고",type:"textarea",wide:true}],"등록","saveShipping()"))}
+function saveShipping(){db.shipping.push(auditNew({date:v("sdate"),customer:v("scustomer"),order:v("sorder"),product:v("sproduct"),qty:+v("sqty")||0,vehicle:v("svehicle"),status:v("sstatus"),note:v("snote")}));saveDB(db);closeModal();render()}
+function openInventory(mode="material"){
+ const isFinished=mode==="finished";
+ openModal(isFinished?"완제품 재고 등록":"원지 / 원단 / 부자재 등록", addForm([
+  {id:"itype",label:"구분",type:"select",options:isFinished?["완제품"]:["원지","원단","부자재"]},
+  {id:"iname",label:"품목명",required:true},
+  {id:"ispec",label:"규격"},
+  {id:"istock",label:"현재고",type:"number"},
+  {id:"iunit",label:"단위",placeholder:isFinished?"EA":"매 / 롤 / EA"},
+  {id:"imin",label:"최소재고",type:"number"},
+  {id:"iloc",label:"보관위치",type:"select",options:isFinished?warehouses():["원지창고","부자재창고","후가공창고","기타"]},
+  {id:"inote",label:"비고",type:"textarea",wide:true}
+ ],"등록","saveInventory()"))
+}
+function saveInventory(){db.inventory.push(auditNew({type:v("itype"),name:v("iname"),spec:v("ispec"),stock:+v("istock")||0,unit:v("iunit"),min:+v("imin")||0,location:v("iloc"),note:v("inote")}));saveDB(db);closeModal();render()}
+function openSales(){openModal("매출 등록",addForm([{id:"smonth",label:"매출월",type:"month",value:"2026-06"},{id:"salcustomer",label:"거래처",required:true},{id:"salorder",label:"오더번호"},{id:"salamount",label:"매출액",type:"number"},{id:"salreceived",label:"수금액",type:"number"}],"등록","saveSales()"))}
+function saveSales(){let amount=+v("salamount")||0, received=+v("salreceived")||0, receivable=amount-received;const u=currentUser();db.sales.push(auditNew({month:v("smonth"),customer:v("salcustomer"),order:v("salorder"),amount,received,receivable,status:receivable<=0?"수금완료":received>0?"부분수금":"미수",ownerId:u?.id||"",ownerName:u?`${u.name} (${u.dept})`:""}));saveDB(db);closeModal();render()}
+function openEmployee(index=null){
+ const e=index!==null?db.employees[index]:{};
+ const skillOptions=["인쇄","코팅","금박","형압","합지","톰슨","접착","포장","영업","품질","출고 / 납품","관리"];
+ openModal(index!==null?"사원 정보 수정":"사원 등록", `<form class="form" onsubmit="saveEmployee(${index===null?"null":index});return false">
+  <div class="field"><label>사번</label><input id="ecode" value="${e.code||`SE-${String(db.employees.length+1).padStart(3,"0")}`}" required></div>
+  <div class="field"><label>성명</label><input id="ename" value="${e.name||""}" required></div>
+  <div class="field"><label>부서</label><select id="edept">${["생산1팀","생산2팀","후가공팀","품질관리팀","영업팀","관리팀","물류팀","기타"].map(x=>`<option ${e.dept===x?"selected":""}>${x}</option>`).join("")}</select></div>
+  <div class="field"><label>직책 / 담당</label><input id="erole" value="${e.role||""}" placeholder="예: 인쇄 기장, 생산 반장"></div>
+  <div class="field"><label>연락처</label><input id="ephone" value="${e.phone||""}" placeholder="010-0000-0000"></div>
+  <div class="field"><label>입사일</label><input id="ejoinDate" type="date" value="${e.joinDate||""}"></div>
+  <div class="field"><label>고용형태</label><select id="eemploymentType">${["정규직","계약직","일용직","외주","기타"].map(x=>`<option ${e.employmentType===x?"selected":""}>${x}</option>`).join("")}</select></div>
+  <div class="field"><label>근무조</label><select id="eshift">${["주간","야간","2교대","3교대","상시","미정"].map(x=>`<option ${e.shift===x?"selected":""}>${x}</option>`).join("")}</select></div>
+  <div class="field"><label>재직상태</label><select id="estatus">${["재직","휴직","퇴사"].map(x=>`<option ${(e.status||"재직")===x?"selected":""}>${x}</option>`).join("")}</select></div>
+  <div class="field wide"><label>담당 가능 공정</label><div class="warehouse-choice">${skillOptions.map(s=>`<label class="warehouse-option"><input type="checkbox" name="employeeSkill" value="${s}" ${(e.skills||[]).includes(s)?"checked":""}>${s}</label>`).join("")}</div></div>
+  <div class="field wide"><label>비고</label><textarea id="enote" placeholder="자격증, 근무 유의사항, 기타 메모">${e.note||""}</textarea></div>
+  <div class="form-actions"><button class="btn primary" type="submit">${index!==null?"수정 저장":"사원 등록"}</button></div>
+ </form>`);
+}
+function saveEmployee(index=null){
+ const skills=[...document.querySelectorAll('input[name="employeeSkill"]:checked')].map(x=>x.value);
+ const data={code:v("ecode"),name:v("ename"),dept:v("edept"),role:v("erole"),phone:v("ephone"),joinDate:v("ejoinDate"),employmentType:v("eemploymentType"),shift:v("eshift"),status:v("estatus"),skills,note:v("enote")};
+ const duplicated=db.employees.some((x,i)=>x.code===data.code && i!==index);
+ if(duplicated){alert("이미 사용 중인 사번입니다.");return;}
+ if(index===null) db.employees.push(auditNew(data));
+ else {Object.assign(db.employees[index],data);auditUpdate(db.employees[index],db.employees[index]);}
+ saveDB(db);closeModal();render();
+}
+function closeMonth(){
+ const month=new Date().toISOString().slice(0,7);
+ const all=canViewAllSales();
+ const scopeOrders=(db.orders||[]).filter(isMyOrder);
+ const scopeOrderIds=new Set(scopeOrders.map(o=>o.id));
+ const scopedSales=(db.sales||[]).filter(x=>x.month===month && isMySalesRow(x));
+ const sales=scopedSales.reduce((a,x)=>a+Number(x.amount||0),0);
+ const rec=scopedSales.reduce((a,x)=>a+Number(x.receivable||0),0);
+ const prod=(db.production||[]).filter(x=>all || scopeOrderIds.has(x.order)).reduce((a,x)=>a+Number(x.good||0),0);
+ const ship=(db.shipping||[]).filter(x=>all || scopeOrderIds.has(x.order)).reduce((a,x)=>a+Number(x.qty||0),0);
+ const u=currentUser();
+ db.closing.unshift(auditNew({month,sales,production:prod,shipping:ship,receivable:rec,status:"검토중",ownerId:all?"ALL":u?.id||"",ownerName:all?"전체 영업사원":(u?`${u.name} (${u.dept})`:"")}));
+ saveDB(db);render();alert(all?"전체 영업 월마감 검토 자료가 생성되었습니다.":"내 수주오더 기준 월마감 검토 자료가 생성되었습니다.");
+}
+function del(key,i){
+ if(isReadOnly()){alert("조회전용 계정은 데이터를 변경할 수 없습니다.");return;}
+ if(confirm("이 데이터를 삭제할까요?")){const removed=db[key][i];db.auditLog=db.auditLog||[];db.auditLog.unshift({action:"삭제",menu:key,item:removed.id||removed.name||removed.product||"-",by:currentUserName(),at:new Date().toLocaleString("ko-KR")});db[key].splice(i,1);saveDB(db);render()}
+}
+function exportData(){const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="printflow_erp_backup.json";a.click();URL.revokeObjectURL(a.href)}
+function importData(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{db=JSON.parse(r.result);saveDB(db);render();alert("데이터를 불러왔습니다.")}catch{alert("올바른 백업 파일이 아닙니다.")}};r.readAsText(file)}
+function resetDemo(){if(confirm("현재 입력한 데이터가 모두 초기화됩니다.")){db=demo();saveDB(db);render()}}
+nav();updateUserChip();if(!ensureLogin()){}render();void pullStateFromServer();
+</script>
+</body></html>
+
+
+
+
+
+
+
+
+
+
+
+

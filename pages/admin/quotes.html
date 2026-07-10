@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>견적 접수 확인 — Admin</title>
+    <title>견적 접수 확인 — 성은지기인쇄(주) | SEPNP Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -53,7 +53,7 @@
         <div class="nav-actions" aria-label="계정 영역"></div>
       </div>
     </header>
-    <main class="container admin-wrap">
+    <main class="container admin-wrap admin-timeline">
       <h1 class="page-title">견적 접수 확인</h1>
       <div class="quotes-toolbar" aria-label="견적 관리 도구">
         <div class="field"><label for="qSearch">검색</label><input id="qSearch" placeholder="회사명/직급/성명/이메일/제품/요청사항" /></div>
@@ -68,7 +68,7 @@
         <button class="btn" id="qExport">CSV 내보내기</button>
         <span id="qCount" class="muted ml-auto">0건</span>
       </div>
-      <div id="quotesAdminTableWrap">
+      <div id="quotesAdminTableWrap" class="admin-card-list" aria-live="polite">
         <div class="loading">견적 데이터를 불러오는 중…</div>
       </div>
       <div id="quotesPager" class="pager" aria-label="페이지 이동"></div>
